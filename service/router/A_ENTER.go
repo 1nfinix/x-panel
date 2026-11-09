@@ -37,10 +37,7 @@ func InitRouters(addr string) error {
 	// 上传的文件
 	sourcePath := global.Config.GetValueString("base", "source_path")
 	uploadURLPath := sourcePath[1:]
-	router.Static(uploadURLPath, sourcePath)
-	if uploadURLPath != "/uploads" {
-		router.Static("/uploads", sourcePath)
-	}
+	registerUploadStaticRoutes(router, uploadURLPath, sourcePath)
 	wallpaper.Start(sourcePath)
 
 	files, err := webRootFiles(webPath)
@@ -101,4 +98,19 @@ func webPathForExecutable(executable string) string {
 		return "./web"
 	}
 	return webPath
+}
+
+func registerUploadStaticRoutes(router *gin.Engine, uploadURLPath, sourcePath string) {
+	serve := func(route string) {
+		group := router.Group(route, func(c *gin.Context) {
+			c.Header("X-Content-Type-Options", "nosniff")
+			c.Header("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox")
+			c.Next()
+		})
+		group.Static("/", sourcePath)
+	}
+	serve(uploadURLPath)
+	if uploadURLPath != "/uploads" {
+		serve("/uploads")
+	}
 }

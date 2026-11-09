@@ -2,6 +2,8 @@ package system
 
 import (
 	"fmt"
+	"io"
+	"mime/multipart"
 	"os"
 	"path"
 	"path/filepath"
@@ -13,6 +15,7 @@ import (
 	"x-panel/api/api_v1/common/base"
 	"x-panel/global"
 	"x-panel/lib/cmn"
+	"x-panel/lib/imagecheck"
 	"x-panel/models"
 
 	"github.com/gin-gonic/gin"
@@ -52,6 +55,25 @@ func resolveStoredFileSrc(sourcePath, src string) (diskPath, publicURL string, e
 	return diskPath, publicURL, nil
 }
 
+func validUploadedImage(f *multipart.FileHeader) bool {
+	ext := strings.ToLower(path.Ext(f.Filename))
+	if ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".gif" && ext != ".webp" && ext != ".ico" {
+		return false
+	}
+	file, err := f.Open()
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+	var header [512]byte
+	n, err := io.ReadFull(file, header[:])
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return false
+	}
+	detectedExt, err := imagecheck.Extension(header[:n])
+	return err == nil && imagecheck.ValidExtension(ext, detectedExt)
+}
+
 func (a *FileApi) UploadImg(c *gin.Context) {
 	userInfo, _ := base.GetCurrentUserInfo(c)
 	configUpload := global.Config.GetValueString("base", "source_path")
@@ -61,17 +83,7 @@ func (a *FileApi) UploadImg(c *gin.Context) {
 		return
 	} else {
 		fileExt := strings.ToLower(path.Ext(f.Filename))
-		agreeExts := []string{
-			".png",
-			".jpg",
-			".gif",
-			".jpeg",
-			".webp",
-			".svg",
-			".ico",
-		}
-
-		if !cmn.InArray(agreeExts, fileExt) {
+		if !validUploadedImage(f) {
 			apiReturn.ErrorByCode(c, 1301)
 			return
 		}
@@ -82,7 +94,10 @@ func (a *FileApi) UploadImg(c *gin.Context) {
 			os.MkdirAll(fildDir, os.ModePerm)
 		}
 		filepath := fmt.Sprintf("%s%s%s", fildDir, fileName, fileExt)
-		c.SaveUploadedFile(f, filepath)
+		if err := c.SaveUploadedFile(f, filepath); err != nil {
+			apiReturn.ErrorDatabase(c, err.Error())
+			return
+		}
 
 		// 像数据库添加记录
 		mFile := models.File{}
@@ -106,6 +121,10 @@ func (a *FileApi) UploadFiles(c *gin.Context) {
 	errFiles := []string{}
 	succMap := map[string]string{}
 	for _, f := range files {
+		if !validUploadedImage(f) {
+			errFiles = append(errFiles, f.Filename)
+			continue
+		}
 		fileExt := strings.ToLower(path.Ext(f.Filename))
 		fileName := cmn.Md5(fmt.Sprintf("%s%s", f.Filename, time.Now().String()))
 		fildDir := fmt.Sprintf("%s/%d/%d/%d/", configUpload, time.Now().Year(), time.Now().Month(), time.Now().Day())
