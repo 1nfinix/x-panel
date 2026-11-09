@@ -71,7 +71,7 @@ func TestGetOneFaviconURLAppleAndFallback(t *testing.T) {
 }
 
 func TestRejectNonPublicAddresses(t *testing.T) {
-	for _, raw := range []string{"127.0.0.1", "10.1.2.3", "169.254.0.23", "100.64.1.1", "::1", "fc00::1", "fe80::1"} {
+	for _, raw := range []string{"127.0.0.1", "10.1.2.3", "169.254.0.23", "100.64.1.1", "0.1.2.3", "192.0.0.9", "198.18.1.1", "255.255.255.255", "64:ff9b::a00:1", "::1", "fc00::1", "fe80::1"} {
 		if publicIP(netip.MustParseAddr(raw)) {
 			t.Errorf("accepted %s", raw)
 		}

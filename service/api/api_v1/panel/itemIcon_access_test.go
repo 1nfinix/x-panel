@@ -38,6 +38,14 @@ func TestIconEditsRespectOwnerAndGroup(t *testing.T) {
 	if err := db.Create(&icon).Error; err != nil {
 		t.Fatal(err)
 	}
+	iconJSON, err := json.Marshal(models.ItemIcon{}.Icon)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ownIcon := models.ItemIcon{Title: "same", UserId: 1, ItemIconGroupId: int(own.ID), IconJson: string(iconJSON)}
+	if err := db.Create(&ownIcon).Error; err != nil {
+		t.Fatal(err)
+	}
 
 	call := func(handler gin.HandlerFunc, body any) int {
 		t.Helper()
@@ -67,6 +75,12 @@ func TestIconEditsRespectOwnerAndGroup(t *testing.T) {
 	}
 	if code := call((&ItemIcon{}).AddMultiple, []models.ItemIcon{{Title: "bad group", ItemIconGroupId: int(other.ID)}}); code == 0 {
 		t.Fatal("foreign group accepted by AddMultiple")
+	}
+	if code := call((&ItemIcon{}).Edit, models.ItemIcon{BaseModel: models.BaseModel{ID: ownIcon.ID}, Title: ownIcon.Title, ItemIconGroupId: ownIcon.ItemIconGroupId}); code != 0 {
+		t.Fatalf("unchanged own icon edit failed: code %d", code)
+	}
+	if code := call((&ItemIconGroup{}).Edit, models.ItemIconGroup{BaseModel: models.BaseModel{ID: own.ID}, Title: own.Title}); code != 0 {
+		t.Fatalf("unchanged own group edit failed: code %d", code)
 	}
 	var got models.ItemIcon
 	if err := db.First(&got, icon.ID).Error; err != nil {

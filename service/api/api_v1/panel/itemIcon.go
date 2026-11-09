@@ -61,6 +61,15 @@ func (a *ItemIcon) Edit(c *gin.Context) {
 
 	if req.ID != 0 {
 		// 修改
+		var itemCount int64
+		if err := global.Db.Model(&models.ItemIcon{}).Where("id=? AND user_id=?", req.ID, userInfo.ID).Count(&itemCount).Error; err != nil {
+			apiReturn.ErrorDatabase(c, err.Error())
+			return
+		}
+		if itemCount == 0 {
+			apiReturn.ErrorDataNotFound(c)
+			return
+		}
 		updateField := []string{"IconJson", "Title", "Url", "LanUrl", "Description", "OpenMethod", "ItemIconGroupId"}
 		if req.Sort != 0 {
 			updateField = append(updateField, "Sort")
@@ -70,10 +79,6 @@ func (a *ItemIcon) Edit(c *gin.Context) {
 			Where("id=? AND user_id=?", req.ID, userInfo.ID).Updates(&req)
 		if result.Error != nil {
 			apiReturn.ErrorDatabase(c, result.Error.Error())
-			return
-		}
-		if result.RowsAffected == 0 {
-			apiReturn.ErrorDataNotFound(c)
 			return
 		}
 	} else {
