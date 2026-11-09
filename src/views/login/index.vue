@@ -134,10 +134,10 @@ function handleChangeLanuage(value: Language) {
         </NFormItem>
 
         <!-- <div class="flex justify-end">
-          <NButton v-if="isShowRegister" quaternary type="info" class="flex" @click="$router.push({ path: '/register' })">
+          <NButton v-if="isShowRegister" text type="primary" class="flex" @click="$router.push({ path: '/register' })">
             注册
           </NButton>
-          <NButton quaternary type="info" class="flex" @click="$router.push({ path: '/resetPassword' })">
+          <NButton text type="primary" class="flex" @click="$router.push({ path: '/resetPassword' })">
             忘记密码?
           </NButton>
         </div> -->

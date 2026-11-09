@@ -47,7 +47,7 @@ const createColumns = ({
       render(row) {
         switch (row.role) {
           case AdminAuthRole.admin:
-            return h(NTag, { type: 'info' }, t('common.role.admin'))
+            return h(NTag, { type: 'default' }, t('common.role.admin'))
           case AdminAuthRole.regularUser:
             return h(NTag, t('common.role.regularUser'))
           default:
@@ -205,8 +205,13 @@ async function deletes(ids: number[]) {
 }
 
 onMounted(() => {
-  getPublicVisitUser<User.Info>().then(({ data }) => {
-    publicVisitUserId.value = data.id || null
+  getPublicVisitUser<User.Info | undefined>().then(({ code, data }) => {
+    if (code === 0 && data)
+      publicVisitUserId.value = data.id || null
+    else if (code === -1)
+      publicVisitUserId.value = null
+  }).catch(() => {
+    publicVisitUserId.value = null
   })
   getList(null)
 })

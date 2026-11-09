@@ -96,7 +96,7 @@
       "bookmarkImport": "Import",
       "bookmarkImportSuccess": "Imported {count} sites",
       "bookmarkFilling": "Filling icons",
-      "bookmarkFillProgress": "Done {done} / Failed {failed}",
+      "bookmarkFillProgress": "Succeeded {success} / Failed {failed}",
       "bookmarkFillFailed": "Failed to fill {count} icons; see details below",
       "bookmarkRefreshHint": "Icon filling is complete. Refresh the page to see updates.",
       "bookmarkReadFailed": "Failed to read bookmarks",

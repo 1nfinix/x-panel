@@ -21,7 +21,7 @@ const sortStatus = ref(false)
 
 const defaultMNodal = {
   title: '',
-  icon: 'material-symbols:folder-outline',
+  icon: 'material-symbols:ad-group-outline-rounded',
   sort: 9999,
 }
 
@@ -126,7 +126,7 @@ onMounted(() => {
 <template>
   <div class="h-full">
     <div class="p-2">
-      <NButton type="success" size="small" style="margin-right: 10px;" @click="handleAddGroup">
+      <NButton type="primary" size="small" class="mr-3" @click="handleAddGroup">
         {{ $t('common.add') }}
       </NButton>
 
@@ -134,7 +134,7 @@ onMounted(() => {
         {{ $t('common.sort') }}
       </NButton>
 
-      <NButton v-else type="warning" size="small" @click="handleSaveSort">
+      <NButton v-else type="primary" size="small" @click="handleSaveSort">
         {{ $t('common.saveSort') }}
       </NButton>
     </div>
@@ -160,14 +160,14 @@ onMounted(() => {
               </div>
               <div class="ml-auto">
                 <span>
-                  <NButton strong secondary type="success" size="small" @click="handleEditGroup(item)">
+                  <NButton secondary size="small" @click="handleEditGroup(item)">
                     <template #icon>
                       <SvgIcon icon="basil:edit-solid" />
                     </template>
                   </NButton>
                 </span>
                 <span class="ml-3">
-                  <NButton strong secondary type="error" size="small" class="ml-3" @click="handleDelete(item)">
+                  <NButton text type="error" size="small" class="ml-3" @click="handleDelete(item)">
                     <template #icon>
                       <SvgIcon icon="material-symbols:delete" />
                     </template>
@@ -191,7 +191,7 @@ onMounted(() => {
         </NFormItem> -->
       </NForm>
       <template #footer>
-        <NButton type="success" size="small" class="float-right" @click="handleSaveGroup">
+        <NButton type="primary" size="small" class="float-right" @click="handleSaveGroup">
           {{ $t('common.confirm') }}
         </NButton>
       </template>

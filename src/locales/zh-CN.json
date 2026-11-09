@@ -96,7 +96,7 @@
       "bookmarkImport": "导入",
       "bookmarkImportSuccess": "已导入 {count} 个网址",
       "bookmarkFilling": "正在补图标",
-      "bookmarkFillProgress": "完成 {done} / 失败 {failed}",
+      "bookmarkFillProgress": "成功 {success} / 失败 {failed}",
       "bookmarkFillFailed": "补图标失败 {count} 个，详情见下方",
       "bookmarkRefreshHint": "补图标完成，请刷新页面查看",
       "bookmarkReadFailed": "读取书签失败",

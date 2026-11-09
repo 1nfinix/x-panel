@@ -66,9 +66,31 @@ export function useTheme() {
       },
       Card: { borderRadius: '12px' },
       Input: {
+        border: `1px solid ${colors.hairline}`,
         borderFocus: `1px solid ${colors.primary}`,
         borderHover: `1px solid ${colors.primary}`,
         boxShadowFocus: `0 0 0 3px ${colors.focusRing}`,
+      },
+      Select: {
+        peers: {
+          InternalSelection: {
+            border: `1px solid ${colors.hairline}`,
+            borderHover: `1px solid ${colors.primary}`,
+            borderFocus: `1px solid ${colors.primary}`,
+            boxShadowFocus: `0 0 0 3px ${colors.focusRing}`,
+          },
+        },
+      },
+      Alert: {
+        colorInfo: colors.surfaceCard,
+        borderInfo: `1px solid ${colors.hairline}`,
+        iconColorInfo: colors.ink,
+        titleTextColorInfo: colors.ink,
+        contentTextColorInfo: colors.body,
+        colorWarning: colors.surfaceCard,
+        borderWarning: `1px solid ${colors.hairline}`,
+        iconColorWarning: colors.primary,
+        contentTextColorWarning: colors.body,
       },
       Button: {
         fontWeightStrong: '500',

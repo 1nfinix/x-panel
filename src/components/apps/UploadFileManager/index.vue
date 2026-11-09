@@ -125,7 +125,7 @@ onMounted(() => {
                         <SvgIcon icon="lucide:wallpaper" />
                       </template>
                     </NButton>
-                    <NButton size="tiny" tertiary type="error" style="cursor: pointer;" :title="$t('common.delete')" @click="handleDelete(item.id as number)">
+                    <NButton size="tiny" text type="error" style="cursor: pointer;" :title="$t('common.delete')" @click="handleDelete(item.id as number)">
                       <template #icon>
                         <SvgIcon icon="material-symbols-delete" />
                       </template>

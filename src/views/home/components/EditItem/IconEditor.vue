@@ -131,7 +131,7 @@ const handleUploadFinish = ({
             <div>
               <NInput v-model:value="itemIconInfo.text" class="mb-1" size="small" type="text" :placeholder="$t('iconItem.inputIconName')" @input="handleChange" />
 
-              <NButton quaternary type="info">
+              <NButton text type="primary">
                 <a target="_blank" href="https://icon-sets.iconify.design/">{{ $t('iconItem.onlineIconLibrary') }}</a>
               </NButton>
             </div>
@@ -172,7 +172,7 @@ const handleUploadFinish = ({
           />
         </div>
         <div v-if="itemIconInfo.backgroundColor !== initData.backgroundColor" class="w-auto text-muted mr-3 cursor-pointer">
-          <NButton quaternary type="info" @click="handleResetBackgroundColor">
+          <NButton text type="primary" @click="handleResetBackgroundColor">
             {{ $t('common.reset') }}
           </NButton>
         </div>

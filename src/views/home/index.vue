@@ -66,7 +66,7 @@ function iconBackground(item: Panel.ItemInfo) {
 
 function iconTextColor(item: Panel.ItemInfo) {
   const color = iconBackground(item).trim()
-  if (color.startsWith('var('))
+  if (color === 'var(--xp-surface-card)')
     return 'var(--xp-ink)'
   let r = 255
   let g = 255
@@ -90,8 +90,8 @@ function iconTextColor(item: Panel.ItemInfo) {
   }
   // A mostly transparent tile sits on the dark panel, so treat it as dark.
   if (a < 0.5)
-    return 'var(--xp-canvas)'
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? 'var(--xp-ink)' : 'var(--xp-canvas)'
+    return '#faf9f5'
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? '#141413' : '#faf9f5'
 }
 const selectedGroupId = ref<number | 'all' | null>('all')
 const isGroupedView = computed(() => selectedGroupId.value === 'all' || !!listFilter.value.trim())
@@ -451,7 +451,7 @@ function handleAddItem(itemIconGroupId?: number) {
           <div class="navigation-row">
             <strong class="brand-name" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">{{ panelState.panelConfig.logoText }}</strong>
             <label class="list-filter">
-              <SvgIcon icon="material-symbols:search-rounded" aria-hidden="true" />
+              <SvgIcon icon="iconamoon:search-fill" aria-hidden="true" />
               <input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')">
               <kbd>/</kbd>
             </label>
@@ -494,7 +494,7 @@ function handleAddItem(itemIconGroupId?: number) {
                   {{ group.title }} <span>{{ group.items?.length ?? 0 }}</span>
                 </h2>
               </div>
-              <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="220" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" delay-on-touch-only ghost-class="sortable-ghost" @end="handleEndDrag">
+              <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="220" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" :delay-on-touch-only="true" ghost-class="sortable-ghost" @end="handleEndDrag">
                 <button v-for="item in group.items" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" type="button" :title="item.title" @click="handleItemClick(item)" @contextmenu="(e) => handleContextMenu(e, item)">
                   <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)">
                   <ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" />

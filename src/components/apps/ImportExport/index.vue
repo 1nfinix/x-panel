@@ -422,7 +422,7 @@ async function handleStartImport() {
       </div>
       <div v-if="bookmarkFill.total.value" class="mt-4">
         <p class="mb-2">
-          {{ $t('apps.exportImport.bookmarkFilling') }} · {{ $t('apps.exportImport.bookmarkFillProgress', { done: bookmarkFill.done.value, failed: bookmarkFill.failures.value.length }) }}
+          {{ $t('apps.exportImport.bookmarkFilling') }} · {{ $t('apps.exportImport.bookmarkFillProgress', { success: bookmarkFill.success.value, failed: bookmarkFill.failures.value.length }) }}
         </p>
         <NProgress type="line" :percentage="bookmarkFillPercentage" />
         <div v-for="failure in bookmarkFill.failures.value" :key="failure.id" class="mt-1 text-sm">
@@ -442,7 +442,7 @@ async function handleStartImport() {
           :show-file-list="false"
           @change="handleFileChange"
         >
-          <NButton type="info" size="large" :loading="uploadLoading">
+          <NButton type="primary" size="large" :loading="uploadLoading">
             <template #icon>
               <SvgIcon icon="fa6:solid-file-import" />
             </template>
@@ -451,7 +451,7 @@ async function handleStartImport() {
         </NUpload>
       </div>
       <div class="m-3">
-        <NButton type="info" size="large" @click="exportRoundModalShow = !exportRoundModalShow">
+        <NButton secondary size="large" @click="exportRoundModalShow = !exportRoundModalShow">
           <template #icon>
             <SvgIcon icon="fa6:solid-file-export" />
           </template>
@@ -510,7 +510,7 @@ async function handleStartImport() {
       </NSpace>
       <NSpace justify="center">
         <div class="mt-12">
-          <NButton type="success" :disabled="checkedItems.length === 0" :loading="loading" @click="handleStartImport">
+          <NButton type="primary" :disabled="checkedItems.length === 0" :loading="loading" @click="handleStartImport">
             {{ $t('common.continue') }}
           </NButton>
         </div>
@@ -530,7 +530,7 @@ async function handleStartImport() {
       </NSpace>
       <NSpace justify="center">
         <div class="mt-12">
-          <NButton type="success" :disabled="checkedItems.length === 0" :loading="loading" @click="handleStartExport">
+          <NButton type="primary" :disabled="checkedItems.length === 0" :loading="loading" @click="handleStartExport">
             {{ $t('common.continue') }}
           </NButton>
         </div>

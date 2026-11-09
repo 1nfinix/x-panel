@@ -151,7 +151,7 @@ onMounted(() => {
           </div>
         <!-- <div class="w-[40px] h-[40px] ml-[10px] flex justify-center items-center cursor-pointer" @click="handleEngineClick">
           <NAvatar style="background-color: transparent;" :size="30">
-            <SvgIcon icon="lets-icons:setting-alt-fill" style="font-size: 20px;" />
+            <SvgIcon icon="ri-settings-4-line" style="font-size: 20px;" />
           </NAvatar>
         </div> -->
         </div>

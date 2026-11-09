@@ -371,7 +371,7 @@ function resetPanelConfig() {
         {{ $t('apps.baseSettings.resetWarnText') }}
       </NPopconfirm>
 
-      <NButton size="small" quaternary type="success" class="ml-3" @click="uploadCloud">
+      <NButton size="small" secondary class="ml-3" @click="uploadCloud">
         {{ $t('common.save') }}
       </NButton>
     </NCard>
