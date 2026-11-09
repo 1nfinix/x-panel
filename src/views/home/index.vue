@@ -69,35 +69,6 @@ function iconBackground(item: Panel.ItemInfo) {
   return item.icon?.backgroundColor || 'var(--xp-surface-card)'
 }
 
-function iconTextColor(item: Panel.ItemInfo) {
-  const color = iconBackground(item).trim()
-  if (color === 'var(--xp-surface-card)')
-    return 'var(--xp-ink)'
-  let r = 255
-  let g = 255
-  let b = 255
-  let a = 1
-  const hex = color.match(/^#([0-9a-f]{3,8})$/i)?.[1]
-  const rgba = color.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i)
-  if (hex && (hex.length === 3 || hex.length === 6 || hex.length === 8)) {
-    const full = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex
-    r = parseInt(full.slice(0, 2), 16)
-    g = parseInt(full.slice(2, 4), 16)
-    b = parseInt(full.slice(4, 6), 16)
-    if (full.length === 8)
-      a = parseInt(full.slice(6, 8), 16) / 255
-  }
-  else if (rgba) {
-    r = Number(rgba[1])
-    g = Number(rgba[2])
-    b = Number(rgba[3])
-    a = rgba[4] === undefined ? 1 : Number(rgba[4])
-  }
-  // A mostly transparent tile sits on the dark panel, so treat it as dark.
-  if (a < 0.5)
-    return '#faf9f5'
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? '#141413' : '#faf9f5'
-}
 const selectedGroupId = ref<number | 'all' | null>('all')
 const isGroupedView = computed(() => selectedGroupId.value === 'all' || !!listFilter.value.trim())
 const visibleGroups = computed(() => {
@@ -128,6 +99,26 @@ let tooltipCloseTimer: ReturnType<typeof setTimeout>
 let railHot = false
 
 const selectedGroup = computed(() => items.value.find(group => group.id === selectedGroupId.value))
+function hueIndex(group: ItemGroup) {
+  return (items.value.findIndex(item => item.id === group.id) % 10) + 1
+}
+
+function hueStyle(group: ItemGroup) {
+  const index = hueIndex(group)
+  return {
+    '--group-fg': `var(--xp-hue-${index}-fg)`,
+    '--group-bg': `var(--xp-hue-${index}-bg)`,
+    '--group-bd': `var(--xp-hue-${index}-bd)`,
+  }
+}
+
+function hueFgForId(id: number | 'all' | null) {
+  const group = items.value.find(item => item.id === id)
+  return group ? `var(--xp-hue-${hueIndex(group)}-fg)` : 'var(--xp-muted)'
+}
+
+const tooltipDotColor = computed(() => hueFgForId(Number(tooltipKey.value)))
+
 const tooltipContent = computed(() => {
   if (tooltipKey.value === 'brand')
     return { title: t('panelHome.backToTop'), count: null }
@@ -601,20 +592,20 @@ function handleAddItem(itemIconGroupId?: number) {
         <img :src="logo" alt="" width="28" height="28">
       </button>
       <div ref="railScrollRef" class="rail-scroll" @scroll="updateRailIndicator(); positionTooltip()">
-        <button class="rail-button" :class="{ active: selectedGroupId === 'all' }" type="button" data-rail-key="all" :tabindex="railFocusKey === 'all' ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: t('panelHome.all'), count: totalCount })" :aria-current="selectedGroupId === 'all' ? 'page' : undefined" @click="selectGroup('all')" @focus="railFocusKey = 'all'; showRailTooltip('all', $event)" @mouseenter="showRailTooltip('all', $event)">
-          <GroupGlyph icon="lucide-layout-grid" :title="t('panelHome.all')" />
+        <button class="rail-button is-all" :class="{ active: selectedGroupId === 'all' }" type="button" data-rail-key="all" :tabindex="railFocusKey === 'all' ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: t('panelHome.all'), count: totalCount })" :aria-current="selectedGroupId === 'all' ? 'page' : undefined" @click="selectGroup('all')" @focus="railFocusKey = 'all'; showRailTooltip('all', $event)" @mouseenter="showRailTooltip('all', $event)">
+          <span class="rail-glyph"><GroupGlyph icon="lucide-layout-grid" :title="t('panelHome.all')" :size="18" /></span>
         </button>
         <span class="rail-divider" aria-hidden="true" />
-        <button v-for="group in items" :key="group.id" class="rail-button" :class="{ active: selectedGroupId === group.id }" type="button" :data-rail-key="String(group.id)" :tabindex="railFocusKey === String(group.id) ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: group.title, count: group.items?.length ?? 0 })" :aria-current="selectedGroupId === group.id ? 'page' : undefined" @click="selectGroup(group.id as number)" @focus="railFocusKey = String(group.id); showRailTooltip(String(group.id), $event)" @mouseenter="showRailTooltip(String(group.id), $event)">
-          <GroupGlyph :icon="group.icon" :title="group.title" />
+        <button v-for="group in items" :key="group.id" class="rail-button" :style="hueStyle(group)" :class="{ active: selectedGroupId === group.id }" type="button" :data-rail-key="String(group.id)" :tabindex="railFocusKey === String(group.id) ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: group.title, count: group.items?.length ?? 0 })" :aria-current="selectedGroupId === group.id ? 'page' : undefined" @click="selectGroup(group.id as number)" @focus="railFocusKey = String(group.id); showRailTooltip(String(group.id), $event)" @mouseenter="showRailTooltip(String(group.id), $event)">
+          <span class="rail-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="18" /></span>
         </button>
       </div>
-      <span class="rail-indicator" :style="railIndicator" aria-hidden="true" />
+      <span class="rail-indicator" :style="{ ...railIndicator, backgroundColor: hueFgForId(selectedGroupId) }" aria-hidden="true" />
     </nav>
     <Teleport to="body">
       <Transition name="rail-tooltip">
         <div v-if="tooltipKey" class="rail-tooltip" :style="tooltipPosition" role="tooltip">
-          <span>{{ tooltipContent.title }}</span><span v-if="tooltipContent.count !== null" class="rail-tooltip-count"> · {{ tooltipContent.count }}</span>
+          <span v-if="tooltipKey !== 'brand'" class="rail-tooltip-dot" :style="{ backgroundColor: tooltipDotColor }" aria-hidden="true" /><span>{{ tooltipContent.title }}</span><span v-if="tooltipContent.count !== null" class="rail-tooltip-count"> · {{ tooltipContent.count }}</span>
         </div>
       </Transition>
     </Teleport>
@@ -647,22 +638,24 @@ function handleAddItem(itemIconGroupId?: number) {
             <SearchBox v-if="panelState.panelConfig.searchBoxShow" class="overview-search" @item-search="itemFrontEndSearch" />
             <SystemMonitor v-if="systemMonitorVisible" class="overview-monitor" :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
           </div>
-          <h1 v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-title">
-            {{ selectedGroup.title }} <span>{{ selectedGroup.items?.length ?? 0 }}</span>
+          <h1 v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-title" :style="hueStyle(selectedGroup)">
+            <span class="title-glyph"><GroupGlyph :icon="selectedGroup.icon" :title="selectedGroup.title" :size="20" /></span>
+            {{ selectedGroup.title }} <span class="title-count">{{ selectedGroup.items?.length ?? 0 }}</span>
           </h1>
 
           <div v-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" class="content-groups" :class="[isGroupedView ? 'group-columns' : '', { 'group-fade': groupFade, 'first-load-motion': firstLoadMotion }]">
-            <section v-for="group in visibleGroups" :key="group.id" class="group-section" :style="firstLoadMotion ? { animationDelay: `${Math.min(9, visibleGroups.indexOf(group)) * 30}ms` } : undefined" :class="{ 'single-section': !isGroupedView, 'on-wallpaper': panelState.panelConfig.showWallpaper }">
+            <section v-for="group in visibleGroups" :key="group.id" class="group-section" :style="{ ...hueStyle(group), ...(firstLoadMotion ? { animationDelay: `${Math.min(9, visibleGroups.indexOf(group)) * 30}ms` } : {}) }" :class="{ 'single-section': !isGroupedView, 'on-wallpaper': panelState.panelConfig.showWallpaper }">
               <div v-if="isGroupedView" class="group-heading">
                 <h2>
-                  {{ group.title }} <span>{{ group.items?.length ?? 0 }}</span>
+                  <span class="heading-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="17" /></span>
+                  {{ group.title }} <span class="heading-count">{{ group.items?.length ?? 0 }}</span>
                 </h2>
               </div>
               <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="220" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" :delay-on-touch-only="true" ghost-class="sortable-ghost" @end="handleEndDrag">
                 <button v-for="item in group.items" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" :data-item-id="item.id" :tabindex="(rovingItemId ?? firstVisibleItemId) === item.id ? 0 : -1" type="button" :title="item.title" @focus="rovingItemId = item.id as number" @click="handleItemClick(item)" @keydown.down="moveRowFocus($event, 1)" @keydown.up="moveRowFocus($event, -1)" @contextmenu="(e) => handleContextMenu(e, item)">
                   <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)">
                   <ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" />
-                  <span v-else class="row-placeholder" :style="{ backgroundColor: iconBackground(item), color: iconTextColor(item) }">{{ (item.icon?.itemType === 1 && item.icon.text ? item.icon.text : item.title).charAt(0).toUpperCase() }}</span>
+                  <span v-else class="row-placeholder">{{ (item.icon?.itemType === 1 && item.icon.text ? item.icon.text : item.title).charAt(0).toUpperCase() }}</span>
                   <span class="row-name" :title="item.title">{{ item.title }}</span>
                   <span class="row-domain" :title="item.url">{{ displayDomain(item.url) }}</span>
                   <span class="row-arrow" aria-hidden="true">↗</span>
@@ -780,6 +773,7 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .n-modal { animation: modal-open 260ms cubic-bezier(.16,1,.3,1); }
 @keyframes modal-open { from { transform: scale(.96); opacity: .7; } to { transform: scale(1); opacity: 1; } }
 .rail-tooltip { position: fixed; z-index: 3000; transform: translateY(-50%); padding: 6px 10px; border-radius: 6px; background: var(--xp-ink); color: var(--xp-canvas); font: 13px/1.4 var(--xp-font-body); white-space: nowrap; pointer-events: none; box-shadow: none; }
+.rail-tooltip-dot { display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; vertical-align: 2px; }
 .rail-tooltip-count { color: color-mix(in srgb, var(--xp-canvas) 65%, var(--xp-ink)); font-variant-numeric: tabular-nums; }
 .rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: opacity 120ms ease, translate 120ms ease; }
 .rail-tooltip-enter-from, .rail-tooltip-leave-to { opacity: 0; translate: -4px 0; }
@@ -795,7 +789,7 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .navigation-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .brand-name { flex: none; font: 600 28px/1.2 var(--xp-font-display); letter-spacing: 0; color: var(--xp-ink); white-space: nowrap; }
 .brand-name.on-wallpaper { color: var(--xp-wallpaper-ink); }
-.list-filter { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px; max-width: 420px; height: 40px; margin-left: auto; padding: 0 14px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-md); background: var(--xp-canvas); color: var(--xp-muted); }
+.list-filter { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px; max-width: 420px; height: 40px; margin-left: auto; padding: 0 14px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-md); background: var(--xp-surface); box-shadow: var(--xp-card-shadow); color: var(--xp-muted); }
 .list-filter input { min-width: 0; flex: 1; border: 0; outline: 0; background: none; color: var(--xp-ink); font: inherit; user-select: text; }
 .list-filter input::placeholder { color: var(--xp-muted); }
 .filter-count { flex: none; color: var(--xp-muted); font-size: 13px; white-space: nowrap; }
@@ -807,44 +801,52 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .overview-band:not(.has-search) { grid-template-columns: auto minmax(180px, .75fr); }
 .overview-band:not(.has-monitor) { grid-template-columns: auto minmax(220px, 1fr); }
 .overview-band.has-clock:not(.has-search):not(.has-monitor), .overview-band.has-search:not(.has-clock):not(.has-monitor), .overview-band.has-monitor:not(.has-clock):not(.has-search) { grid-template-columns: minmax(0, 1fr); }
-.overview-clock.on-wallpaper { padding: 8px 12px; border-radius: var(--xp-radius-md); background: color-mix(in srgb, var(--xp-canvas) 92%, transparent); }
+.overview-clock.on-wallpaper { padding: 8px 12px; border-radius: var(--xp-radius-md); background: var(--xp-surface); }
 .overview-search { min-width: 0; }
 .main-scroll { box-sizing: border-box; padding-left: 64px; }
 .group-rail { position: fixed; z-index: 10; inset: 0 auto 0 0; display: flex; flex-direction: column; align-items: center; width: 64px; padding: 16px 11px; border-right: 1px solid var(--xp-hairline); background: var(--xp-canvas); }
-.group-rail.on-wallpaper { background: color-mix(in srgb, var(--xp-canvas) 88%, transparent); }
-.rail-brand, .rail-button { display: grid; flex: none; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--xp-muted); cursor: pointer; transition: background-color 120ms ease, color 120ms ease; }
-.rail-brand { margin-bottom: 16px; }
+.group-rail.on-wallpaper { background: var(--xp-canvas); }
+.rail-brand, .rail-button { display: grid; flex: none; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--xp-muted); cursor: pointer; }
+.rail-brand { margin-bottom: 16px; transition: background-color 150ms ease; }
 .rail-brand img { width: 28px; height: 28px; border-radius: 8px; }
 .rail-scroll { display: flex; flex: 1; flex-direction: column; align-items: center; gap: 4px; width: 100%; min-height: 0; overflow-y: auto; scrollbar-width: none; }
 .rail-scroll::-webkit-scrollbar { display: none; }
 .rail-divider { display: block; flex: none; width: 24px; height: 1px; margin: 6px 0; background: var(--xp-hairline); }
-.rail-button:hover, .rail-brand:hover { background: var(--xp-surface-soft); color: var(--xp-ink); }
-.rail-button.active { background: var(--xp-surface-card); color: var(--xp-ink); }
+.rail-button { --group-fg: var(--xp-ink); --group-bg: var(--xp-surface-card); --group-on: #fff; }
+.rail-button.is-all { --group-fg: var(--xp-ink); --group-bg: var(--xp-surface-card); --group-on: var(--xp-canvas); }
+.rail-glyph { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--group-bg); color: var(--group-fg); transition: background-color 150ms ease, color 150ms ease; }
+.rail-button:hover .rail-glyph { background: color-mix(in srgb, var(--group-fg) 6%, var(--group-bg)); }
+.rail-button.active .rail-glyph { background: var(--group-fg); color: var(--group-on); }
+.rail-brand:hover { background: var(--xp-surface-soft); }
 .rail-indicator { position: absolute; top: 0; left: 0; width: 3px; height: 20px; border-radius: 3px; background: var(--xp-primary); pointer-events: none; transition: transform 180ms ease, opacity 120ms ease; }
 .rail-brand:focus-visible, .rail-button:focus-visible, .url-row:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
-.selected-group-title { display: flex; align-items: baseline; gap: 8px; margin: 24px 0 16px; color: var(--xp-ink); font: 600 18px/1.4 var(--xp-font-display); }
-.selected-group-title span { color: var(--xp-muted); font: 13px/1 var(--xp-font-body); font-variant-numeric: tabular-nums; }
+.selected-group-title { display: flex; align-items: center; gap: 8px; margin: 24px 0 16px; color: var(--xp-ink); font: 600 18px/1.4 var(--xp-font-display); }
+.title-glyph, .heading-glyph { display: grid; flex: none; place-items: center; border-radius: 6px; background: var(--group-bg); color: var(--group-fg); }
+.title-glyph { width: 28px; height: 28px; }
+.title-count { color: var(--xp-muted); font: 13px/1 var(--xp-font-body); font-variant-numeric: tabular-nums; }
 .content-groups { margin-top: 24px; }
 .selected-group-title + .content-groups { margin-top: 0; }
 .group-columns { columns: 320px; column-gap: 16px; }
 .group-columns .group-section { display: inline-block; width: 100%; margin-bottom: 16px; break-inside: avoid; }
-.group-section { min-width: 0; padding: 16px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-lg); background: var(--xp-canvas); }
-.group-section.on-wallpaper { background: color-mix(in srgb, var(--xp-canvas) 92%, transparent); }
+.group-section { min-width: 0; padding: 16px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-lg); background: var(--xp-surface); box-shadow: var(--xp-card-shadow); transition: border-color 180ms ease, box-shadow 180ms ease; }
+.group-section.on-wallpaper { background: var(--xp-surface); }
+.group-section:hover { border-color: var(--group-bd); box-shadow: var(--xp-card-shadow-hover); }
 .group-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.group-heading h2 { display: flex; justify-content: space-between; width: 100%; margin: 0; color: var(--xp-ink); font-size: 16px; font-weight: 500; letter-spacing: 0; }
-.group-heading span { color: var(--xp-muted-soft); font-size: 13px; }
+.group-heading h2 { display: flex; align-items: center; gap: 8px; width: 100%; margin: 0; color: var(--xp-ink); font-size: 15px; font-weight: 600; letter-spacing: 0; }
+.heading-glyph { width: 24px; height: 24px; }
+.group-heading .heading-count { margin-left: auto; color: var(--xp-muted); font-size: 13px; font-weight: 400; font-variant-numeric: tabular-nums; }
 .url-list { min-width: 0; }
 .url-list.arrange-drop-zone { min-height: 40px; border: 1px dashed var(--xp-hairline); border-radius: var(--xp-radius-md); }
 .single-section .url-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 12px; }
 .url-row { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid transparent; border-radius: var(--xp-radius-md); background: transparent; color: var(--xp-ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
 .url-row { transition: background-color 120ms ease; }
-.url-row:hover { background: var(--xp-surface-soft); }
+.url-row:hover { background: color-mix(in srgb, var(--group-bg) 50%, var(--xp-surface)); }
 .url-row.sorting { border: 1px dashed var(--xp-hairline); cursor: grab; }
 .url-row.sorting:active { cursor: grabbing; }
 .url-row.sortable-ghost { background: var(--xp-surface-strong); opacity: .6; }
 .row-icon, .row-placeholder { flex: none; width: 20px; height: 20px; border-radius: var(--xp-radius-sm); }
 .row-icon { object-fit: contain; padding: 1px; }
-.row-placeholder { display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+.row-placeholder { display: grid; place-items: center; background: var(--group-bg); color: var(--group-fg); font-size: 11px; font-weight: 800; }
 .add-row .row-placeholder { background: var(--xp-surface-card); color: var(--xp-ink); }
 .row-name, .row-domain { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-name { flex: 1; }
@@ -885,5 +887,5 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
   .group-columns { columns: 1; }
   .single-section .url-list { grid-template-columns: 1fr; }
 }
-@media (prefers-reduced-motion: reduce) { .cover, .rail-indicator, .rail-button, .rail-brand, .url-row, .row-arrow { transition: none !important; } .first-load-motion .group-section, .group-fade { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .cover, .rail-indicator, .rail-glyph, .rail-brand, .group-section, .url-row, .row-arrow { transition: none !important; } .first-load-motion .group-section, .group-fade { animation: none !important; } }
 </style>

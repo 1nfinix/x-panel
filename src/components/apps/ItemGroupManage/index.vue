@@ -5,7 +5,7 @@ import { NButton, NCard, NForm, NFormItem, NInput, useDialog, useMessage } from 
 import { VueDraggable } from 'vue-draggable-plus'
 import { deletes, edit, getList, saveSort } from '@/api/panel/itemIconGroup'
 import { GroupGlyph, RoundCardModal, SvgIcon } from '@/components/common'
-import { groupIcons } from '@/components/common/GroupGlyph/icons'
+import { groupIcons, isValidGroupIcon } from '@/components/common/GroupGlyph/icons'
 import { t } from '@/locales'
 
 interface EditModalArg {
@@ -153,8 +153,8 @@ onMounted(() => {
           <NCard size="small" class="mb-3 rounded-xp-lg">
             <div class="flex" :class="sortStatus ? 'cursor-move' : ''">
               <div class="flex items-center">
-                <span class="mr-3">
-                  <GroupGlyph :icon="item.icon" :title="item.title" :size="20" />
+                <span class="group-list-glyph mr-3" :style="{ '--group-bg': `var(--xp-hue-${index % 10 + 1}-bg)`, '--group-fg': `var(--xp-hue-${index % 10 + 1}-fg)` }">
+                  <GroupGlyph :icon="item.icon" :title="item.title" :size="18" />
                 </span>
                 <span>
                   {{ item.title }}
@@ -190,8 +190,8 @@ onMounted(() => {
 
         <NFormItem :label="$t('apps.itemGroupManage.icon')">
           <div class="group-icon-grid" role="group" :aria-label="$t('apps.itemGroupManage.icon')">
-            <button class="group-icon-option" :class="{ active: !editModalArg.model.icon || !groupIcons.includes(editModalArg.model.icon) }" type="button" :title="t('apps.itemGroupManage.initial')" :aria-label="t('apps.itemGroupManage.initial')" :aria-pressed="!editModalArg.model.icon || !groupIcons.includes(editModalArg.model.icon)" @click="editModalArg.model.icon = ''">
-              <GroupGlyph :title="editModalArg.model.title" />
+            <button class="group-icon-option" :class="{ active: !isValidGroupIcon(editModalArg.model.icon) }" type="button" :title="t('apps.itemGroupManage.auto')" :aria-label="t('apps.itemGroupManage.auto')" :aria-pressed="!isValidGroupIcon(editModalArg.model.icon)" @click="editModalArg.model.icon = ''">
+              <GroupGlyph :title="editModalArg.model.title" :size="16" /><span class="auto-label">{{ t('apps.itemGroupManage.auto') }}</span>
             </button>
             <button v-for="icon in groupIcons" :key="icon" class="group-icon-option" :class="{ active: editModalArg.model.icon === icon }" type="button" :title="icon.replace('lucide-', '')" :aria-label="icon.replace('lucide-', '')" :aria-pressed="editModalArg.model.icon === icon" @click="editModalArg.model.icon = icon">
               <GroupGlyph :icon="icon" :title="editModalArg.model.title" />
@@ -209,9 +209,12 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.group-list-glyph { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--group-bg); color: var(--group-fg); }
+.auto-label { font-size: 9px; line-height: 1; }
 .group-icon-grid { display: grid; grid-template-columns: repeat(8, 36px); gap: 6px; max-width: 100%; }
 .group-icon-option { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--xp-muted); cursor: pointer; }
 .group-icon-option:hover { background: var(--xp-surface-soft); color: var(--xp-ink); }
+.group-icon-option:first-child { align-content: center; gap: 1px; }
 .group-icon-option.active { background: var(--xp-surface-card); color: var(--xp-ink); }
 .group-icon-option:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
 </style>

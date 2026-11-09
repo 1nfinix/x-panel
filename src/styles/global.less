@@ -11,11 +11,14 @@ body {
 
 /* Keep these values in sync with useTheme.ts for Naive UI. */
 :root {
-  --xp-canvas: #faf9f5;
-  --xp-surface-soft: #f5f0e8;
-  --xp-surface-card: #efe9de;
-  --xp-surface-strong: #e8e0d2;
-  --xp-hairline: #e6dfd8;
+  --xp-canvas: #f5f3ee;
+  --xp-surface: #ffffff;
+  --xp-card-shadow: 0 1px 2px rgba(20, 20, 19, .04), 0 1px 1px rgba(20, 20, 19, .02);
+  --xp-card-shadow-hover: 0 4px 16px rgba(20, 20, 19, .06);
+  --xp-surface-soft: #eeeae3;
+  --xp-surface-card: #eae7e0;
+  --xp-surface-strong: #e4dfd6;
+  --xp-hairline: #e2ded7;
   --xp-ink: #141413;
   --xp-body: #3d3d3a;
   --xp-muted: #6c6a64;
@@ -34,14 +37,47 @@ body {
   --xp-font-body: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", "Microsoft YaHei", sans-serif;
   --xp-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --xp-wallpaper-ink: #faf9f5;
+  --xp-hue-1-fg: #bd6147;
+  --xp-hue-1-bg: color-mix(in srgb, var(--xp-hue-1-fg) 13%, var(--xp-canvas));
+  --xp-hue-1-bd: color-mix(in srgb, var(--xp-hue-1-fg) 42%, var(--xp-canvas));
+  --xp-hue-2-fg: #9f702f;
+  --xp-hue-2-bg: color-mix(in srgb, var(--xp-hue-2-fg) 13%, var(--xp-canvas));
+  --xp-hue-2-bd: color-mix(in srgb, var(--xp-hue-2-fg) 42%, var(--xp-canvas));
+  --xp-hue-3-fg: #6a853e;
+  --xp-hue-3-bg: color-mix(in srgb, var(--xp-hue-3-fg) 13%, var(--xp-canvas));
+  --xp-hue-3-bd: color-mix(in srgb, var(--xp-hue-3-fg) 42%, var(--xp-canvas));
+  --xp-hue-4-fg: #2c8478;
+  --xp-hue-4-bg: color-mix(in srgb, var(--xp-hue-4-fg) 13%, var(--xp-canvas));
+  --xp-hue-4-bd: color-mix(in srgb, var(--xp-hue-4-fg) 42%, var(--xp-canvas));
+  --xp-hue-5-fg: #3f84b5;
+  --xp-hue-5-bg: color-mix(in srgb, var(--xp-hue-5-fg) 13%, var(--xp-canvas));
+  --xp-hue-5-bd: color-mix(in srgb, var(--xp-hue-5-fg) 42%, var(--xp-canvas));
+  --xp-hue-6-fg: #5b6bc9;
+  --xp-hue-6-bg: color-mix(in srgb, var(--xp-hue-6-fg) 13%, var(--xp-canvas));
+  --xp-hue-6-bd: color-mix(in srgb, var(--xp-hue-6-fg) 42%, var(--xp-canvas));
+  --xp-hue-7-fg: #8a63c2;
+  --xp-hue-7-bg: color-mix(in srgb, var(--xp-hue-7-fg) 13%, var(--xp-canvas));
+  --xp-hue-7-bd: color-mix(in srgb, var(--xp-hue-7-fg) 42%, var(--xp-canvas));
+  --xp-hue-8-fg: #c2577e;
+  --xp-hue-8-bg: color-mix(in srgb, var(--xp-hue-8-fg) 13%, var(--xp-canvas));
+  --xp-hue-8-bd: color-mix(in srgb, var(--xp-hue-8-fg) 42%, var(--xp-canvas));
+  --xp-hue-9-fg: #b0704a;
+  --xp-hue-9-bg: color-mix(in srgb, var(--xp-hue-9-fg) 13%, var(--xp-canvas));
+  --xp-hue-9-bd: color-mix(in srgb, var(--xp-hue-9-fg) 42%, var(--xp-canvas));
+  --xp-hue-10-fg: #5f7385;
+  --xp-hue-10-bg: color-mix(in srgb, var(--xp-hue-10-fg) 13%, var(--xp-canvas));
+  --xp-hue-10-bd: color-mix(in srgb, var(--xp-hue-10-fg) 42%, var(--xp-canvas));
 }
 
 html.dark {
-  --xp-canvas: #181715;
-  --xp-surface-soft: #1f1e1b;
-  --xp-surface-card: #252320;
-  --xp-surface-strong: #2e2b27;
-  --xp-hairline: #34312c;
+  --xp-canvas: #151412;
+  --xp-surface: #1e1d1a;
+  --xp-card-shadow: inset 0 1px 0 rgba(255, 255, 255, .03);
+  --xp-card-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, .03);
+  --xp-surface-soft: #24231f;
+  --xp-surface-card: #292824;
+  --xp-surface-strong: #33312c;
+  --xp-hairline: #2e2c28;
   --xp-ink: #faf9f5;
   --xp-body: #e3dfd7;
   --xp-muted: #a09d96;
@@ -52,6 +88,36 @@ html.dark {
   --xp-error: #e06c6c;
   --xp-success: #5db872;
   --xp-focus-ring: rgba(204, 120, 92, .28);
+  --xp-hue-1-fg: #d47758;
+  --xp-hue-1-bg: color-mix(in srgb, var(--xp-hue-1-fg) 20%, var(--xp-surface));
+  --xp-hue-1-bd: color-mix(in srgb, var(--xp-hue-1-fg) 48%, var(--xp-canvas));
+  --xp-hue-2-fg: #b8883c;
+  --xp-hue-2-bg: color-mix(in srgb, var(--xp-hue-2-fg) 20%, var(--xp-surface));
+  --xp-hue-2-bd: color-mix(in srgb, var(--xp-hue-2-fg) 48%, var(--xp-canvas));
+  --xp-hue-3-fg: #849b51;
+  --xp-hue-3-bg: color-mix(in srgb, var(--xp-hue-3-fg) 20%, var(--xp-surface));
+  --xp-hue-3-bd: color-mix(in srgb, var(--xp-hue-3-fg) 48%, var(--xp-canvas));
+  --xp-hue-4-fg: #40a094;
+  --xp-hue-4-bg: color-mix(in srgb, var(--xp-hue-4-fg) 20%, var(--xp-surface));
+  --xp-hue-4-bd: color-mix(in srgb, var(--xp-hue-4-fg) 48%, var(--xp-canvas));
+  --xp-hue-5-fg: #5b98c1;
+  --xp-hue-5-bg: color-mix(in srgb, var(--xp-hue-5-fg) 20%, var(--xp-surface));
+  --xp-hue-5-bd: color-mix(in srgb, var(--xp-hue-5-fg) 48%, var(--xp-canvas));
+  --xp-hue-6-fg: #7987d2;
+  --xp-hue-6-bg: color-mix(in srgb, var(--xp-hue-6-fg) 20%, var(--xp-surface));
+  --xp-hue-6-bd: color-mix(in srgb, var(--xp-hue-6-fg) 48%, var(--xp-canvas));
+  --xp-hue-7-fg: #a17bcc;
+  --xp-hue-7-bg: color-mix(in srgb, var(--xp-hue-7-fg) 20%, var(--xp-surface));
+  --xp-hue-7-bd: color-mix(in srgb, var(--xp-hue-7-fg) 48%, var(--xp-canvas));
+  --xp-hue-8-fg: #cc7391;
+  --xp-hue-8-bg: color-mix(in srgb, var(--xp-hue-8-fg) 20%, var(--xp-surface));
+  --xp-hue-8-bd: color-mix(in srgb, var(--xp-hue-8-fg) 48%, var(--xp-canvas));
+  --xp-hue-9-fg: #bd8562;
+  --xp-hue-9-bg: color-mix(in srgb, var(--xp-hue-9-fg) 20%, var(--xp-surface));
+  --xp-hue-9-bd: color-mix(in srgb, var(--xp-hue-9-fg) 48%, var(--xp-canvas));
+  --xp-hue-10-fg: #8296a6;
+  --xp-hue-10-bg: color-mix(in srgb, var(--xp-hue-10-fg) 20%, var(--xp-surface));
+  --xp-hue-10-bd: color-mix(in srgb, var(--xp-hue-10-fg) 48%, var(--xp-canvas));
 }
 
 body {

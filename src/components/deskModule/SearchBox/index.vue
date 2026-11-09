@@ -14,7 +14,7 @@ withDefaults(defineProps<{
   background?: string
   textColor?: string
 }>(), {
-  background: 'var(--xp-canvas)',
+  background: 'var(--xp-surface)',
   textColor: 'var(--xp-ink)',
 })
 
@@ -172,6 +172,7 @@ onMounted(() => {
 .search-container {
   height: 46px;
   border: 1px solid var(--xp-hairline);
+  box-shadow: var(--xp-card-shadow);
   padding: 0 10px;
 }
 

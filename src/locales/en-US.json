@@ -124,7 +124,7 @@
       "deleteWarnText": "Are you sure you want to delete this group [{name}]? The application icons in this group will be lost after deletion.",
       "groupName": "Group name",
       "icon": "Icon",
-      "initial": "Initial"
+      "auto": "Auto"
     },
     "uploadsFileManager": {
       "alertText": "Here you can manage wallpapers and icons you have uploaded.",

@@ -219,7 +219,7 @@ function handleRightMenuSelect(key: string | number) {
 </template>
 
 <style scoped>
-.system-monitor { min-width: 0; width: 100%; padding: 12px 16px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-md); background: var(--xp-canvas); }
+.system-monitor { min-width: 0; width: 100%; padding: 12px 16px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-md); background: var(--xp-surface); box-shadow: var(--xp-card-shadow); }
 .monitor-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 16px; }
 .monitor-toolbar:has(.monitor-title) { margin-bottom: 8px; }
 .monitor-title { color: var(--xp-muted); font-size: 13px; }
@@ -231,7 +231,7 @@ function handleRightMenuSelect(key: string | number) {
 .monitor-item { flex: 1 1 88px; min-width: 88px; cursor: pointer; }
 .monitor-item.sorting { cursor: grab; }
 .save-sort { margin-top: 8px; }
-.on-wallpaper { background: color-mix(in srgb, var(--xp-canvas) 92%, transparent); }
+.on-wallpaper { background: var(--xp-surface); }
 .on-wallpaper :deep(.compact-label), .on-wallpaper .monitor-title { color: var(--xp-muted); }
 @media (prefers-reduced-motion: reduce) { .monitor-actions { transition: none; } }
 </style>
