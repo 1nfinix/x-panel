@@ -57,7 +57,11 @@ const filterItems = ref<ItemGroup[]>([])
 const listFilter = ref('')
 const arrangeMode = ref(false)
 const listFilterRef = ref<HTMLInputElement | null>(null)
+const rovingItemId = ref<number | null>(null)
 const failedIcons = ref(new Set<number>())
+const firstLoadMotion = ref(true)
+const groupFade = ref(false)
+let groupFadeTimer: ReturnType<typeof setTimeout>
 
 // Icon tile colors honor the item's own backgroundColor; unset means white.
 function iconBackground(item: Panel.ItemInfo) {
@@ -105,6 +109,11 @@ const visibleGroups = computed(() => {
 })
 const totalCount = computed(() => items.value.reduce((total, group) => total + (group.items?.length ?? 0), 0))
 const visibleCount = computed(() => visibleGroups.value.reduce((total, group) => total + (group.items?.length ?? 0), 0))
+const firstVisibleItemId = computed(() => visibleGroups.value.find(group => group.items?.length)?.items?.[0]?.id ?? null)
+const systemMonitorVisible = computed(() => panelState.panelConfig.systemMonitorShow
+  && ((panelState.panelConfig.systemMonitorPublicVisitModeShow && authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC)
+    || authStore.visitMode === VisitMode.VISIT_MODE_LOGIN))
+const overviewVisible = computed(() => panelState.panelConfig.clockShow || panelState.panelConfig.searchBoxShow || systemMonitorVisible.value)
 const navRef = ref<HTMLElement | null>(null)
 const indicatorStyle = ref({ left: '0px', width: '0px' })
 const { source: wallpaperSource, loaded: wallpaperLoaded, show: showWallpaper } = useWallpaper()
@@ -116,11 +125,54 @@ function updateIndicator() {
 }
 
 function selectGroup(id: number | 'all') {
+  if (selectedGroupId.value !== id) {
+    groupFade.value = false
+    clearTimeout(groupFadeTimer)
+    nextTick(() => {
+      groupFade.value = true
+      groupFadeTimer = setTimeout(() => groupFade.value = false, 150)
+    })
+  }
   selectedGroupId.value = id
+  rovingItemId.value = null
   listFilter.value = ''
   filterItems.value = items.value
   nextTick(updateIndicator)
 }
+
+function moveRowFocus(event: KeyboardEvent, direction: number) {
+  if (arrangeMode.value)
+    return
+  const rows = Array.from(document.querySelectorAll<HTMLButtonElement>('.url-row:not(.add-row)'))
+  if (!rows.length)
+    return
+  const current = rows.indexOf(document.activeElement as HTMLButtonElement)
+  const next = current < 0 ? (direction > 0 ? 0 : rows.length - 1) : Math.max(0, Math.min(rows.length - 1, current + direction))
+  event.preventDefault()
+  rovingItemId.value = Number(rows[next].dataset.itemId)
+  rows[next].focus()
+}
+
+watch(listFilter, () => rovingItemId.value = null)
+
+function onFilterKeydown(event: KeyboardEvent) {
+  if (arrangeMode.value)
+    return
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    moveRowFocus(event, event.key === 'ArrowDown' ? 1 : -1)
+  }
+  else if (event.key === 'Escape') {
+    listFilter.value = ''
+    listFilterRef.value?.blur()
+  }
+}
+
+const stopFirstLoadWatch = watch(visibleCount, (count) => {
+  if (count && firstLoadMotion.value) {
+    setTimeout(() => firstLoadMotion.value = false, 400)
+    stopFirstLoadWatch()
+  }
+})
 
 function onFilterShortcut(event: KeyboardEvent) {
   if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLTextAreaElement) && !(event.target instanceof HTMLElement && event.target.isContentEditable)) {
@@ -383,6 +435,7 @@ onMounted(() => {
     setTitle(panelState.panelConfig.logoText)
 })
 onBeforeUnmount(() => {
+  clearTimeout(groupFadeTimer)
   window.removeEventListener('resize', updateIndicator)
   window.removeEventListener('keydown', onFilterShortcut)
 })
@@ -452,12 +505,20 @@ function handleAddItem(itemIconGroupId?: number) {
             <strong class="brand-name" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">{{ panelState.panelConfig.logoText }}</strong>
             <label class="list-filter">
               <SvgIcon icon="iconamoon:search-fill" aria-hidden="true" />
-              <input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')">
-              <kbd>/</kbd>
+              <input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')" @keydown="onFilterKeydown">
+              <span v-if="listFilter.trim()" class="filter-count">{{ $t('panelHome.resultsCount', { count: visibleCount }) }}</span>
+              <kbd v-else>/</kbd>
             </label>
             <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :type="arrangeMode ? 'primary' : 'default'" :secondary="!arrangeMode" class="arrange-button" @click="toggleArrangeMode">
               {{ arrangeMode ? t('panelHome.arrangeDone') : t('panelHome.arrange') }}
             </NButton>
+          </div>
+        </header>
+        <div :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
+          <div v-if="overviewVisible" class="overview-band" :class="{ 'has-clock': panelState.panelConfig.clockShow, 'has-search': panelState.panelConfig.searchBoxShow, 'has-monitor': systemMonitorVisible }">
+            <Clock v-if="panelState.panelConfig.clockShow" class="overview-clock" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" :hide-second="!panelState.panelConfig.clockShowSecond" />
+            <SearchBox v-if="panelState.panelConfig.searchBoxShow" class="overview-search" @item-search="itemFrontEndSearch" />
+            <SystemMonitor v-if="systemMonitorVisible" class="overview-monitor" :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
           </div>
           <nav ref="navRef" class="group-navigation" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" :aria-label="t('panelHome.groups')">
             <span class="nav-indicator" :style="indicatorStyle" aria-hidden="true" />
@@ -468,34 +529,16 @@ function handleAddItem(itemIconGroupId?: number) {
               {{ group.title }} <b>{{ group.items?.length ?? 0 }}</b>
             </button>
           </nav>
-          <Clock v-if="panelState.panelConfig.clockShow" :hide-second="!panelState.panelConfig.clockShowSecond" />
-          <SearchBox v-if="panelState.panelConfig.searchBoxShow" class="search-row" @item-search="itemFrontEndSearch" />
-        </header>
 
-        <!-- 应用盒子 -->
-        <div :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
-          <!-- 系统监控状态 -->
-          <div
-            v-if="panelState.panelConfig.systemMonitorShow
-              && ((panelState.panelConfig.systemMonitorPublicVisitModeShow && authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC)
-                || authStore.visitMode === VisitMode.VISIT_MODE_LOGIN)"
-            class="flex mx-auto"
-          >
-            <SystemMonitor
-              :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN"
-              :show-title="panelState.panelConfig.systemMonitorShowTitle"
-            />
-          </div>
-
-          <div v-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" :class="isGroupedView ? 'group-columns' : ''">
-            <section v-for="group in visibleGroups" :key="group.id" class="group-section" :class="{ 'single-section': !isGroupedView, 'on-wallpaper': panelState.panelConfig.showWallpaper }">
+          <div v-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" :class="[isGroupedView ? 'group-columns' : '', { 'group-fade': groupFade, 'first-load-motion': firstLoadMotion }]">
+            <section v-for="group in visibleGroups" :key="group.id" class="group-section" :style="firstLoadMotion ? { animationDelay: `${Math.min(9, visibleGroups.indexOf(group)) * 30}ms` } : undefined" :class="{ 'single-section': !isGroupedView, 'on-wallpaper': panelState.panelConfig.showWallpaper }">
               <div v-if="isGroupedView" class="group-heading">
                 <h2>
                   {{ group.title }} <span>{{ group.items?.length ?? 0 }}</span>
                 </h2>
               </div>
               <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="220" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" :delay-on-touch-only="true" ghost-class="sortable-ghost" @end="handleEndDrag">
-                <button v-for="item in group.items" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" type="button" :title="item.title" @click="handleItemClick(item)" @contextmenu="(e) => handleContextMenu(e, item)">
+                <button v-for="item in group.items" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" :data-item-id="item.id" :tabindex="(rovingItemId ?? firstVisibleItemId) === item.id ? 0 : -1" type="button" :title="item.title" @focus="rovingItemId = item.id as number" @click="handleItemClick(item)" @keydown.down="moveRowFocus($event, 1)" @keydown.up="moveRowFocus($event, -1)" @contextmenu="(e) => handleContextMenu(e, item)">
                   <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)">
                   <ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" />
                   <span v-else class="row-placeholder" :style="{ backgroundColor: iconBackground(item), color: iconTextColor(item) }">{{ (item.icon?.itemType === 1 && item.icon.text ? item.icon.text : item.title).charAt(0).toUpperCase() }}</span>
@@ -621,17 +664,25 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .sun-main { position: relative; background: var(--xp-canvas); user-select: none; font-family: var(--xp-font-body); }
 .cover, .mask { position: absolute; inset: 0; }
 .cover { background-position: center; background-size: cover; transform: scale(1.03); transition: opacity 600ms ease; }
-.navigation-shell { margin: 28px 0 24px; }
+.navigation-shell { margin: 28px 0 0; }
 .navigation-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.brand-name { flex: none; font: 400 28px/1.2 var(--xp-font-display); letter-spacing: -.3px; color: var(--xp-ink); white-space: nowrap; }
+.brand-name { flex: none; font: 600 28px/1.2 var(--xp-font-display); letter-spacing: 0; color: var(--xp-ink); white-space: nowrap; }
 .brand-name.on-wallpaper { color: var(--xp-wallpaper-ink); }
 .list-filter { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px; max-width: 420px; height: 40px; margin-left: auto; padding: 0 14px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-md); background: var(--xp-canvas); color: var(--xp-muted); }
 .list-filter input { min-width: 0; flex: 1; border: 0; outline: 0; background: none; color: var(--xp-ink); font: inherit; user-select: text; }
 .list-filter input::placeholder { color: var(--xp-muted); }
+.filter-count { flex: none; color: var(--xp-muted); font-size: 13px; white-space: nowrap; }
 .list-filter kbd { padding: 0 5px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-sm); font-size: 13px; }
 .list-filter:focus-within { border-color: var(--xp-primary); box-shadow: 0 0 0 3px var(--xp-focus-ring); }
 .arrange-button { height: 40px; border-radius: var(--xp-radius-md); }
-.group-navigation { position: relative; display: flex; gap: 6px; width: max-content; max-width: 100%; margin-top: 16px; overflow-x: auto; scrollbar-width: none; }
+.overview-band { display: grid; grid-template-columns: auto minmax(220px, 1fr) minmax(180px, .75fr); align-items: center; gap: 24px; margin-top: 24px; }
+.overview-band:not(.has-clock) { grid-template-columns: minmax(220px, 1fr) minmax(180px, .75fr); }
+.overview-band:not(.has-search) { grid-template-columns: auto minmax(180px, .75fr); }
+.overview-band:not(.has-monitor) { grid-template-columns: auto minmax(220px, 1fr); }
+.overview-band.has-clock:not(.has-search):not(.has-monitor), .overview-band.has-search:not(.has-clock):not(.has-monitor), .overview-band.has-monitor:not(.has-clock):not(.has-search) { grid-template-columns: minmax(0, 1fr); }
+.overview-clock.on-wallpaper { padding: 8px 12px; border-radius: var(--xp-radius-md); background: color-mix(in srgb, var(--xp-canvas) 92%, transparent); }
+.overview-search { min-width: 0; }
+.group-navigation { position: relative; display: flex; gap: 6px; width: max-content; max-width: 100%; margin-top: 24px; margin-bottom: 16px; overflow-x: auto; scrollbar-width: none; }
 .group-navigation::-webkit-scrollbar { display: none; }
 .nav-tab { position: relative; z-index: 1; flex: none; padding: 8px 14px; border: 0; border-radius: var(--xp-radius-md); color: var(--xp-muted); font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; background: transparent; }
 .nav-tab b { margin-left: 4px; font-size: 13px; font-weight: 500; color: var(--xp-muted-soft); }
@@ -639,8 +690,8 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .group-navigation.on-wallpaper .nav-tab:not(.active), .group-navigation.on-wallpaper .nav-tab:not(.active) b { color: var(--xp-wallpaper-ink); }
 .nav-indicator { position: absolute; top: 0; bottom: 0; border-radius: var(--xp-radius-md); background: var(--xp-surface-card); transition: left 220ms ease, width 220ms ease; }
 .nav-tab:focus-visible, .url-row:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
-.search-row { margin-top: 16px; max-width: 720px; }
-.group-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.group-columns { columns: 320px; column-gap: 16px; }
+.group-columns .group-section { display: inline-block; width: 100%; margin-bottom: 16px; break-inside: avoid; }
 .group-section { min-width: 0; padding: 16px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-lg); background: var(--xp-canvas); }
 .group-section.on-wallpaper { background: color-mix(in srgb, var(--xp-canvas) 92%, transparent); }
 .group-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -650,6 +701,7 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .url-list.arrange-drop-zone { min-height: 40px; border: 1px dashed var(--xp-hairline); border-radius: var(--xp-radius-md); }
 .single-section .url-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 12px; }
 .url-row { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid transparent; border-radius: var(--xp-radius-md); background: transparent; color: var(--xp-ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.url-row { transition: background-color 120ms ease; }
 .url-row:hover { background: var(--xp-surface-soft); }
 .url-row.sorting { border: 1px dashed var(--xp-hairline); cursor: grab; }
 .url-row.sorting:active { cursor: grabbing; }
@@ -661,7 +713,8 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .row-name, .row-domain { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-name { flex: 1; }
 .row-domain { flex: 0 1 auto; max-width: 46%; color: var(--xp-muted-soft); font-size: 13px; }
-.row-arrow { flex: none; color: var(--xp-muted-soft); font-size: 13px; }
+.row-arrow { flex: none; color: var(--xp-muted-soft); font-size: 13px; transition: color 120ms ease, transform 120ms ease; }
+.url-row:hover .row-arrow { color: var(--xp-ink); transform: translate(2px, -2px); }
 .add-row { color: var(--xp-muted); }
 .add-symbol { font-size: 18px; }
 .empty-list { padding: 32px; color: var(--xp-muted); text-align: center; }
@@ -669,7 +722,23 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .fixed-element { position: fixed; right: 16px; bottom: 40px; }
 .floating-actions { display: flex; flex-direction: column; gap: 8px; }
 .floating-button { width: 36px; height: 36px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-pill); background: var(--xp-canvas); color: var(--xp-ink); }
-@media (max-width: 1023px) { .group-columns, .single-section .url-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 639px) { .navigation-shell { margin-top: 16px; } .list-filter { order: 3; width: 100%; max-width: none; margin-left: 0; } .group-columns, .single-section .url-list { grid-template-columns: 1fr; } }
-@media (prefers-reduced-motion: reduce) { .cover, .nav-indicator { transition: none !important; } }
+@keyframes first-card { from { opacity: .2; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes group-appear { from { opacity: .4; } to { opacity: 1; } }
+.first-load-motion .group-section { animation: first-card 130ms ease-out both; }
+.group-fade { animation: group-appear 150ms ease-out; }
+@media (min-width: 640px) and (max-width: 1023px) {
+  .overview-band { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .overview-band.has-search .overview-search { grid-column: 1 / -1; grid-row: 2; }
+  .overview-band:not(.has-clock):not(.has-monitor) { grid-template-columns: minmax(0, 1fr); }
+  .single-section .url-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 639px) {
+  .navigation-shell { margin-top: 16px; }
+  .brand-name { font-size: 24px; }
+  .list-filter { order: 3; width: 100%; max-width: none; margin-left: 0; }
+  .overview-band { grid-template-columns: minmax(0, 1fr) !important; gap: 16px; }
+  .group-columns { columns: 1; }
+  .single-section .url-list { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .cover, .nav-indicator, .url-row, .row-arrow { transition: none !important; } .first-load-motion .group-section, .group-fade { animation: none !important; } }
 </style>

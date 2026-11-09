@@ -279,6 +279,7 @@
     "all": "All",
     "groups": "Group navigation",
     "filterPlaceholder": "Filter sites by name or domain",
+    "resultsCount": "{count} results",
     "arrange": "Arrange",
     "arrangeDone": "Done",
     "arrangeSaveFailed": "Failed to save order",

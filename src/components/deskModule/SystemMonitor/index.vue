@@ -2,8 +2,10 @@
 import { nextTick, onMounted, ref } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { NButton, NDropdown, useDialog, useMessage } from 'naive-ui'
-import AppIconSystemMonitor from './AppIconSystemMonitor/index.vue'
-import { type CardStyle, type MonitorData, MonitorType } from './typings'
+import CardCPU from './AppIconSystemMonitor/CPU.vue'
+import Memory from './AppIconSystemMonitor/Memory.vue'
+import Disk from './AppIconSystemMonitor/Disk.vue'
+import { type MonitorData, MonitorType } from './typings'
 import Edit from './Edit/index.vue'
 import { deleteByIndex, getAll, saveAll } from './common'
 import { usePanelState } from '@/store'
@@ -58,10 +60,6 @@ function handleSetHoverStatus(hoverStatus: boolean) {
   monitorGroup.value.hoverStatus = hoverStatus
 }
 
-const cardStyle: CardStyle = {
-  background: 'var(--xp-surface-card)',
-}
-
 const monitorDatas = ref<MonitorData[]>([])
 
 function handleClick(index: number, item: MonitorData) {
@@ -108,7 +106,7 @@ async function handleSaveSort() {
     monitorGroup.value.sortStatus = false
 }
 
-function handleContextMenu(e: MouseEvent, index: number | null, item: MonitorData) {
+function handleContextMenu(e: MouseEvent, index: number | null) {
   if (index !== null) {
     e.preventDefault()
     currentRightSelectIndex.value = index
@@ -171,100 +169,48 @@ function handleRightMenuSelect(key: string | number) {
 </script>
 
 <template>
-  <div class="system-monitor w-full">
-    <div
-      class="mt-12 p-4 border border-hairline rounded-xp-lg bg-canvas"
-      @mouseenter="handleSetHoverStatus(true)"
-      @mouseleave="handleSetHoverStatus(false)"
-    >
-      <!-- 分组标题 -->
-      <div class="system-monitor-header text-ink text-[16px] font-medium mb-4 ml-2 flex items-center">
-        <span v-if="showTitle">
-          {{ $t('deskModule.systemMonitor.systemState') }}
-        </span>
-        <div
-          v-if="allowEdit"
-          class="system-monitor-buttons ml-2 delay-100 transition-opacity flex"
-          :class="monitorGroup.hoverStatus ? 'opacity-100' : 'opacity-0'"
-        >
-          <span class="mr-2 cursor-pointer" @click="handleAddItem()">
-            <SvgIcon class="text-ink" icon="typcn:plus" />
-          </span>
-          <span class="mr-2 cursor-pointer" @click="handleSetSortStatus(!monitorGroup.sortStatus)">
-            <SvgIcon class="text-ink" icon="ri:drag-drop-line" />
-          </span>
-        </div>
+  <div class="system-monitor" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" @mouseenter="handleSetHoverStatus(true)" @mouseleave="handleSetHoverStatus(false)">
+    <div class="monitor-toolbar">
+      <span v-if="showTitle" class="monitor-title">{{ $t('deskModule.systemMonitor.systemState') }}</span>
+      <div v-if="allowEdit" class="monitor-actions" :class="{ visible: monitorGroup.hoverStatus || monitorGroup.sortStatus }">
+        <button type="button" :aria-label="t('common.add')" @click="handleAddItem">
+          <SvgIcon icon="typcn:plus" />
+        </button>
+        <button type="button" :aria-label="t('common.saveSort')" @click="handleSetSortStatus(!monitorGroup.sortStatus)">
+          <SvgIcon icon="ri:drag-drop-line" />
+        </button>
       </div>
-
-      <!-- 详情图标 -->
-      <template v-if="panelState.panelConfig.iconStyle === PanelPanelConfigStyleEnum.info">
-        <VueDraggable
-          v-model="monitorDatas" item-key="sort" :animation="300"
-          class="icon-info-box"
-          filter=".not-drag"
-          :disabled="!monitorGroup.sortStatus"
-        >
-          <div
-            v-for="item, index in monitorDatas" :key="index"
-            :title="item.description"
-            @click="handleClick(index, item)"
-            @contextmenu="(e) => handleContextMenu(e, index, item)"
-          >
-            <AppIconSystemMonitor
-              :extend-param="item.extendParam"
-              :icon-text-icon-hide-title="false"
-              :card-type-style="panelState.panelConfig.iconStyle"
-              :monitor-type="item.monitorType"
-              :card-style="cardStyle"
-              :icon-text-color="panelState.panelConfig.iconTextColor"
-            />
-          </div>
-        </VueDraggable>
-      </template>
-
-      <!-- APP图标宫型盒子 -->
-      <template v-if="panelState.panelConfig.iconStyle === PanelPanelConfigStyleEnum.icon">
-        <VueDraggable
-          v-model="monitorDatas" item-key="sort" :animation="300"
-          class="icon-small-box"
-          filter=".not-drag"
-          :disabled="!monitorGroup.sortStatus"
-        >
-          <div
-            v-for="item, index in monitorDatas" :key="index"
-            :title="item.description"
-            @click="handleClick(index, item)"
-            @contextmenu="(e) => handleContextMenu(e, index, item)"
-          >
-            <AppIconSystemMonitor
-              :extend-param="item.extendParam"
-              :icon-text-icon-hide-title="false"
-              :card-type-style="panelState.panelConfig.iconStyle"
-              :monitor-type="item.monitorType"
-              :card-style="cardStyle"
-              :icon-text-color="panelState.panelConfig.iconTextColor"
-            />
-          </div>
-        </VueDraggable>
-      </template>
-
-      <!-- 编辑栏 -->
-      <template v-if="monitorGroup.sortStatus && allowEdit">
-        <div class="system-monitor-edit-bar flex mt-3">
-          <NButton secondary @click="handleSaveSort()">
-            <template #icon>
-              <SvgIcon class="text-ink" icon="material-symbols:save" />
-            </template>
-            <div>
-              {{ $t('common.saveSort') }}
-            </div>
-          </NButton>
-        </div>
-      </template>
     </div>
-
+    <VueDraggable
+      v-model="monitorDatas" item-key="sort" :animation="220" class="monitor-items"
+      :disabled="!monitorGroup.sortStatus"
+    >
+      <div
+        v-for="item, index in monitorDatas" :key="index" class="monitor-item"
+        :class="{ sorting: monitorGroup.sortStatus }" :title="item.description"
+        @click="handleClick(index, item)" @contextmenu="(e) => handleContextMenu(e, index)"
+      >
+        <CardCPU
+          v-if="item.monitorType === MonitorType.cpu" compact
+          :card-type-style="PanelPanelConfigStyleEnum.info" :refresh-interval="5000"
+          text-color="var(--xp-ink)" progress-color="var(--xp-primary)" progress-rail-color="var(--xp-hairline)"
+        />
+        <Memory
+          v-else-if="item.monitorType === MonitorType.memory" compact
+          :card-type-style="PanelPanelConfigStyleEnum.info" :refresh-interval="5000"
+          text-color="var(--xp-ink)" progress-color="var(--xp-primary)" progress-rail-color="var(--xp-hairline)"
+        />
+        <Disk
+          v-else-if="item.monitorType === MonitorType.disk" compact :path="item.extendParam?.path"
+          :card-type-style="PanelPanelConfigStyleEnum.info" :refresh-interval="5000"
+          text-color="var(--xp-ink)" progress-color="var(--xp-primary)" progress-rail-color="var(--xp-hairline)"
+        />
+      </div>
+    </VueDraggable>
+    <NButton v-if="monitorGroup.sortStatus && allowEdit" secondary size="small" class="save-sort" @click="handleSaveSort">
+      {{ $t('common.saveSort') }}
+    </NButton>
     <Edit v-model:visible="editShowStatus" :monitor-data="editData" :index="editIndex" @done="handleSaveDone" />
-
     <NDropdown
       placement="bottom-start" trigger="manual" :x="dropdownMenuX" :y="dropdownMenuY"
       :options="getDropdownMenuOptions()" :show="dropdownShow" :on-clickoutside="onClickoutside" @select="handleRightMenuSelect"
@@ -273,33 +219,19 @@ function handleRightMenuSelect(key: string | number) {
 </template>
 
 <style scoped>
-.text-shadow {
-  text-shadow: 2px 2px 50px rgb(0, 0, 0);
-}
-
-.app-icon-text-shadow {
-  text-shadow: 2px 2px 5px rgb(0, 0, 0);
-}
-
-.icon-info-box {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 18px;
-
-}
-
-.icon-small-box {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
-  gap: 18px;
-
-}
-
-@media (max-width: 500px) {
-  .icon-info-box{
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  }
-}
+.system-monitor { min-width: 0; width: 100%; padding: 12px 16px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-md); background: var(--xp-canvas); }
+.monitor-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 16px; }
+.monitor-toolbar:has(.monitor-title) { margin-bottom: 8px; }
+.monitor-title { color: var(--xp-muted); font-size: 13px; }
+.monitor-actions { display: flex; gap: 8px; margin-left: auto; opacity: 0; transition: opacity 120ms; }
+.monitor-actions.visible, .monitor-actions:focus-within { opacity: 1; }
+.monitor-actions button { display: grid; width: 24px; height: 24px; place-items: center; color: var(--xp-muted); }
+.monitor-actions button:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
+.monitor-items { display: flex; flex-wrap: wrap; gap: 16px; }
+.monitor-item { flex: 1 1 88px; min-width: 88px; cursor: pointer; }
+.monitor-item.sorting { cursor: grab; }
+.save-sort { margin-top: 8px; }
+.on-wallpaper { background: color-mix(in srgb, var(--xp-canvas) 92%, transparent); }
+.on-wallpaper :deep(.compact-label), .on-wallpaper .monitor-title { color: var(--xp-muted); }
+@media (prefers-reduced-motion: reduce) { .monitor-actions { transition: none; } }
 </style>

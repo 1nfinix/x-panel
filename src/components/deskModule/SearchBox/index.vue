@@ -170,7 +170,7 @@ onMounted(() => {
 
 <style scoped>
 .search-container {
-  height: 40px;
+  height: 46px;
   border: 1px solid var(--xp-hairline);
   padding: 0 10px;
 }
@@ -192,7 +192,7 @@ input {
   background-color: transparent;
   box-sizing: border-box;
   width: 100%;
-  height: 40px;
+  height: 44px;
   padding: 10px 5px;
   border: none;
   outline: none;
