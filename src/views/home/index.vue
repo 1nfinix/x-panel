@@ -17,9 +17,15 @@ import { t } from '@/locales'
 import { useWallpaper } from '@/hooks/useWallpaper'
 
 interface ItemGroup extends Panel.ItemIconGroup {
-  sortStatus?: boolean
   hoverStatus: boolean
   items?: Panel.ItemInfo[]
+}
+
+interface DragEndEvent {
+  from: HTMLElement
+  to: HTMLElement
+  oldDraggableIndex?: number
+  newDraggableIndex?: number
 }
 
 const ms = useMessage()
@@ -49,6 +55,7 @@ const settingModalShow = ref(false)
 const items = ref<ItemGroup[]>([])
 const filterItems = ref<ItemGroup[]>([])
 const listFilter = ref('')
+const arrangeMode = ref(false)
 const listFilterRef = ref<HTMLInputElement | null>(null)
 const failedIcons = ref(new Set<number>())
 
@@ -129,10 +136,6 @@ function displayDomain(url: string) {
   }
 }
 
-function groupIndex(group: ItemGroup) {
-  return items.value.findIndex(item => item.id === group.id)
-}
-
 watch(() => [panelState.panelConfig.autoWallpaper, panelState.panelConfig.backgroundImageSrc], () => {
   showWallpaper(panelState.panelConfig.backgroundImageSrc, panelState.panelConfig.autoWallpaper !== false)
 }, { immediate: true })
@@ -162,11 +165,9 @@ function openPage(openMethod: number, url: string, title?: string) {
   }
 }
 
-function handleItemClick(itemGroupIndex: number, item: Panel.ItemInfo) {
-  if (items.value[itemGroupIndex] && items.value[itemGroupIndex].sortStatus) {
-    handleEditItem(item)
+function handleItemClick(item: Panel.ItemInfo) {
+  if (arrangeMode.value)
     return
-  }
 
   let jumpUrl = ''
 
@@ -257,9 +258,11 @@ function handleRightMenuSelect(key: string | number) {
   }
 }
 
-function handleContextMenu(e: MouseEvent, itemGroupIndex: number, item: Panel.ItemInfo) {
-  if (items.value[itemGroupIndex] && items.value[itemGroupIndex].sortStatus)
+function handleContextMenu(e: MouseEvent, item: Panel.ItemInfo) {
+  if (arrangeMode.value) {
+    e.preventDefault()
     return
+  }
 
   e.preventDefault()
   currentRightSelectItem.value = item
@@ -289,32 +292,40 @@ function handleChangeNetwork(mode: PanelStateNetworkModeEnum) {
     ms.success(t('panelHome.changeToWanModelSuccess'))
 }
 
-// 结束拖拽
-// function handleEndDrag(event: any, itemIconGroup: Panel.ItemIconGroup) {
-//   // console.log(event)
-//   // console.log(items.value)
-// }
+function toggleArrangeMode() {
+  arrangeMode.value = !arrangeMode.value
+  if (arrangeMode.value) {
+    listFilter.value = ''
+    filterItems.value = items.value
+    dropdownShow.value = false
+  }
+}
 
-function handleSaveSort(itemGroup: ItemGroup) {
-  const saveItems: Common.SortItemRequest[] = []
-  if (itemGroup.items) {
-    for (let i = 0; i < itemGroup.items.length; i++) {
-      const element = itemGroup.items[i]
-      saveItems.push({
-        id: element.id as number,
-        sort: i + 1,
-      })
-    }
+async function handleEndDrag(event: DragEndEvent) {
+  if (event.from === event.to && event.oldDraggableIndex === event.newDraggableIndex)
+    return
 
-    saveSort({ itemIconGroupId: itemGroup.id as number, sortItems: saveItems }).then(({ code, msg }) => {
-      if (code === 0) {
-        ms.success(t('common.saveSuccess'))
-        itemGroup.sortStatus = false
-      }
-      else {
-        ms.error(`${t('common.saveFail')}:${msg}`)
-      }
+  const targetId = Number(event.to.dataset.groupId)
+  const target = items.value.find(group => group.id === targetId)
+  if (!target?.items)
+    return
+
+  try {
+    const { code } = await saveSort({
+      itemIconGroupId: targetId,
+      sortItems: target.items.map((item, index) => ({ id: item.id as number, sort: index + 1 })),
     })
+    if (code === 0)
+      return
+  }
+  catch {}
+
+  ms.error(t('panelHome.arrangeSaveFailed'))
+  const sourceId = Number(event.from.dataset.groupId)
+  for (const id of new Set([sourceId, targetId])) {
+    const index = items.value.findIndex(group => group.id === id)
+    if (index !== -1)
+      updateItemIconGroupByNet(index, id)
   }
 }
 
@@ -398,18 +409,6 @@ function itemFrontEndSearch(keyword?: string) {
   }
 }
 
-function handleSetSortStatus(groupIndex: number, sortStatus: boolean) {
-  if (items.value[groupIndex])
-    items.value[groupIndex].sortStatus = sortStatus
-
-  // 并未保存排序重新更新数据
-  if (!sortStatus) {
-    // 单独更新组
-    if (items.value[groupIndex] && items.value[groupIndex].id)
-      updateItemIconGroupByNet(groupIndex, items.value[groupIndex].id as number)
-  }
-}
-
 function handleEditItem(item: Panel.ItemInfo) {
   editItemInfoData.value = item
   editItemInfoShow.value = true
@@ -454,6 +453,9 @@ function handleAddItem(itemIconGroupId?: number) {
               <input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')">
               <kbd>/</kbd>
             </label>
+            <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" secondary @click="toggleArrangeMode">
+              {{ arrangeMode ? t('panelHome.arrangeDone') : t('panelHome.arrange') }}
+            </NButton>
           </div>
           <nav ref="navRef" class="group-navigation" :aria-label="t('panelHome.groups')">
             <span class="nav-indicator" :style="indicatorStyle" aria-hidden="true" />
@@ -485,21 +487,13 @@ function handleAddItem(itemIconGroupId?: number) {
 
           <div v-if="visibleCount || (!isGroupedView && visibleGroups.length)" :class="isGroupedView ? 'group-columns' : ''">
             <section v-for="group in visibleGroups" :key="group.id" class="group-section" :class="{ 'single-section': !isGroupedView }">
-              <div v-if="isGroupedView || authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="group-heading">
-                <h2 v-if="isGroupedView">
+              <div v-if="isGroupedView" class="group-heading">
+                <h2>
                   {{ group.title }} <span>{{ group.items?.length ?? 0 }}</span>
                 </h2>
-                <div v-if="!isGroupedView && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="group-actions">
-                  <NButton size="small" secondary @click="handleSetSortStatus(groupIndex(group), !group.sortStatus)">
-                    {{ group.sortStatus ? t('common.cancel') : t('common.sort') }}
-                  </NButton>
-                  <NButton v-if="group.sortStatus" size="small" type="primary" @click="handleSaveSort(group)">
-                    {{ t('common.saveSort') }}
-                  </NButton>
-                </div>
               </div>
-              <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="220" class="url-list" filter=".add-row" :disabled="isGroupedView || !group.sortStatus">
-                <button v-for="item in group.items" :key="item.id" class="url-row" :class="{ sorting: group.sortStatus }" type="button" :title="item.title" @click="handleItemClick(groupIndex(group), item)" @contextmenu="(e) => handleContextMenu(e, groupIndex(group), item)">
+              <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="220" class="url-list" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" delay-on-touch-only ghost-class="sortable-ghost" @end="handleEndDrag">
+                <button v-for="item in group.items" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" type="button" :title="item.title" @click="handleItemClick(item)" @contextmenu="(e) => handleContextMenu(e, item)">
                   <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)">
                   <ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" />
                   <span v-else class="row-placeholder" :style="{ backgroundColor: iconBackground(item), color: iconTextColor(item) }">{{ (item.icon?.itemType === 1 && item.icon.text ? item.icon.text : item.title).charAt(0).toUpperCase() }}</span>
@@ -507,7 +501,7 @@ function handleAddItem(itemIconGroupId?: number) {
                   <span class="row-domain" :title="item.url">{{ displayDomain(item.url) }}</span>
                   <span class="row-arrow" aria-hidden="true">↗</span>
                 </button>
-                <button v-if="!isGroupedView && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="url-row add-row" type="button" @click="handleAddItem(group.id)">
+                <button v-if="!arrangeMode && !isGroupedView && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="url-row add-row" type="button" @click="handleAddItem(group.id)">
                   <span class="row-placeholder add-symbol">+</span><span>{{ t('common.add') }}</span>
                 </button>
               </VueDraggable>
@@ -647,12 +641,13 @@ body, html { overflow: hidden; background: var(--goop-bg); color: var(--goop-tex
 .single-section { padding: 8px; }
 .group-heading { display: flex; align-items: center; justify-content: space-between; margin: 0 10px 4px; }
 .group-heading h2 { display: flex; justify-content: space-between; width: 100%; margin: 0; color: var(--goop-muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
-.group-actions { display: flex; gap: 8px; margin-left: auto; }
 .url-list { min-width: 0; }
 .single-section .url-list { columns: 3 300px; column-gap: 18px; }
 .url-row { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 6px 10px; break-inside: avoid; border: 0; border-radius: 6px; background: transparent; color: var(--goop-text); font: inherit; text-align: left; cursor: pointer; }
 .url-row:hover { background: var(--goop-row-hover); }
 .url-row.sorting { cursor: grab; }
+.url-row.sorting:active { cursor: grabbing; }
+.url-row.sortable-ghost { opacity: .45; }
 .row-icon, .row-placeholder { flex: none; width: 20px; height: 20px; border-radius: 5px; }
 .row-icon { object-fit: contain; padding: 1px; }
 .row-placeholder { display: grid; place-items: center; font-size: 11px; font-weight: 800; }

@@ -257,6 +257,9 @@
     "all": "All",
     "groups": "Group navigation",
     "filterPlaceholder": "Filter sites by name or domain",
+    "arrange": "Arrange",
+    "arrangeDone": "Done",
+    "arrangeSaveFailed": "Failed to save order",
     "noMatches": "No matching sites"
   },
   "settingUserInfo": {

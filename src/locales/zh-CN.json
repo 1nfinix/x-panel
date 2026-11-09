@@ -257,6 +257,9 @@
     "all": "全部",
     "groups": "分组导航",
     "filterPlaceholder": "筛选网址：名称或域名",
+    "arrange": "整理",
+    "arrangeDone": "完成",
+    "arrangeSaveFailed": "排序保存失败",
     "noMatches": "没有匹配的网址"
   },
   "settingUserInfo": {
