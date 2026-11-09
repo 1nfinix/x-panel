@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
-import { NBackTop, NButton, NButtonGroup, NDropdown, NModal, NSkeleton, NSpin, useDialog, useMessage } from 'naive-ui'
+import { NBackTop, NButton, NDropdown, NModal, NSkeleton, NSpin, useDialog, useMessage } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { AppStarter, EditItem } from './components'
 import { Clock, SearchBox, SystemMonitor } from '@/components/deskModule'
@@ -61,11 +61,13 @@ const failedIcons = ref(new Set<number>())
 
 // Icon tile colors honor the item's own backgroundColor; unset means white.
 function iconBackground(item: Panel.ItemInfo) {
-  return item.icon?.backgroundColor || '#ffffff'
+  return item.icon?.backgroundColor || 'var(--xp-surface-card)'
 }
 
 function iconTextColor(item: Panel.ItemInfo) {
   const color = iconBackground(item).trim()
+  if (color.startsWith('var('))
+    return 'var(--xp-ink)'
   let r = 255
   let g = 255
   let b = 255
@@ -88,8 +90,8 @@ function iconTextColor(item: Panel.ItemInfo) {
   }
   // A mostly transparent tile sits on the dark panel, so treat it as dark.
   if (a < 0.5)
-    return '#f2f7f4'
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? '#111827' : '#f2f7f4'
+    return 'var(--xp-canvas)'
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? 'var(--xp-ink)' : 'var(--xp-canvas)'
 }
 const selectedGroupId = ref<number | 'all' | null>('all')
 const isGroupedView = computed(() => selectedGroupId.value === 'all' || !!listFilter.value.trim())
@@ -136,8 +138,9 @@ function displayDomain(url: string) {
   }
 }
 
-watch(() => [panelState.panelConfig.autoWallpaper, panelState.panelConfig.backgroundImageSrc], () => {
-  showWallpaper(panelState.panelConfig.backgroundImageSrc, panelState.panelConfig.autoWallpaper !== false)
+watch(() => [panelState.panelConfig.showWallpaper, panelState.panelConfig.autoWallpaper, panelState.panelConfig.backgroundImageSrc], () => {
+  if (panelState.panelConfig.showWallpaper)
+    showWallpaper(panelState.panelConfig.backgroundImageSrc, panelState.panelConfig.autoWallpaper !== false)
 }, { immediate: true })
 
 watch(settingModalShow, (visible, previous) => {
@@ -425,9 +428,8 @@ function handleAddItem(itemIconGroupId?: number) {
 
 <template>
   <div class="w-full h-full sun-main">
-    <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><filter id="goop-filter"><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" /><feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" /></filter></defs></svg>
     <div
-      class="cover wallpaper" :style="{
+      v-if="panelState.panelConfig.showWallpaper" class="cover wallpaper" :style="{
         filter: `blur(${panelState.panelConfig.backgroundBlur}px)`,
         backgroundImage: wallpaperLoaded ? `url(${wallpaperSource})` : 'none',
         opacity: wallpaperLoaded ? 1 : 0,
@@ -435,10 +437,10 @@ function handleAddItem(itemIconGroupId?: number) {
         backgroundPosition: 'center',
       }"
     />
-    <div class="mask" :style="{ backgroundColor: `rgba(6,12,15,${Math.max(0.58, panelState.panelConfig.backgroundMaskNumber ?? 0.58)})` }" />
+    <div v-if="panelState.panelConfig.showWallpaper" class="mask" :style="{ backgroundColor: `rgba(24,23,21,${Math.max(0.58, panelState.panelConfig.backgroundMaskNumber ?? 0.58)})` }" />
     <div ref="scrollContainerRef" class="absolute w-full h-full overflow-auto">
       <div
-        class="p-2.5 mx-auto"
+        class="px-6 max-sm:px-4 mx-auto"
         :style="{
           marginTop: `${panelState.panelConfig.marginTop}%`,
           marginBottom: `${panelState.panelConfig.marginBottom}%`,
@@ -447,13 +449,13 @@ function handleAddItem(itemIconGroupId?: number) {
       >
         <header class="navigation-shell">
           <div class="navigation-row">
-            <strong class="brand-name">{{ panelState.panelConfig.logoText }}</strong>
+            <strong class="brand-name" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">{{ panelState.panelConfig.logoText }}</strong>
             <label class="list-filter">
               <SvgIcon icon="material-symbols:search-rounded" aria-hidden="true" />
               <input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')">
               <kbd>/</kbd>
             </label>
-            <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" secondary @click="toggleArrangeMode">
+            <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :type="arrangeMode ? 'primary' : 'default'" :secondary="!arrangeMode" class="arrange-button" @click="toggleArrangeMode">
               {{ arrangeMode ? t('panelHome.arrangeDone') : t('panelHome.arrange') }}
             </NButton>
           </div>
@@ -486,7 +488,7 @@ function handleAddItem(itemIconGroupId?: number) {
           </div>
 
           <div v-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" :class="isGroupedView ? 'group-columns' : ''">
-            <section v-for="group in visibleGroups" :key="group.id" class="group-section" :class="{ 'single-section': !isGroupedView }">
+            <section v-for="group in visibleGroups" :key="group.id" class="group-section" :class="{ 'single-section': !isGroupedView, 'on-wallpaper': panelState.panelConfig.showWallpaper }">
               <div v-if="isGroupedView" class="group-heading">
                 <h2>
                   {{ group.title }} <span>{{ group.items?.length ?? 0 }}</span>
@@ -522,39 +524,39 @@ function handleAddItem(itemIconGroupId?: number) {
     />
 
     <!-- 悬浮按钮 -->
-    <div class="fixed-element shadow-[0_0_10px_2px_rgba(0,0,0,0.2)]">
-      <NButtonGroup vertical>
+    <div class="fixed-element">
+      <div class="floating-actions">
         <!-- 网络模式切换按钮组 -->
         <NButton
-          v-if="panelState.networkMode === PanelStateNetworkModeEnum.lan && panelState.panelConfig.netModeChangeButtonShow" color="#2a2a2a6b"
+          v-if="panelState.networkMode === PanelStateNetworkModeEnum.lan && panelState.panelConfig.netModeChangeButtonShow" circle secondary class="floating-button"
           :title="t('panelHome.changeToWanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.wan)"
         >
           <template #icon>
-            <SvgIcon class="text-white font-xl" icon="material-symbols:lan-outline-rounded" />
+            <SvgIcon icon="material-symbols:lan-outline-rounded" />
           </template>
         </NButton>
 
         <NButton
-          v-if="panelState.networkMode === PanelStateNetworkModeEnum.wan && panelState.panelConfig.netModeChangeButtonShow" color="#2a2a2a6b"
+          v-if="panelState.networkMode === PanelStateNetworkModeEnum.wan && panelState.panelConfig.netModeChangeButtonShow" circle secondary class="floating-button"
           :title="t('panelHome.changeToLanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.lan)"
         >
           <template #icon>
-            <SvgIcon class="text-white font-xl" icon="mdi:wan" />
+            <SvgIcon icon="mdi:wan" />
           </template>
         </NButton>
 
-        <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" color="#2a2a2a6b" @click="settingModalShow = !settingModalShow">
+        <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" circle secondary class="floating-button" @click="settingModalShow = !settingModalShow">
           <template #icon>
-            <SvgIcon class="text-white font-xl" icon="majesticons-applications" />
+            <SvgIcon icon="majesticons-applications" />
           </template>
         </NButton>
 
-        <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" color="#2a2a2a6b" :title="$t('panelHome.goToLogin')" @click="router.push('/login')">
+        <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" circle secondary class="floating-button" :title="$t('panelHome.goToLogin')" @click="router.push('/login')">
           <template #icon>
-            <SvgIcon class="text-white font-xl" icon="material-symbols:account-circle" />
+            <SvgIcon icon="material-symbols:account-circle" />
           </template>
         </NButton>
-      </NButtonGroup>
+      </div>
 
       <AppStarter v-model:visible="settingModalShow" />
       <!-- <Setting v-model:visible="settingModalShow" /> -->
@@ -566,10 +568,10 @@ function handleAddItem(itemIconGroupId?: number) {
       :bottom="10"
       style="background-color:transparent;border: none;box-shadow: none;"
     >
-      <div class="shadow-[0_0_10px_2px_rgba(0,0,0,0.2)]">
-        <NButton color="#2a2a2a6b">
+      <div>
+        <NButton circle secondary class="floating-button">
           <template #icon>
-            <SvgIcon class="text-white font-xl" icon="icon-park-outline:to-top" />
+            <SvgIcon icon="icon-park-outline:to-top" />
           </template>
         </NButton>
       </div>
@@ -580,23 +582,23 @@ function handleAddItem(itemIconGroupId?: number) {
     <!-- 弹窗 -->
     <NModal
       v-model:show="windowShow" :mask-closable="false" preset="card"
-      style="max-width: 1000px;height: 600px;border-radius: 1rem;" :bordered="true" size="small" role="dialog"
+      style="max-width: 1000px;height: 600px;" :bordered="true" size="small" role="dialog"
       aria-modal="true"
     >
       <template #header>
         <div class="flex items-center">
-          <span class="mr-[20px]">
+          <span class="mr-5">
             {{ windowTitle }}
           </span>
 
           <NSpin v-if="windowIframeIsLoad" size="small" />
         </div>
       </template>
-      <div class="w-full h-full rounded-2xl overflow-hidden border dark:border-zinc-700">
+      <div class="w-full h-full rounded-xp-lg overflow-hidden border border-hairline">
         <div v-if="windowIframeIsLoad" class="flex flex-col p-5">
-          <NSkeleton height="50px" width="100%" class="rounded-lg" />
-          <NSkeleton height="180px" width="100%" class="mt-[20px] rounded-lg" />
-          <NSkeleton height="180px" width="100%" class="mt-[20px] rounded-lg" />
+          <NSkeleton height="50px" width="100%" class="rounded-xp-md" />
+          <NSkeleton height="180px" width="100%" class="mt-5 rounded-xp-md" />
+          <NSkeleton height="180px" width="100%" class="mt-5 rounded-xp-md" />
         </div>
         <iframe
           v-show="!windowIframeIsLoad" id="windowIframeId" ref="windowIframeRef" :src="windowSrc"
@@ -608,59 +610,65 @@ function handleAddItem(itemIconGroupId?: number) {
 </template>
 
 <style>
-body, html { overflow: hidden; background: var(--goop-bg); color: var(--goop-text); }
-::selection { background: var(--goop-green); color: var(--goop-selection-text); }
-.n-modal, .n-card { border-radius: 8px !important; }
+body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink); }
+::selection { background: var(--xp-primary); color: var(--xp-on-primary); }
 .n-modal { animation: modal-open 260ms cubic-bezier(.16,1,.3,1); }
 @keyframes modal-open { from { transform: scale(.96); opacity: .7; } to { transform: scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .n-modal { animation: none; } }
 </style>
 
 <style scoped>
-.sun-main { position: relative; background: var(--goop-bg); user-select: none; font-family: 'Arial Rounded MT Bold', 'PingFang SC', system-ui, sans-serif; }
+.sun-main { position: relative; background: var(--xp-canvas); user-select: none; font-family: var(--xp-font-body); }
 .cover, .mask { position: absolute; inset: 0; }
 .cover { background-position: center; background-size: cover; transform: scale(1.03); transition: opacity 600ms ease; }
-.navigation-shell { margin: 28px 0 22px; }
+.navigation-shell { margin: 28px 0 24px; }
 .navigation-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.brand-name { flex: none; font-size: 26px; font-weight: 850; color: #f2f7f4; white-space: nowrap; }
-.list-filter { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px; max-width: 420px; margin-left: auto; padding: 8px 14px; border: 1px solid var(--goop-border); border-radius: 999px; background: var(--goop-panel-overlay); color: var(--goop-muted); }
-.list-filter input { min-width: 0; flex: 1; border: 0; outline: 0; background: none; color: var(--goop-text); font: inherit; user-select: text; }
-.list-filter input::placeholder { color: var(--goop-muted); }
-.list-filter kbd { padding: 0 5px; border: 1px solid var(--goop-border); border-radius: 4px; font-size: 11px; }
-.list-filter:focus-within { outline: 2px solid var(--goop-green); outline-offset: 2px; }
-.group-navigation { position: relative; display: flex; gap: 6px; width: max-content; max-width: 100%; margin-top: 18px; overflow-x: auto; scrollbar-width: none; padding: 5px; border: 1px solid var(--goop-border); border-radius: 999px; background: var(--goop-panel-overlay); }
+.brand-name { flex: none; font: 400 28px/1.2 var(--xp-font-display); letter-spacing: -.3px; color: var(--xp-ink); white-space: nowrap; }
+.brand-name.on-wallpaper { color: var(--xp-wallpaper-ink); }
+.list-filter { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px; max-width: 420px; height: 40px; margin-left: auto; padding: 0 14px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-md); background: var(--xp-canvas); color: var(--xp-muted); }
+.list-filter input { min-width: 0; flex: 1; border: 0; outline: 0; background: none; color: var(--xp-ink); font: inherit; user-select: text; }
+.list-filter input::placeholder { color: var(--xp-muted); }
+.list-filter kbd { padding: 0 5px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-sm); font-size: 13px; }
+.list-filter:focus-within { border-color: var(--xp-primary); box-shadow: 0 0 0 3px var(--xp-focus-ring); }
+.arrange-button { height: 40px; border-radius: var(--xp-radius-md); }
+.group-navigation { position: relative; display: flex; gap: 6px; width: max-content; max-width: 100%; margin-top: 16px; overflow-x: auto; scrollbar-width: none; }
 .group-navigation::-webkit-scrollbar { display: none; }
-.nav-tab { position: relative; z-index: 1; flex: none; padding: 6px 13px; border: 0; border-radius: 999px; color: var(--goop-muted); font-weight: 500; white-space: nowrap; cursor: pointer; background: transparent; }
-.nav-tab b { margin-left: 4px; font-size: 12px; font-weight: 500; opacity: .7; }
-.nav-tab.active { color: var(--goop-active-text); }
-.nav-indicator { position: absolute; top: 5px; bottom: 5px; border-radius: 999px; background: var(--goop-green); transition: left 430ms cubic-bezier(.16,1,.3,1), width 430ms cubic-bezier(.16,1,.3,1); filter: url(#goop-filter); }
-.nav-tab:focus-visible, .url-row:focus-visible { outline: 2px solid var(--goop-green); outline-offset: 2px; }
+.nav-tab { position: relative; z-index: 1; flex: none; padding: 8px 14px; border: 0; border-radius: var(--xp-radius-md); color: var(--xp-muted); font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; background: transparent; }
+.nav-tab b { margin-left: 4px; font-size: 13px; font-weight: 500; color: var(--xp-muted-soft); }
+.nav-tab.active { color: var(--xp-ink); }
+.nav-indicator { position: absolute; top: 0; bottom: 0; border-radius: var(--xp-radius-md); background: var(--xp-surface-card); transition: left 220ms ease, width 220ms ease; }
+.nav-tab:focus-visible, .url-row:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
 .search-row { margin-top: 16px; max-width: 720px; }
-.group-columns { columns: 3 300px; column-gap: 18px; }
-.group-section { break-inside: avoid; margin-bottom: 18px; padding: 10px 6px 6px; border: 1px solid var(--goop-border); border-radius: 8px; background: var(--goop-panel-overlay); }
-.single-section { padding: 8px; }
-.group-heading { display: flex; align-items: center; justify-content: space-between; margin: 0 10px 4px; }
-.group-heading h2 { display: flex; justify-content: space-between; width: 100%; margin: 0; color: var(--goop-muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+.group-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.group-section { min-width: 0; padding: 16px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-lg); background: var(--xp-canvas); }
+.group-section.on-wallpaper { background: color-mix(in srgb, var(--xp-canvas) 92%, transparent); }
+.group-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.group-heading h2 { display: flex; justify-content: space-between; width: 100%; margin: 0; color: var(--xp-ink); font-size: 16px; font-weight: 500; letter-spacing: 0; }
+.group-heading span { color: var(--xp-muted-soft); font-size: 13px; }
 .url-list { min-width: 0; }
-.url-list.arrange-drop-zone { min-height: 36px; border: 1px dashed var(--goop-border); }
-.single-section .url-list { columns: 3 300px; column-gap: 18px; }
-.url-row { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 6px 10px; break-inside: avoid; border: 0; border-radius: 6px; background: transparent; color: var(--goop-text); font: inherit; text-align: left; cursor: pointer; }
-.url-row:hover { background: var(--goop-row-hover); }
-.url-row.sorting { cursor: grab; }
+.url-list.arrange-drop-zone { min-height: 40px; border: 1px dashed var(--xp-hairline); border-radius: var(--xp-radius-md); }
+.single-section .url-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 12px; }
+.url-row { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid transparent; border-radius: var(--xp-radius-md); background: transparent; color: var(--xp-ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.url-row:hover { background: var(--xp-surface-soft); }
+.url-row.sorting { border: 1px dashed var(--xp-hairline); cursor: grab; }
 .url-row.sorting:active { cursor: grabbing; }
-.url-row.sortable-ghost { opacity: .45; }
-.row-icon, .row-placeholder { flex: none; width: 20px; height: 20px; border-radius: 5px; }
+.url-row.sortable-ghost { background: var(--xp-surface-strong); opacity: .6; }
+.row-icon, .row-placeholder { flex: none; width: 20px; height: 20px; border-radius: var(--xp-radius-sm); }
 .row-icon { object-fit: contain; padding: 1px; }
 .row-placeholder { display: grid; place-items: center; font-size: 11px; font-weight: 800; }
-.add-row .row-placeholder { background: var(--goop-green); color: var(--goop-placeholder-text); }
+.add-row .row-placeholder { background: var(--xp-surface-card); color: var(--xp-ink); }
 .row-name, .row-domain { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-name { flex: 1; }
-.row-domain { flex: 0 1 auto; max-width: 46%; color: var(--goop-muted); font-size: 12px; }
-.row-arrow { flex: none; color: var(--goop-muted); font-size: 12px; }
-.add-row { color: var(--goop-muted); }
-.add-symbol { font-size: 17px; }
-.empty-list { padding: 30px; color: var(--goop-muted); text-align: center; }
+.row-domain { flex: 0 1 auto; max-width: 46%; color: var(--xp-muted-soft); font-size: 13px; }
+.row-arrow { flex: none; color: var(--xp-muted-soft); font-size: 13px; }
+.add-row { color: var(--xp-muted); }
+.add-symbol { font-size: 18px; }
+.empty-list { padding: 32px; color: var(--xp-muted); text-align: center; }
+.footer { color: var(--xp-muted-soft); font-size: 13px; }
 .fixed-element { position: fixed; right: 16px; bottom: 40px; }
-@media (max-width: 640px) { .navigation-shell { margin-top: 18px; } .list-filter { order: 3; width: 100%; max-width: none; margin-left: 0; } .group-columns, .single-section .url-list { columns: 1; } }
-@media (prefers-reduced-motion: reduce) { .cover, .nav-indicator { transition: none !important; filter: none !important; } }
+.floating-actions { display: flex; flex-direction: column; gap: 8px; }
+.floating-button { width: 36px; height: 36px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-pill); background: var(--xp-canvas); color: var(--xp-ink); }
+@media (max-width: 1023px) { .group-columns, .single-section .url-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 639px) { .navigation-shell { margin-top: 16px; } .list-filter { order: 3; width: 100%; max-width: none; margin-left: 0; } .group-columns, .single-section .url-list { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .cover, .nav-indicator { transition: none !important; } }
 </style>

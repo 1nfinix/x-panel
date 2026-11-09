@@ -88,7 +88,7 @@ async function editApi() {
     model.value.icon = {
       itemType: 1,
       text: model.value.title.trim().charAt(0).toUpperCase() || '?',
-      backgroundColor: model.value.icon?.backgroundColor || '#ffffff',
+      backgroundColor: model.value.icon?.backgroundColor || '#efe9de',
     }
   }
   submitLoading.value = true
@@ -191,8 +191,8 @@ function getGroupListOptions() {
 </script>
 
 <template>
-  <NModal v-model:show="show" preset="card" size="small" style="width: 600px;border-radius: 1rem;" :title="itemInfo ? t('iconItem.edit') : t('iconItem.add')">
-    <div class="h-[600px] overflow-auto p-[5px]">
+  <NModal v-model:show="show" preset="card" size="small" style="width: 600px;border-radius: var(--xp-radius-lg);" :title="itemInfo ? t('iconItem.edit') : t('iconItem.add')">
+    <div class="h-[600px] overflow-auto p-1">
       <NForm ref="formRef" :model="model" :rules="rules">
         <NGrid cols="2" :x-gap="10" item-responsive>
           <NGridItem span="2 500:1">

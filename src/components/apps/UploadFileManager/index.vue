@@ -84,7 +84,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-slate-200 dark:bg-zinc-900 p-2 h-full">
+  <div class="bg-surface-soft p-2 h-full">
     <NSpin v-show="loading" size="small" />
     <NAlert type="info" :bordered="false">
       {{ $t('apps.uploadsFileManager.alertText') }}
@@ -96,19 +96,19 @@ onMounted(() => {
       <NImageGroup v-else>
         <NGrid cols="2 300:2 600:4 900:6 1100:9" :x-gap="5" :y-gap="5">
           <NGridItem v-for=" item, index in imageList" :key="index">
-            <NCard size="small" style="border-radius: 5px;" :bordered="true">
+            <NCard size="small" style="border-radius: var(--xp-radius-sm);" :bordered="true">
               <template #cover>
                 <div class="card transparent-grid">
                   <NImage :lazy="true" style="object-fit: contain;height: 100%;" :src="item.src" />
                 </div>
               </template>
               <template #footer>
-                <span class="text-xs">
+                <span class="text-[13px]">
                   <NEllipsis>
                     {{ item.fileName }}
                   </NEllipsis>
                 </span>
-                <div class="flex justify-center mt-[10px]">
+                <div class="flex justify-center mt-3">
                   <NButtonGroup>
                     <NButton size="tiny" tertiary style="cursor: pointer;" :title="$t('apps.uploadsFileManager.copyLink')" @click="copyImageUrl(item.src)">
                       <template #icon>
@@ -143,26 +143,26 @@ onMounted(() => {
       <div>
         <div>
           <div class="mb-2">
-            <span class="text-slate-500">
+            <span class="text-muted">
               {{ $t('apps.uploadsFileManager.fileName') }}
             </span>
-            <div class="text-xs">
+            <div class="text-[13px]">
               {{ infoModalState.fileInfo?.fileName }}
             </div>
           </div>
           <div class="mb-2">
-            <span class="text-slate-500">
+            <span class="text-muted">
               {{ $t('apps.uploadsFileManager.path') }}
             </span>
-            <div class="text-xs">
+            <div class="text-[13px]">
               {{ infoModalState.fileInfo?.src }}
             </div>
           </div>
           <div class="mb-2">
-            <span class="text-slate-500">
+            <span class="text-muted">
               {{ $t('apps.uploadsFileManager.uploadTime') }}
             </span>
-            <div class="text-xs">
+            <div class="text-[13px]">
               {{ timeFormat(infoModalState.fileInfo?.createTime) }}
             </div>
           </div>
@@ -181,8 +181,8 @@ onMounted(() => {
 }
 
 .transparent-grid {
-  background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%),
-    linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%);
+  background-image: linear-gradient(45deg, var(--xp-surface-card) 25%, transparent 25%, transparent 75%, var(--xp-surface-card) 75%),
+    linear-gradient(45deg, var(--xp-surface-card) 25%, transparent 25%, transparent 75%, var(--xp-surface-card) 75%);
   background-size: 16px 16px;
   background-position: 0 0, 8px 8px;
 }

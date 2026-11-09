@@ -138,17 +138,17 @@ function handleChangeTheme(value: Theme) {
 </script>
 
 <template>
-  <div class="bg-slate-200 dark:bg-zinc-900 p-2 h-full">
-    <NCard style="border-radius:10px" size="small">
+  <div class="bg-surface-soft p-2 h-full">
+    <NCard size="small">
       <div>
-        <div class="text-slate-500 font-bold">
+        <div class="text-ink font-medium">
           {{ $t('common.username') }}
         </div>
         {{ authStore.userInfo?.username }}
       </div>
 
-      <div class="mt-[10px]">
-        <div class="text-slate-500 font-bold">
+      <div class="mt-3">
+        <div class="text-ink font-medium">
           {{ $t('common.nikeName') }}
         </div>
 
@@ -170,8 +170,8 @@ function handleChangeTheme(value: Theme) {
         </div>
       </div>
 
-      <div class="mt-[10px]">
-        <div class="text-slate-500 font-bold">
+      <div class="mt-3">
+        <div class="text-ink font-medium">
           {{ $t('common.language') }}
         </div>
         <div class="max-w-[200px]">
@@ -179,8 +179,8 @@ function handleChangeTheme(value: Theme) {
         </div>
       </div>
 
-      <div class="mt-[10px]">
-        <div class="text-slate-500 font-bold">
+      <div class="mt-3">
+        <div class="text-ink font-medium">
           {{ $t('apps.userInfo.theme') }}
         </div>
         <div class="max-w-[200px]">
@@ -196,7 +196,7 @@ function handleChangeTheme(value: Theme) {
       </div>
     </NCard>
 
-    <NCard style="border-radius:10px" class="mt-[10px]" size="small">
+    <NCard class="mt-3" size="small">
       <NButton size="small" text type="error" @click="handleLogout">
         <template #icon>
           <SvgIcon icon="tabler:logout" />

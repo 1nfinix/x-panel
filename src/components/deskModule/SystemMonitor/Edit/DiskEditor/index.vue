@@ -87,7 +87,7 @@ defineExpose({
 <template>
   <div>
     <!-- <div>{{ diskExtendParam }}</div> -->
-    <div class="flex mb-5 justify-center transparent-grid p-2 rounded-xl border">
+    <div class="flex mb-5 justify-center transparent-grid p-2 rounded-xp-lg border">
       <div class="w-[200px]">
         <GenericMonitorCard
           icon-text-icon-hide-title
@@ -154,10 +154,10 @@ defineExpose({
 
 <style>
 .transparent-grid {
-    background-image: linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%),
-                      linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%);
+    background-image: linear-gradient(45deg, var(--xp-canvas) 25%, transparent 25%, transparent 75%, var(--xp-canvas) 75%),
+                      linear-gradient(45deg, var(--xp-canvas) 25%, transparent 25%, transparent 75%, var(--xp-canvas) 75%);
     background-size: 16px 16px;
     background-position: 0 0, 8px 8px;
-    background-color: #e2e8f0;
+    background-color: var(--xp-surface-card);
 }
 </style>

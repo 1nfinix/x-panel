@@ -14,8 +14,8 @@ withDefaults(defineProps<{
   background?: string
   textColor?: string
 }>(), {
-  background: '#2a2a2a6b',
-  textColor: 'white',
+  background: 'var(--xp-canvas)',
+  textColor: 'var(--xp-ink)',
 })
 
 const emits = defineEmits(['itemSearch'])
@@ -121,14 +121,14 @@ onMounted(() => {
 
 <template>
   <div class="search-box w-full" @keydown.enter="handleSearchClick" @keydown.esc="handleClearSearchTerm">
-    <div class="search-container flex rounded-2xl items-center justify-center text-white w-full" :style="{ background, color: textColor }" :class="{ focused: isFocused }">
+    <div class="search-container flex rounded-xp-md items-center justify-center w-full" :style="{ background, color: textColor }" :class="{ focused: isFocused }">
       <div class="search-box-btn-engine w-[40px] flex justify-center cursor-pointer" @click="handleEngineClick">
         <NAvatar :src="state.currentSearchEngine.iconSrc" style="background-color: transparent;" :size="20" />
       </div>
 
       <input v-model="searchTerm" :placeholder="$t('deskModule.searchBox.inputPlaceholder')" @focus="onFocus" @blur="onBlur" @input="handleItemSearch">
 
-      <div v-if="searchTerm !== ''" class="search-box-btn-clear w-[25px] mr-[10px] flex justify-center cursor-pointer" @click="handleClearSearchTerm">
+      <div v-if="searchTerm !== ''" class="search-box-btn-clear w-[25px] mr-3 flex justify-center cursor-pointer" @click="handleClearSearchTerm">
         <SvgIcon style="width: 20px;height: 20px;" icon="line-md:close-small" />
       </div>
       <div class="search-box-btn-search w-[25px] flex justify-center cursor-pointer" @click="handleSearchClick">
@@ -137,14 +137,14 @@ onMounted(() => {
     </div>
 
     <!-- 搜索引擎选择 -->
-    <div v-if="searchSelectListShow" class="w-full mt-[10px] rounded-xl p-[10px]" :style="{ background }">
+    <div v-if="searchSelectListShow" class="w-full mt-3 rounded-xp-lg p-3 border border-hairline" :style="{ background }">
       <div class="flex items-center">
         <div class="flex items-center">
           <div
             v-for="item, index in defaultSearchEngineList"
             :key="index"
             :title="item.title"
-            class="w-[40px] h-[40px] mr-[10px]  cursor-pointer bg-[#ffffff] flex items-center justify-center rounded-xl"
+            class="w-[40px] h-[40px] mr-3 cursor-pointer bg-canvas flex items-center justify-center rounded-xp-md"
             @click="handleEngineUpdate(item)"
           >
             <NAvatar :src="item.iconSrc" style="background-color: transparent;" :size="20" />
@@ -157,7 +157,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="mt-[10px]">
+      <div class="mt-3">
         <NCheckbox v-model:checked="state.newWindowOpen" @update-checked="moduleConfig.saveToCloud(moduleConfigName, state)">
           <span :style="{ color: textColor }">
             {{ $t('deskModule.searchBox.openWithNewOpen') }}
@@ -170,17 +170,14 @@ onMounted(() => {
 
 <style scoped>
 .search-container {
-  border: 1px solid #ccc;
-  transition: box-shadow 0.5s,backdrop-filter 0.5s;
-  padding: 2px 10px;
-  backdrop-filter:blur(2px)
+  height: 40px;
+  border: 1px solid var(--xp-hairline);
+  padding: 0 10px;
 }
 
-.focused, .search-container:hover {
-  box-shadow: 0px 0px 30px -5px rgba(41, 41, 41, 0.45);
-  -webkit-box-shadow: 0px 0px 30px -5px rgba(0, 0, 0, 0.45);
-  -moz-box-shadow: 0px 0px 30px -5px rgba(0, 0, 0, 0.45);
-  backdrop-filter:blur(5px)
+.focused {
+  border-color: var(--xp-primary);
+  box-shadow: 0 0 0 3px var(--xp-focus-ring);
 }
 
 .before {
@@ -199,6 +196,6 @@ input {
   padding: 10px 5px;
   border: none;
   outline: none;
-  font-size: 17px;
+  font-size: 14px;
 }
 </style>

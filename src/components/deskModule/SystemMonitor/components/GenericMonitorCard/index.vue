@@ -1,7 +1,5 @@
 <script setup lang="ts">
 // -------------------
-// 系统监控图标临时使用（与 AppIcon/index.vue 一致）
-// 如果确定这种方案将 AppIcon/index.vue 封装成通用组件
 // -------------------
 
 import { ref } from 'vue'
@@ -39,7 +37,7 @@ const propClass = ref(props.class)
       <template #info>
         <!-- 图标 -->
         <div class="w-[60px] h-[70px]">
-          <div class="w-[60px] h-full flex items-center justify-center text-white">
+          <div class="w-[60px] h-full flex items-center justify-center text-ink">
             <slot name="icon">
               <SvgIcon :icon="icon ?? ''" style="width: 35px;height: 35px;" :style="{ color: textColor }" />
             </slot>
@@ -47,7 +45,7 @@ const propClass = ref(props.class)
         </div>
 
         <div
-          class=" w-full text-white flex items-center"
+          class=" w-full text-ink flex items-center"
           :style=" { maxWidth: 'calc(100% - 80px)' }"
         >
           <slot name="info" />

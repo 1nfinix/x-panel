@@ -42,12 +42,12 @@ const refreshInterval = 5000
       :icon-text="iconText"
       :icon-text-color="iconTextColor"
       :background-color="extendParam.backgroundColor"
-      class="hover:shadow-[0_0_20px_10px_rgba(0,0,0,0.2)]"
+      class="hover:bg-surface-soft"
     >
       <template #icon>
         <!-- 图标 -->
         <div class="w-[60px] h-[70px]">
-          <div class="app-icon w-[60px] h-full flex items-center justify-center text-white">
+          <div class="app-icon w-[60px] h-full flex items-center justify-center text-ink">
             <SvgIcon v-if="monitorType === MonitorType.cpu" icon="solar-cpu-bold" :style="{ color: extendParam.color }" style="width:35px;height:35px" />
             <SvgIcon v-if="monitorType === MonitorType.memory" icon="material-symbols-memory-alt-rounded" :style="{ color: extendParam.color }" style="width:35px;height:35px" />
             <SvgIcon v-if="monitorType === MonitorType.disk" icon="clarity-hard-disk-solid" :style="{ color: extendParam.color }" style="width:35px;height:35px" />
@@ -57,7 +57,7 @@ const refreshInterval = 5000
       <template #info>
         <!-- 如果为纯白色，将自动根据背景的明暗计算字体的黑白色 -->
         <div
-          class=" w-full text-white flex items-center"
+          class=" w-full text-ink flex items-center"
         >
           <CardCPU
             v-if="monitorType === MonitorType.cpu"

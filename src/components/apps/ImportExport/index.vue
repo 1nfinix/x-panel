@@ -404,14 +404,14 @@ async function handleStartImport() {
         <NCheckbox :checked="bookmarkAllSelected" :indeterminate="!bookmarkAllSelected && bookmarkPreview.some(group => group.selected)" :disabled="bookmarkImporting" @update:checked="toggleAllBookmarks">
           {{ $t('apps.exportImport.bookmarkSelectAll') }}
         </NCheckbox>
-        <div v-for="group in bookmarkPreview" :key="group.title" class="flex items-start gap-3 py-2 border-b border-gray-200">
+        <div v-for="group in bookmarkPreview" :key="group.title" class="flex items-start gap-3 py-2 border-b border-hairline">
           <NCheckbox v-model:checked="group.selected" :disabled="bookmarkImporting || !group.items.length" />
           <div class="min-w-0">
             <div class="font-medium">
               {{ group.title }}
-              <span class="ml-2 text-sm opacity-70">{{ group.existingGroupId ? $t('apps.exportImport.bookmarkMergeGroup') : $t('apps.exportImport.bookmarkNewGroup') }}</span>
+              <span class="ml-2 text-sm text-muted">{{ group.existingGroupId ? $t('apps.exportImport.bookmarkMergeGroup') : $t('apps.exportImport.bookmarkNewGroup') }}</span>
             </div>
-            <div class="text-sm opacity-70">
+            <div class="text-sm text-muted">
               {{ $t('apps.exportImport.bookmarkGroupCount', { count: group.items.length, skipped: group.skippedDuplicate }) }}
             </div>
           </div>
@@ -433,8 +433,8 @@ async function handleStartImport() {
     <NAlert type="info" :bordered="false">
       <p>{{ $t('apps.exportImport.tip') }}</p>
     </NAlert>
-    <div class="flex justify-center m-[50px]">
-      <div class="m-[10px]">
+    <div class="flex justify-center m-12">
+      <div class="m-3">
         <NUpload
           accept=".sun-panel.json,.sunpanel.json"
           directory-dnd
@@ -450,7 +450,7 @@ async function handleStartImport() {
           </NButton>
         </NUpload>
       </div>
-      <div class="m-[10px]">
+      <div class="m-3">
         <NButton type="info" size="large" @click="exportRoundModalShow = !exportRoundModalShow">
           <template #icon>
             <SvgIcon icon="fa6:solid-file-export" />
@@ -509,7 +509,7 @@ async function handleStartImport() {
         </NCheckboxGroup>
       </NSpace>
       <NSpace justify="center">
-        <div class="mt-[50px]">
+        <div class="mt-12">
           <NButton type="success" :disabled="checkedItems.length === 0" :loading="loading" @click="handleStartImport">
             {{ $t('common.continue') }}
           </NButton>
@@ -529,7 +529,7 @@ async function handleStartImport() {
         </NCheckboxGroup>
       </NSpace>
       <NSpace justify="center">
-        <div class="mt-[50px]">
+        <div class="mt-12">
           <NButton type="success" :disabled="checkedItems.length === 0" :loading="loading" @click="handleStartExport">
             {{ $t('common.continue') }}
           </NButton>

@@ -41,6 +41,7 @@ declare namespace Panel {
         backgroundBlur?:number
         backgroundMaskNumber?:number
         autoWallpaper?:boolean
+        showWallpaper?:boolean
         iconStyle?:PanelPanelConfigStyleEnum
         iconTextColor?:string
         iconTextInfoHideDescription?:boolean

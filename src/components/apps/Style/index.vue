@@ -103,9 +103,9 @@ function resetPanelConfig() {
 </script>
 
 <template>
-  <div class="bg-slate-200 dark:bg-zinc-900 rounded-[10px] p-[8px] overflow-auto">
-    <NCard style="border-radius:10px" size="small">
-      <div class="text-slate-500 mb-[5px] font-bold">
+  <div class="bg-surface-soft rounded-xp-lg p-2 overflow-auto">
+    <NCard size="small">
+      <div class="text-ink text-[16px] font-medium mb-2">
         LOGO
       </div>
 
@@ -113,162 +113,168 @@ function resetPanelConfig() {
         <div>
           {{ $t('apps.baseSettings.textContent') }}
         </div>
-        <div class="flex items-center mt-[5px]">
+        <div class="flex items-center mt-1">
           <NInput v-model:value="panelState.panelConfig.logoText" type="text" show-count :maxlength="20" placeholder="请输入文字" />
         </div>
       </div>
     </NCard>
 
-    <NCard style="border-radius:10px" class="mt-[10px]" size="small">
-      <div class="text-slate-500 mb-[5px] font-bold">
+    <NCard class="mt-3" size="small">
+      <div class="text-ink text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.clock') }}
       </div>
-      <div class="flex items-center mt-[5px]">
-        <span class="mr-[10px]">{{ $t('common.show') }}</span>
+      <div class="flex items-center mt-1">
+        <span class="mr-3">{{ $t('common.show') }}</span>
         <NSwitch v-model:value="panelState.panelConfig.clockShow" />
       </div>
-      <div v-if="panelState.panelConfig.clockShow" class="flex items-center mt-[5px]">
-        <span class="mr-[10px]">{{ $t('apps.baseSettings.clockSecondShow') }}</span>
+      <div v-if="panelState.panelConfig.clockShow" class="flex items-center mt-1">
+        <span class="mr-3">{{ $t('apps.baseSettings.clockSecondShow') }}</span>
         <NSwitch v-model:value="panelState.panelConfig.clockShowSecond" />
       </div>
     </NCard>
 
-    <NCard style="border-radius:10px" class="mt-[10px]" size="small">
-      <div class="text-slate-500 mb-[5px] font-bold">
+    <NCard class="mt-3" size="small">
+      <div class="text-ink text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.searchBar') }}
       </div>
-      <div class="flex items-center mt-[5px]">
-        <span class="mr-[10px]">{{ $t('common.show') }}</span>
+      <div class="flex items-center mt-1">
+        <span class="mr-3">{{ $t('common.show') }}</span>
         <NSwitch v-model:value="panelState.panelConfig.searchBoxShow" />
       </div>
-      <div v-if="panelState.panelConfig.searchBoxShow" class="flex items-center mt-[5px]">
-        <span class="mr-[10px]">{{ $t('apps.baseSettings.searchBarSearchItem') }}</span>
+      <div v-if="panelState.panelConfig.searchBoxShow" class="flex items-center mt-1">
+        <span class="mr-3">{{ $t('apps.baseSettings.searchBarSearchItem') }}</span>
         <NSwitch v-model:value="panelState.panelConfig.searchBoxSearchIcon" />
       </div>
     </NCard>
 
-    <NCard style="border-radius:10px" class="mt-[10px]" size="small">
-      <div class="text-slate-500 mb-[5px] font-bold">
+    <NCard class="mt-3" size="small">
+      <div class="text-ink text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.systemMonitorStatus') }}
       </div>
-      <div class="flex items-center mt-[5px]">
-        <span class="mr-[10px]">{{ $t('common.show') }}</span>
+      <div class="flex items-center mt-1">
+        <span class="mr-3">{{ $t('common.show') }}</span>
         <NSwitch v-model:value="panelState.panelConfig.systemMonitorShow" />
       </div>
-      <div v-if="panelState.panelConfig.systemMonitorShow" class="flex items-center mt-[5px]">
-        <span class="mr-[10px]">{{ $t('apps.baseSettings.showTitle') }}</span>
+      <div v-if="panelState.panelConfig.systemMonitorShow" class="flex items-center mt-1">
+        <span class="mr-3">{{ $t('apps.baseSettings.showTitle') }}</span>
         <NSwitch v-model:value="panelState.panelConfig.systemMonitorShowTitle" />
       </div>
-      <div v-if="panelState.panelConfig.systemMonitorShow" class="flex items-center mt-[5px]">
-        <span class="mr-[10px]">{{ $t('apps.baseSettings.publicVisitModeShow') }}</span>
+      <div v-if="panelState.panelConfig.systemMonitorShow" class="flex items-center mt-1">
+        <span class="mr-3">{{ $t('apps.baseSettings.publicVisitModeShow') }}</span>
         <NSwitch v-model:value="panelState.panelConfig.systemMonitorPublicVisitModeShow" />
       </div>
     </NCard>
 
-    <NCard style="border-radius:10px" class="mt-[10px]" size="small">
-      <div class="text-slate-500 mb-[5px] font-bold">
+    <NCard class="mt-3" size="small">
+      <div class="text-ink text-[16px] font-medium mb-2">
         {{ $t('common.icon') }}
       </div>
-      <div class="mt-[5px]">
+      <div class="mt-1">
         <div>
           {{ $t('common.style') }}
         </div>
-        <div class="flex items-center mt-[5px]">
+        <div class="flex items-center mt-1">
           <NSelect v-model:value="panelState.panelConfig.iconStyle" :options="iconTypeOptions" />
         </div>
       </div>
 
-      <div v-if="panelState.panelConfig.iconStyle === PanelPanelConfigStyleEnum.info" class="mt-[5px]">
+      <div v-if="panelState.panelConfig.iconStyle === PanelPanelConfigStyleEnum.info" class="mt-1">
         <div>
           {{ $t('apps.baseSettings.hideDescription') }}
         </div>
-        <div class="flex items-center mt-[5px]">
+        <div class="flex items-center mt-1">
           <NSwitch v-model:value="panelState.panelConfig.iconTextInfoHideDescription" />
         </div>
       </div>
 
-      <div v-if="panelState.panelConfig.iconStyle === PanelPanelConfigStyleEnum.icon" class="mt-[5px]">
+      <div v-if="panelState.panelConfig.iconStyle === PanelPanelConfigStyleEnum.icon" class="mt-1">
         <div>
           {{ $t('apps.baseSettings.hideTitle') }}
         </div>
-        <div class="flex items-center mt-[5px]">
+        <div class="flex items-center mt-1">
           <NSwitch v-model:value="panelState.panelConfig.iconTextIconHideTitle" />
         </div>
       </div>
 
-      <div class="mt-[5px]">
+      <div class="mt-1">
         <div>
           {{ $t('common.textColor') }}
         </div>
-        <div class="flex items-center mt-[5px]">
+        <div class="flex items-center mt-1">
           <NColorPicker
             v-model:value="panelState.panelConfig.iconTextColor"
             :show-alpha="false"
             size="small"
             :modes="['hex']"
             :swatches="[
-              '#000000',
-              '#ffffff',
-              '#18A058',
-              '#2080F0',
-              '#F0A020',
+              '#cc785c',
+              '#5db8a6',
+              '#e8a55a',
+              '#141413',
+              '#6c6a64',
             ]"
           />
         </div>
       </div>
     </NCard>
-    <NCard style="border-radius:10px" class="mt-[10px]" size="small">
-      <div class="text-slate-500 mb-[5px] font-bold">
+    <NCard class="mt-3" size="small">
+      <div class="text-ink text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.wallpaper') }}
       </div>
-      <NUpload
-        action="/api/file/uploadImg"
-        :show-file-list="false"
-        name="imgfile"
-        :headers="{
-          token: authStore.token as string,
-        }"
-        :directory-dnd="true"
-        @finish="handleUploadBackgroundFinish"
-      >
-        <NUploadDragger style="width: 100%;">
-          <div
-            class="h-[200px] w-full border bg-slate-100 flex justify-center items-center cursor-pointer rounded-[10px]"
-            :style="{ background: `url(${panelState.panelConfig.backgroundImageSrc}) no-repeat`, backgroundSize: 'cover' }"
-          >
-            <div class="text-shadow text-white">
-              {{ $t('apps.baseSettings.uploadOrDragText') }}
+      <div class="flex items-center gap-3 mb-4">
+        <span>{{ $t('apps.baseSettings.showWallpaper') }}</span>
+        <NSwitch v-model:value="panelState.panelConfig.showWallpaper" />
+      </div>
+      <div v-if="panelState.panelConfig.showWallpaper">
+        <NUpload
+          action="/api/file/uploadImg"
+          :show-file-list="false"
+          name="imgfile"
+          :headers="{
+            token: authStore.token as string,
+          }"
+          :directory-dnd="true"
+          @finish="handleUploadBackgroundFinish"
+        >
+          <NUploadDragger style="width: 100%;">
+            <div
+              class="h-[200px] w-full border bg-surface-card flex justify-center items-center cursor-pointer rounded-xp-lg"
+              :style="{ background: `url(${panelState.panelConfig.backgroundImageSrc}) no-repeat`, backgroundSize: 'cover' }"
+            >
+              <div class="text-[color:var(--xp-wallpaper-ink)]">
+                {{ $t('apps.baseSettings.uploadOrDragText') }}
+              </div>
             </div>
-          </div>
-        </NUploadDragger>
-      </NUpload>
+          </NUploadDragger>
+        </NUpload>
 
-      <div class="flex items-center mt-[5px]">
-        <span class="mr-[10px]">{{ $t('apps.baseSettings.customImageAddress') }}</span>
-        <NSwitch v-model:value="showWallpaperInput" />
-      </div>
+        <div class="flex items-center mt-1">
+          <span class="mr-3">{{ $t('apps.baseSettings.customImageAddress') }}</span>
+          <NSwitch v-model:value="showWallpaperInput" />
+        </div>
 
-      <div class="flex items-center mt-[10px] gap-3">
-        <span>{{ $t('apps.baseSettings.autoWallpaper') }}</span>
-        <NSwitch v-model:value="panelState.panelConfig.autoWallpaper" />
-      </div>
-      <div v-if="showWallpaperInput" class="mt-1">
-        <NInput v-model:value="panelState.panelConfig.backgroundImageSrc" type="text" size="small" clearable />
-      </div>
+        <div class="flex items-center mt-3 gap-3">
+          <span>{{ $t('apps.baseSettings.autoWallpaper') }}</span>
+          <NSwitch v-model:value="panelState.panelConfig.autoWallpaper" />
+        </div>
+        <div v-if="showWallpaperInput" class="mt-1">
+          <NInput v-model:value="panelState.panelConfig.backgroundImageSrc" type="text" size="small" clearable />
+        </div>
 
-      <div class="flex items-center mt-[10px]">
-        <span class="mr-[10px]">{{ $t('apps.baseSettings.vague') }}</span>
-        <NSlider v-model:value="panelState.panelConfig.backgroundBlur" class="max-w-[200px]" :step="2" :max="20" />
-      </div>
+        <div class="flex items-center mt-3">
+          <span class="mr-3">{{ $t('apps.baseSettings.vague') }}</span>
+          <NSlider v-model:value="panelState.panelConfig.backgroundBlur" class="max-w-[200px]" :step="2" :max="20" />
+        </div>
 
-      <div class="flex items-center mt-[10px]">
-        <span class="mr-[10px]">{{ $t('apps.baseSettings.mask') }}</span>
-        <NSlider v-model:value="panelState.panelConfig.backgroundMaskNumber" class="max-w-[200px]" :step="0.1" :max="1" />
+        <div class="flex items-center mt-3">
+          <span class="mr-3">{{ $t('apps.baseSettings.mask') }}</span>
+          <NSlider v-model:value="panelState.panelConfig.backgroundMaskNumber" class="max-w-[200px]" :step="0.1" :max="1" />
+        </div>
       </div>
     </NCard>
 
-    <NCard size="small" class="mt-[10px]">
-      <div class="font-bold mb-3">
+    <NCard size="small" class="mt-3">
+      <div class="text-ink text-[16px] font-medium mb-3">
         {{ $t('apps.baseSettings.fillFavicons') }}
       </div>
       <NButton :disabled="fillRunning" @click="loadCandidates">
@@ -278,7 +284,7 @@ function resetPanelConfig() {
         <input v-model="selectedIds" type="checkbox" :value="item.id" :disabled="fillRunning">
         <ItemIcon v-if="item.icon.itemType === 1 || item.icon.src" :item-icon="item.icon" :size="28" />
         <span v-else class="w-[28px] text-center" aria-hidden="true">—</span>
-        <span>{{ item.title }}</span><span class="truncate opacity-70">{{ item.url }}</span>
+        <span>{{ item.title }}</span><span class="truncate text-muted">{{ item.url }}</span>
       </div>
       <NPopconfirm v-if="candidates.length" @positive-click="runFill">
         <template #trigger>
@@ -291,27 +297,27 @@ function resetPanelConfig() {
       <div v-if="fillDone" class="mt-3">
         {{ fillDone }}/{{ selectedIds.length }} · {{ $t('apps.baseSettings.fillSuccess') }} {{ fillSuccess }} · {{ $t('apps.baseSettings.fillFailed') }} {{ fillFailures.length }}
       </div>
-      <div v-for="failure in fillFailures" :key="failure" class="text-red-300">
+      <div v-for="failure in fillFailures" :key="failure" class="text-[color:var(--xp-error)]">
         {{ failure }}
       </div>
     </NCard>
 
-    <NCard style="border-radius:10px" class="mt-[10px]" size="small">
-      <div class="text-slate-500 mb-[5px] font-bold">
+    <NCard class="mt-3" size="small">
+      <div class="text-ink text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.contentArea') }}
       </div>
 
       <NGrid cols="2">
         <NGridItem span="12 400:12">
-          <div class="flex items-center mt-[5px]">
-            <span class="mr-[10px]">{{ $t('apps.baseSettings.netModeChangeButtonShow') }}</span>
+          <div class="flex items-center mt-1">
+            <span class="mr-3">{{ $t('apps.baseSettings.netModeChangeButtonShow') }}</span>
             <NSwitch v-model:value="panelState.panelConfig.netModeChangeButtonShow" />
           </div>
         </NGridItem>
 
         <NGridItem span="12 400:12">
-          <div class="flex items-center mt-[10px]">
-            <span class="mr-[10px]">{{ $t('apps.baseSettings.maxWidth') }}</span>
+          <div class="flex items-center mt-3">
+            <span class="mr-3">{{ $t('apps.baseSettings.maxWidth') }}</span>
             <div class="flex">
               <NInputGroup>
                 <NInput v-model:value="panelState.panelConfig.maxWidth" size="small" type="number" :maxlength="10" :style="{ width: '100px' }" placeholder="1200" />
@@ -321,28 +327,28 @@ function resetPanelConfig() {
           </div>
         </NGridItem>
         <NGridItem span="12 400:12">
-          <div class="flex items-center mt-[10px]">
-            <span class="mr-[10px]">{{ $t('apps.baseSettings.leftRightMargin') }}</span>
+          <div class="flex items-center mt-3">
+            <span class="mr-3">{{ $t('apps.baseSettings.leftRightMargin') }}</span>
             <NSlider v-model:value="panelState.panelConfig.marginX" class="max-w-[200px]" :step="1" :max="100" />
           </div>
         </NGridItem>
         <NGridItem span="12 400:12">
-          <div class="flex items-center mt-[10px]">
-            <span class="mr-[10px]">{{ $t('apps.baseSettings.topMargin') }} (%)</span>
+          <div class="flex items-center mt-3">
+            <span class="mr-3">{{ $t('apps.baseSettings.topMargin') }} (%)</span>
             <NSlider v-model:value="panelState.panelConfig.marginTop" class="max-w-[200px]" :step="1" :max="50" />
           </div>
         </NGridItem>
         <NGridItem span="12 400:6">
-          <div class="flex items-center mt-[10px]">
-            <span class="mr-[10px]">{{ $t('apps.baseSettings.bottomMargin') }} (%)</span>
+          <div class="flex items-center mt-3">
+            <span class="mr-3">{{ $t('apps.baseSettings.bottomMargin') }} (%)</span>
             <NSlider v-model:value="panelState.panelConfig.marginBottom" class="max-w-[200px]" :step="1" :max="50" />
           </div>
         </NGridItem>
       </NGrid>
     </NCard>
 
-    <NCard style="border-radius:10px" class="mt-[10px]" size="small">
-      <div class="text-slate-500 mb-[5px] font-bold">
+    <NCard class="mt-3" size="small">
+      <div class="text-ink text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.customFooter') }}
       </div>
 
@@ -353,7 +359,7 @@ function resetPanelConfig() {
       />
     </NCard>
 
-    <NCard style="border-radius:10px" class="mt-[10px]" size="small">
+    <NCard class="mt-3" size="small">
       <NPopconfirm
         @positive-click="resetPanelConfig"
       >
@@ -365,15 +371,9 @@ function resetPanelConfig() {
         {{ $t('apps.baseSettings.resetWarnText') }}
       </NPopconfirm>
 
-      <NButton size="small" quaternary type="success" class="ml-[10px]" @click="uploadCloud">
+      <NButton size="small" quaternary type="success" class="ml-3" @click="uploadCloud">
         {{ $t('common.save') }}
       </NButton>
     </NCard>
   </div>
 </template>
-
-<style scoped>
-.text-shadow{
-  text-shadow: 0px 0px 5px gray;
-}
-</style>
