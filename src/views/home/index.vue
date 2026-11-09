@@ -459,7 +459,7 @@ function handleAddItem(itemIconGroupId?: number) {
               {{ arrangeMode ? t('panelHome.arrangeDone') : t('panelHome.arrange') }}
             </NButton>
           </div>
-          <nav ref="navRef" class="group-navigation" :aria-label="t('panelHome.groups')">
+          <nav ref="navRef" class="group-navigation" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" :aria-label="t('panelHome.groups')">
             <span class="nav-indicator" :style="indicatorStyle" aria-hidden="true" />
             <button class="nav-tab" :class="{ active: selectedGroupId === 'all' }" type="button" @click="selectGroup('all')">
               {{ t('panelHome.all') }} <b>{{ totalCount }}</b>
@@ -636,6 +636,7 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .nav-tab { position: relative; z-index: 1; flex: none; padding: 8px 14px; border: 0; border-radius: var(--xp-radius-md); color: var(--xp-muted); font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; background: transparent; }
 .nav-tab b { margin-left: 4px; font-size: 13px; font-weight: 500; color: var(--xp-muted-soft); }
 .nav-tab.active { color: var(--xp-ink); }
+.group-navigation.on-wallpaper .nav-tab:not(.active), .group-navigation.on-wallpaper .nav-tab:not(.active) b { color: var(--xp-wallpaper-ink); }
 .nav-indicator { position: absolute; top: 0; bottom: 0; border-radius: var(--xp-radius-md); background: var(--xp-surface-card); transition: left 220ms ease, width 220ms ease; }
 .nav-tab:focus-visible, .url-row:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
 .search-row { margin-top: 16px; max-width: 720px; }
