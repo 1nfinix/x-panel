@@ -1,0 +1,163 @@
+<script setup lang="ts">
+import { NButton, NCard, NForm, NFormItem, NInput, NSelect, useMessage } from 'naive-ui'
+import { onMounted, ref } from 'vue'
+import { login } from '@/api'
+import { useAppStore, useAuthStore, usePanelState } from '@/store'
+import { SvgIcon } from '@/components/common'
+import { router } from '@/router'
+import { t } from '@/locales'
+import { languageOptions } from '@/utils/defaultData'
+import type { Language } from '@/store/modules/app/helper'
+import Captcha from '@/components/common/Captcha/index.vue'
+import { getLoginConfig } from '@/api/openness'
+import { useWallpaper } from '@/hooks/useWallpaper'
+import srcSvglogo from '@/assets/logo.svg'
+
+// const userStore = useUserStore()
+const authStore = useAuthStore()
+const appStore = useAppStore()
+const ms = useMessage()
+const loading = ref(false)
+const languageValue = ref<Language>(appStore.language)
+
+const isShowCaptcha = ref(true)
+const captchaRef = ref<InstanceType<typeof Captcha> | null>(null)
+const panelState = usePanelState()
+const { source: wallpaperSource, loaded: wallpaperLoaded, show: showWallpaper } = useWallpaper()
+// const isShowRegister = ref<boolean>(false)
+
+const form = ref<Login.LoginReqest>({
+  username: '',
+  password: '',
+  vcode: '',
+})
+
+onMounted(async () => {
+  showWallpaper(panelState.panelConfig.backgroundImageSrc, panelState.panelConfig.autoWallpaper !== false)
+  try {
+    const response = await getLoginConfig<{ loginCaptcha: boolean }>()
+    if (response.code === 0)
+      isShowCaptcha.value = response.data.loginCaptcha
+  }
+  catch {
+    isShowCaptcha.value = true
+  }
+})
+
+const loginPost = async () => {
+  loading.value = true
+  try {
+    const res = await login<Login.LoginResponse>(form.value)
+    if (res.code === 0) {
+      authStore.setToken(res.data.token)
+      authStore.setUserInfo(res.data)
+
+      setTimeout(() => {
+        ms.success(`Hi ${res.data.name},${t('login.welcomeMessage')}`)
+        loading.value = false
+        router.push({ path: '/' })
+      }, 500)
+    }
+    else {
+      loading.value = false
+      ms.error(res.code === 1101 ? t('login.captchaRequired') : res.code === 1102 ? t('login.captchaInvalid') : res.code === 1003 ? t('login.credentialsInvalid') : res.msg)
+      form.value.vcode = ''
+      captchaRef.value?.refresh()
+    }
+  }
+  catch (error) {
+    loading.value = false
+    ms.error(t('login.networkError'))
+    form.value.vcode = ''
+    captchaRef.value?.refresh()
+  }
+}
+
+function handleSubmit() {
+  // 点击登录按钮触发
+  loginPost()
+}
+
+function handleChangeLanuage(value: Language) {
+  languageValue.value = value
+  appStore.setLanguage(value)
+}
+</script>
+
+<template>
+  <div class="login-container">
+    <div class="login-wallpaper" :class="{ loaded: wallpaperLoaded }" :style="{ backgroundImage: wallpaperLoaded ? `linear-gradient(rgba(6,12,15,.72),rgba(6,12,15,.72)),url(${wallpaperSource})` : 'none' }" />
+    <NCard class="login-card">
+      <div class="mb-5 flex items-center justify-end">
+        <div class="mr-2">
+          <SvgIcon icon="ion-language" style="width: 20;height: 20;" />
+        </div>
+        <div class="min-w-[100px]">
+          <NSelect v-model:value="languageValue" size="small" :options="languageOptions" @update-value="handleChangeLanuage" />
+        </div>
+      </div>
+
+      <div class="login-title  ">
+        <img :src="srcSvglogo" width="42" height="42" alt="" aria-hidden="true">
+        <strong class="login-heading">
+          {{ $t('common.appName') }}
+        </strong>
+      </div>
+      <NForm :model="form" label-width="100px" @keydown.enter="handleSubmit">
+        <NFormItem>
+          <NInput v-model:value="form.username" :placeholder="$t('login.usernamePlaceholder')">
+            <template #prefix>
+              <SvgIcon icon="ph:user-bold" />
+            </template>
+          </NInput>
+        </NFormItem>
+
+        <NFormItem>
+          <NInput v-model:value="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')">
+            <template #prefix>
+              <SvgIcon icon="mdi:password-outline" />
+            </template>
+          </NInput>
+        </NFormItem>
+
+        <NFormItem v-if="isShowCaptcha">
+          <div class="captcha-image" :title="t('login.refreshCaptcha')">
+            <Captcha ref="captchaRef" src="/api/captcha/getImage" />
+          </div>
+          <NInput v-model:value="form.vcode" type="text" maxlength="4" :placeholder="t('login.captchaPlaceholder')" />
+        </NFormItem>
+        <NFormItem style="margin-top: 10px">
+          <NButton type="primary" block :loading="loading" @click="handleSubmit">
+            {{ $t('login.loginButton') }}
+          </NButton>
+        </NFormItem>
+
+        <!-- <div class="flex justify-end">
+          <NButton v-if="isShowRegister" quaternary type="info" class="flex" @click="$router.push({ path: '/register' })">
+            注册
+          </NButton>
+          <NButton quaternary type="info" class="flex" @click="$router.push({ path: '/resetPassword' })">
+            忘记密码?
+          </NButton>
+        </div> -->
+
+        <div class="flex justify-center text-slate-300">
+          Powered By <a href="https://github.com/1nfinix/x-panel" target="_blank" class="ml-[5px] text-slate-500">X-Panel</a>
+        </div>
+      </NForm>
+    </NCard>
+  </div>
+</template>
+
+<style scoped>
+.login-container { position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background-color: #111827; }
+.login-wallpaper { position: absolute; inset: 0; background-position: center; background-size: cover; opacity: 0; transition: opacity 600ms ease; }
+.login-wallpaper.loaded { opacity: 1; }
+.login-card { position: relative; width: min(100%, 430px); border-radius: 8px !important; background: #1b2734; color: #f2f7f4; }
+.login-title { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 28px; }
+.login-heading { font-family: 'Arial Rounded MT Bold', 'PingFang SC', system-ui, sans-serif; font-size: 30px; color: #76d99b; font-weight: 850; }
+.captcha-image { flex: none; width: 160px; height: 48px; margin-right: 12px; cursor: pointer; border-radius: 6px; overflow: hidden; }
+.captcha-image :deep(img) { width: 160px; height: 48px; }
+@media (max-width: 390px) { .captcha-image { width: 138px; } .captcha-image :deep(img) { width: 138px; } }
+@media (prefers-reduced-motion: reduce) { .login-wallpaper { transition: none; } }
+</style>

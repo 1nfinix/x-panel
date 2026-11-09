@@ -1,0 +1,15 @@
+version: "3.2"
+
+services:
+  x-panel:
+    build: .
+    image: 'x-panel:latest'
+    container_name: x-panel
+    volumes:
+    - ./conf:/app/conf
+    - ./uploads:/app/uploads
+    - ./database:/app/database
+    # - ./runtime:/app/runtime
+    ports:
+    - 3002:3002
+    restart: always

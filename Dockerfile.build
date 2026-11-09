@@ -1,0 +1,23 @@
+FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend
+
+WORKDIR /build
+ENV npm_config_strict_peer_dependencies=false
+COPY package.json pnpm-lock.yaml ./
+RUN npx pnpm@8 install --frozen-lockfile
+COPY . .
+RUN npx pnpm@8 run build
+
+FROM --platform=$TARGETPLATFORM golang:1.21-alpine3.18 AS backend
+
+WORKDIR /build
+ENV PATH="/go/bin:${PATH}"
+RUN apk add --no-cache gcc musl-dev
+COPY service/ ./
+RUN go install github.com/go-bindata/go-bindata/...@latest \
+    && go install github.com/elazarl/go-bindata-assetfs/...@latest \
+    && go-bindata -o=assets/bindata.go -pkg=assets assets/... \
+    && CGO_ENABLED=1 go build -ldflags "-s -w -X x-panel/global.RUNCODE=release -linkmode external -extldflags -static" -o /x-panel main.go
+
+FROM scratch AS artifact
+COPY --from=backend /x-panel /x-panel
+COPY --from=frontend /build/dist /web
