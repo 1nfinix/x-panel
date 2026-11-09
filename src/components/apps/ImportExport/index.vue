@@ -1,21 +1,154 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import type { UploadFileInfo } from 'naive-ui'
-import { NAlert, NButton, NCheckbox, NCheckboxGroup, NDivider, NInput, NSpace, NUpload, useMessage } from 'naive-ui'
+import { NAlert, NButton, NCard, NCheckbox, NCheckboxGroup, NDivider, NInput, NProgress, NSpace, NUpload, useMessage } from 'naive-ui'
 import { RoundCardModal, SvgIcon } from '@/components/common'
 import type { IconGroup, ImportJsonResult } from '@/utils/jsonImportExport'
 import { ConfigVersionLowError, FormatError, exportJson, importJsonString } from '@/utils/jsonImportExport'
+import type { BookmarkGroup } from '@/utils/bookmarkImport'
+import { normalizeUrl, parseBookmarksHtml } from '@/utils/bookmarkImport'
 import { get as getAbout } from '@/api/system/about'
 import { edit as addGroup, getList as getGroupList } from '@/api/panel/itemIconGroup'
 import { addMultiple as addMultipleIcons, getListByGroupId } from '@/api/panel/itemIcon'
 
 import { t } from '@/locales'
+import { useFaviconFill } from '@/hooks/useFaviconFill'
 
 interface ItemGroup extends Panel.ItemIconGroup {
   items?: Panel.ItemInfo[]
 }
 
+interface BookmarkPreviewGroup extends BookmarkGroup {
+  selected: boolean
+  existingGroupId?: number
+  skippedDuplicate: number
+}
+
 const ms = useMessage()
+const bookmarkPreview = ref<BookmarkPreviewGroup[]>([])
+const bookmarkSkippedInvalid = ref(0)
+const bookmarkLoading = ref(false)
+const bookmarkImporting = ref(false)
+const pendingFaviconIds = ref<number[]>([])
+const bookmarkFill = useFaviconFill()
+const bookmarkSelected = computed(() => bookmarkPreview.value.filter(group => group.selected && group.items.length))
+const bookmarkSelectedCount = computed(() => bookmarkSelected.value.reduce((count, group) => count + group.items.length, 0))
+const bookmarkAllSelected = computed(() => bookmarkPreview.value.length > 0 && bookmarkPreview.value.every(group => group.selected))
+const bookmarkFillPercentage = computed(() => bookmarkFill.total.value ? Math.round(bookmarkFill.done.value / bookmarkFill.total.value * 100) : 0)
+
+function toggleAllBookmarks(checked: boolean) {
+  for (const group of bookmarkPreview.value)
+    group.selected = checked
+}
+
+async function handleBookmarkFileChange(options: { file: UploadFileInfo }) {
+  if (!options.file.file || bookmarkLoading.value || bookmarkImporting.value)
+    return
+
+  bookmarkLoading.value = true
+  bookmarkPreview.value = []
+  pendingFaviconIds.value = []
+  bookmarkFill.reset()
+  let step = t('apps.exportImport.bookmarkReadFailed')
+  try {
+    const parsed = parseBookmarksHtml(await options.file.file.text())
+    bookmarkSkippedInvalid.value = parsed.skippedInvalid
+    step = t('apps.exportImport.bookmarkLoadGroupsFailed')
+    const groupResponse = await getGroupList<Common.ListResponse<ItemGroup[]>>()
+    if (groupResponse.code !== 0)
+      throw new Error(groupResponse.msg)
+
+    const existingGroups = new Map<string, number>()
+    const existingUrls = new Set<string>()
+    step = t('apps.exportImport.bookmarkLoadItemsFailed')
+    await Promise.all(groupResponse.data.list.map(async (group) => {
+      if (group.id && !existingGroups.has(group.title || ''))
+        existingGroups.set(group.title || '', group.id)
+      const response = await getListByGroupId<Common.ListResponse<Panel.ItemInfo[]>>(group.id)
+      if (response.code !== 0)
+        throw new Error(`${group.title}: ${response.msg}`)
+      for (const item of response.data.list)
+        existingUrls.add(normalizeUrl(item.url))
+    }))
+
+    const seenUrls = new Set(existingUrls)
+    bookmarkPreview.value = parsed.groups.map((group) => {
+      const items: BookmarkGroup['items'] = []
+      let skippedDuplicate = 0
+      for (const item of group.items) {
+        const key = normalizeUrl(item.url)
+        if (seenUrls.has(key)) {
+          skippedDuplicate++
+          continue
+        }
+        seenUrls.add(key)
+        items.push(item)
+      }
+      return { title: group.title, items, selected: true, existingGroupId: existingGroups.get(group.title), skippedDuplicate }
+    })
+  }
+  catch (error) {
+    ms.error(`${step}: ${error instanceof Error ? error.message : t('common.unknownError')}`)
+  }
+  finally {
+    bookmarkLoading.value = false
+  }
+}
+
+async function handleBookmarkImport() {
+  if (bookmarkImporting.value || !bookmarkSelectedCount.value)
+    return
+
+  bookmarkImporting.value = true
+  let importedCount = 0
+  let step = ''
+  try {
+    for (const group of bookmarkSelected.value) {
+      if (!group.existingGroupId) {
+        step = `${t('apps.exportImport.bookmarkCreateGroupFailed')} ${group.title}`
+        const response = await addGroup<Panel.ItemIconGroup>({ title: group.title })
+        if (response.code !== 0 || !response.data?.id)
+          throw new Error(response.msg)
+        group.existingGroupId = response.data.id
+      }
+
+      while (group.items.length) {
+        step = `${t('apps.exportImport.bookmarkAddFailed')} ${group.title}`
+        const batch = group.items.slice(0, 50)
+        const payload: Panel.ItemInfo[] = batch.map(item => ({
+          title: item.title,
+          url: item.url,
+          itemIconGroupId: group.existingGroupId,
+          openMethod: 2,
+          icon: { itemType: 1, text: Array.from(item.title)[0], backgroundColor: '#efe9de' },
+        }))
+        const response = await addMultipleIcons<Panel.ItemInfo[]>(payload)
+        if (response.code !== 0 || response.data?.length !== batch.length)
+          throw new Error(response.msg)
+        pendingFaviconIds.value.push(...response.data.map(item => item.id as number))
+        importedCount += batch.length
+        group.items.splice(0, batch.length)
+      }
+      group.selected = false
+    }
+
+    ms.success(t('apps.exportImport.bookmarkImportSuccess', { count: importedCount }))
+    await bookmarkFill.run(pendingFaviconIds.value)
+    pendingFaviconIds.value = []
+    if (bookmarkFill.failures.value.length)
+      ms.error(t('apps.exportImport.bookmarkFillFailed', { count: bookmarkFill.failures.value.length }))
+    ms.info(t('apps.exportImport.bookmarkRefreshHint'))
+  }
+  catch (error) {
+    ms.error(t('apps.exportImport.bookmarkImportFailed', {
+      step: `${step}: ${error instanceof Error ? error.message : t('common.unknownError')}`,
+      count: importedCount,
+    }))
+  }
+  finally {
+    bookmarkImporting.value = false
+  }
+}
 
 const jsonData = ref<string | null>(null)
 const importWarning = ref<string[]>([])
@@ -238,8 +371,11 @@ async function handleStartImport() {
   if (checkedItems.value.includes('icons')) {
     console.log('export icons ...')
     const errMsg = await importIcons()
-    if (errMsg !== null)
-      ms.success(`${t('common.failed')}:${errMsg}`)
+    if (errMsg !== null) {
+      loading.value = false
+      ms.error(`${t('common.failed')}: ${errMsg}`)
+      return
+    }
   }
 
   loading.value = false
@@ -250,6 +386,50 @@ async function handleStartImport() {
 
 <template>
   <div class="pt-2">
+    <NCard size="small" class="mb-5" :title="$t('apps.exportImport.bookmarkTitle')">
+      <p class="mb-3">
+        {{ $t('apps.exportImport.bookmarkDescription') }}
+      </p>
+      <NUpload accept=".html,.htm" :default-upload="false" :show-file-list="false" :disabled="bookmarkImporting" @change="handleBookmarkFileChange">
+        <NButton :loading="bookmarkLoading" :disabled="bookmarkImporting">
+          {{ $t('apps.exportImport.bookmarkChooseFile') }}
+        </NButton>
+      </NUpload>
+
+      <div v-if="bookmarkPreview.length" class="mt-4">
+        <p class="mb-2">
+          {{ $t('apps.exportImport.bookmarkTotal', { groups: bookmarkPreview.length, count: bookmarkSelectedCount }) }}
+          · {{ $t('apps.exportImport.bookmarkInvalid', { count: bookmarkSkippedInvalid }) }}
+        </p>
+        <NCheckbox :checked="bookmarkAllSelected" :indeterminate="!bookmarkAllSelected && bookmarkPreview.some(group => group.selected)" :disabled="bookmarkImporting" @update:checked="toggleAllBookmarks">
+          {{ $t('apps.exportImport.bookmarkSelectAll') }}
+        </NCheckbox>
+        <div v-for="group in bookmarkPreview" :key="group.title" class="flex items-start gap-3 py-2 border-b border-gray-200">
+          <NCheckbox v-model:checked="group.selected" :disabled="bookmarkImporting || !group.items.length" />
+          <div class="min-w-0">
+            <div class="font-medium">
+              {{ group.title }}
+              <span class="ml-2 text-sm opacity-70">{{ group.existingGroupId ? $t('apps.exportImport.bookmarkMergeGroup') : $t('apps.exportImport.bookmarkNewGroup') }}</span>
+            </div>
+            <div class="text-sm opacity-70">
+              {{ $t('apps.exportImport.bookmarkGroupCount', { count: group.items.length, skipped: group.skippedDuplicate }) }}
+            </div>
+          </div>
+        </div>
+        <NButton class="mt-4" type="primary" :loading="bookmarkImporting" :disabled="!bookmarkSelectedCount" @click="handleBookmarkImport">
+          {{ $t('apps.exportImport.bookmarkImport') }}
+        </NButton>
+      </div>
+      <div v-if="bookmarkFill.total.value" class="mt-4">
+        <p class="mb-2">
+          {{ $t('apps.exportImport.bookmarkFilling') }} · {{ $t('apps.exportImport.bookmarkFillProgress', { done: bookmarkFill.done.value, failed: bookmarkFill.failures.value.length }) }}
+        </p>
+        <NProgress type="line" :percentage="bookmarkFillPercentage" />
+        <div v-for="failure in bookmarkFill.failures.value" :key="failure.id" class="mt-1 text-sm">
+          {{ failure.id }}: {{ failure.reason }}
+        </div>
+      </div>
+    </NCard>
     <NAlert type="info" :bordered="false">
       <p>{{ $t('apps.exportImport.tip') }}</p>
     </NAlert>

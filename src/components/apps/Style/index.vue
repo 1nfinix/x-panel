@@ -1,26 +1,24 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { UploadFileInfo } from 'naive-ui'
 import { NButton, NCard, NColorPicker, NGrid, NGridItem, NInput, NInputGroup, NPopconfirm, NSelect, NSlider, NSwitch, NUpload, NUploadDragger, useMessage } from 'naive-ui'
 import { useAuthStore, usePanelState } from '@/store'
 import { set as setUserConfig } from '@/api/panel/userConfig'
-import { faviconCandidates, fillFavicons } from '@/api/panel/itemIcon'
+import { faviconCandidates } from '@/api/panel/itemIcon'
 import { PanelPanelConfigStyleEnum } from '@/enums/panel'
 import { t } from '@/locales'
 import { ItemIcon } from '@/components/common'
+import { useFaviconFill } from '@/hooks/useFaviconFill'
 
 const authStore = useAuthStore()
 const panelState = usePanelState()
 const ms = useMessage()
 const showWallpaperInput = ref(false)
 interface FaviconCandidate { id: number; title: string; url: string; icon: Panel.ItemIcon }
-interface FillResult { id: number; success: boolean; reason?: string; iconUrl?: string }
 const candidates = ref<FaviconCandidate[]>([])
 const selectedIds = ref<number[]>([])
-const fillRunning = ref(false)
-const fillDone = ref(0)
-const fillSuccess = ref(0)
-const fillFailures = ref<string[]>([])
+const { running: fillRunning, done: fillDone, success: fillSuccess, failures, reset: resetFill, run: runFaviconFill } = useFaviconFill()
+const fillFailures = computed(() => failures.value.map(failure => `${candidates.value.find(item => item.id === failure.id)?.title || failure.id}: ${failure.reason}`))
 
 async function loadCandidates() {
   const response = await faviconCandidates<Common.ListResponse<FaviconCandidate[]>>()
@@ -30,36 +28,15 @@ async function loadCandidates() {
   }
   candidates.value = response.data.list
   selectedIds.value = candidates.value.map(item => item.id)
-  fillDone.value = 0
-  fillSuccess.value = 0
-  fillFailures.value = []
+  resetFill()
 }
 
 async function runFill() {
-  fillRunning.value = true
-  fillDone.value = 0
-  fillSuccess.value = 0
-  fillFailures.value = []
-  for (const id of selectedIds.value) {
-    const item = candidates.value.find(candidate => candidate.id === id)
-    try {
-      const response = await fillFavicons<FillResult[]>([id])
-      const result = response.data?.[0]
-      if (response.code === 0 && result?.success) {
-        fillSuccess.value++
-        if (item && result.iconUrl)
-          item.icon = { ...item.icon, itemType: 2, src: result.iconUrl }
-      }
-      else {
-        fillFailures.value.push(`${item?.title || id}: ${result?.reason || response.msg}`)
-      }
-    }
-    catch {
-      fillFailures.value.push(`${item?.title || id}: ${t('apps.baseSettings.fillFailed')}`)
-    }
-    fillDone.value++
-  }
-  fillRunning.value = false
+  await runFaviconFill(selectedIds.value, (result) => {
+    const item = candidates.value.find(candidate => candidate.id === result.id)
+    if (item && result.iconUrl)
+      item.icon = { ...item.icon, itemType: 2, src: result.iconUrl }
+  })
 }
 
 const isSaveing = ref(false)
