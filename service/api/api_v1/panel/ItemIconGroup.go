@@ -29,16 +29,27 @@ func (a *ItemIconGroup) Edit(c *gin.Context) {
 
 	if req.ID != 0 {
 		// 修改
-		updateField := []string{"IconJson", "Icon", "Title", "Url", "LanUrl", "Description", "OpenMethod", "GroupId", "UserId"}
+		updateField := []string{"Icon", "Title", "Description"}
 		if req.Sort != 0 {
 			updateField = append(updateField, "Sort")
 		}
-		global.Db.Model(&models.ItemIconGroup{}).
+		result := global.Db.Model(&models.ItemIconGroup{}).
 			Select(updateField).
-			Where("id=?", req.ID).Updates(&req)
+			Where("id=? AND user_id=?", req.ID, userInfo.ID).Updates(&req)
+		if result.Error != nil {
+			apiReturn.ErrorDatabase(c, result.Error.Error())
+			return
+		}
+		if result.RowsAffected == 0 {
+			apiReturn.ErrorDataNotFound(c)
+			return
+		}
 	} else {
 		// 创建
-		global.Db.Create(&req)
+		if err := global.Db.Create(&req).Error; err != nil {
+			apiReturn.ErrorDatabase(c, err.Error())
+			return
+		}
 	}
 
 	apiReturn.SuccessData(c, req)

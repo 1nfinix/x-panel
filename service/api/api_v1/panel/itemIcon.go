@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 	"x-panel/api/api_v1/common/apiData/commonApiStructs"
 	"x-panel/api/api_v1/common/apiData/panelApiStructs"
 	"x-panel/api/api_v1/common/apiReturn"
@@ -18,7 +19,6 @@ import (
 	"x-panel/lib/siteFavicon"
 	"x-panel/models"
 	"x-panel/models/datatype"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -42,6 +42,15 @@ func (a *ItemIcon) Edit(c *gin.Context) {
 		apiReturn.ErrorParamFomat(c, "Group is mandatory")
 		return
 	}
+	var groupCount int64
+	if err := global.Db.Model(&models.ItemIconGroup{}).Where("id=? AND user_id=?", req.ItemIconGroupId, userInfo.ID).Count(&groupCount).Error; err != nil {
+		apiReturn.ErrorDatabase(c, err.Error())
+		return
+	}
+	if groupCount == 0 {
+		apiReturn.ErrorDataNotFound(c)
+		return
+	}
 
 	req.UserId = userInfo.ID
 
@@ -52,17 +61,28 @@ func (a *ItemIcon) Edit(c *gin.Context) {
 
 	if req.ID != 0 {
 		// 修改
-		updateField := []string{"IconJson", "Icon", "Title", "Url", "LanUrl", "Description", "OpenMethod", "GroupId", "UserId", "ItemIconGroupId"}
+		updateField := []string{"IconJson", "Title", "Url", "LanUrl", "Description", "OpenMethod", "ItemIconGroupId"}
 		if req.Sort != 0 {
 			updateField = append(updateField, "Sort")
 		}
-		global.Db.Model(&models.ItemIcon{}).
+		result := global.Db.Model(&models.ItemIcon{}).
 			Select(updateField).
-			Where("id=?", req.ID).Updates(&req)
+			Where("id=? AND user_id=?", req.ID, userInfo.ID).Updates(&req)
+		if result.Error != nil {
+			apiReturn.ErrorDatabase(c, result.Error.Error())
+			return
+		}
+		if result.RowsAffected == 0 {
+			apiReturn.ErrorDataNotFound(c)
+			return
+		}
 	} else {
 		req.Sort = 9999
 		// 创建
-		global.Db.Create(&req)
+		if err := global.Db.Create(&req).Error; err != nil {
+			apiReturn.ErrorDatabase(c, err.Error())
+			return
+		}
 	}
 
 	apiReturn.SuccessData(c, req)
@@ -84,6 +104,15 @@ func (a *ItemIcon) AddMultiple(c *gin.Context) {
 			apiReturn.ErrorParamFomat(c, "Group is mandatory")
 			return
 		}
+		var groupCount int64
+		if err := global.Db.Model(&models.ItemIconGroup{}).Where("id=? AND user_id=?", req[i].ItemIconGroupId, userInfo.ID).Count(&groupCount).Error; err != nil {
+			apiReturn.ErrorDatabase(c, err.Error())
+			return
+		}
+		if groupCount == 0 {
+			apiReturn.ErrorDataNotFound(c)
+			return
+		}
 		req[i].UserId = userInfo.ID
 		// json转字符串
 		if j, err := json.Marshal(req[i].Icon); err == nil {
@@ -91,7 +120,10 @@ func (a *ItemIcon) AddMultiple(c *gin.Context) {
 		}
 	}
 
-	global.Db.Create(&req)
+	if err := global.Db.Create(&req).Error; err != nil {
+		apiReturn.ErrorDatabase(c, err.Error())
+		return
+	}
 
 	apiReturn.SuccessData(c, req)
 }
