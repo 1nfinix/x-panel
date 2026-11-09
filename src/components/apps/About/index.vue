@@ -33,7 +33,7 @@ onMounted(() => {
 
 <style scoped>
 .about-panel { display: flex; flex-direction: column; align-items: center; padding: 32px 16px; color: var(--xp-ink); text-align: center; }
-.about-panel h2 { margin: 12px 0 0; font: 400 28px/1.2 var(--xp-font-display); letter-spacing: -.3px; }
+.about-panel h2 { margin: 12px 0 0; font: 600 28px/1.2 var(--xp-font-display); letter-spacing: 0; }
 .about-panel p { margin: 8px 0; }
 .about-panel .version { color: var(--xp-muted); }
 .about-panel a { color: var(--xp-primary); text-underline-offset: 3px; }

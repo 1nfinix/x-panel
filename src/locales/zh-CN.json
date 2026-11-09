@@ -279,6 +279,7 @@
     "all": "全部",
     "groups": "分组导航",
     "filterPlaceholder": "筛选网址：名称或域名",
+    "resultsCount": "共 {count} 个结果",
     "arrange": "整理",
     "arrangeDone": "完成",
     "arrangeSaveFailed": "排序保存失败",

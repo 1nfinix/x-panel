@@ -47,18 +47,18 @@ function updateCurrentDate() {
   ]
   // const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   currentDate.value.week = daysOfWeek[now.getDay()]
-  currentDate.value.date = `${month}-${day}`
+  currentDate.value.date = `${month}月${day}日`
 }
 
 const updateClock = () => {
   updateCurrentDate()
 }
 
-const intervalId = setInterval(updateClock, 1000)
+let intervalId: ReturnType<typeof setInterval>
 
 onMounted(() => {
   updateClock()
-  updateCurrentDate()
+  intervalId = setInterval(updateClock, 1000)
 })
 
 onBeforeUnmount(() => {
@@ -67,12 +67,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="clock w-full text-center">
-    <span class="clock-time text-[22px] font-medium">
+  <div class="clock">
+    <span class="clock-time">
       {{ currentDate.time }}
     </span>
-    <div class="hidden sm:hidden md:block">
-      <span class="clock-date mr-1">
+    <div class="clock-calendar">
+      <span class="clock-date">
         {{ currentDate.date }}
       </span>
       <span class="clock-week">
@@ -81,3 +81,14 @@ onBeforeUnmount(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.clock { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; white-space: nowrap; }
+.clock-time { color: var(--xp-ink); font: 500 44px/1.1 var(--xp-font-body); font-variant-numeric: tabular-nums; }
+.clock-calendar { display: flex; gap: 6px; color: var(--xp-muted); font-size: 14px; }
+@media (max-width: 639px) {
+  .clock { flex-direction: row; align-items: baseline; gap: 16px; }
+  .clock-time { font-size: 30px; }
+  .clock-calendar { font-size: 13px; }
+}
+</style>

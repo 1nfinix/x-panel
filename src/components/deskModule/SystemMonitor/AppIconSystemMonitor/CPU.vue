@@ -11,6 +11,7 @@ interface Prop {
   textColor: string
   progressColor: string
   progressRailColor: string
+  compact?: boolean
 }
 
 const props = defineProps<Prop>()
@@ -42,6 +43,7 @@ onUnmounted(() => {
 
 <template>
   <GenericProgress
+    :compact="compact"
     :progress-color="progressColor"
     :progress-rail-color="progressRailColor"
     :progress-height="5"

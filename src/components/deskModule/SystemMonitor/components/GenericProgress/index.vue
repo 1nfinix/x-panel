@@ -11,13 +11,23 @@ interface Prop {
   cardTypeStyle: PanelPanelConfigStyleEnum
   infoCardLeftText?: string
   infoCardRightText?: string
+  compact?: boolean
 }
 
 defineProps<Prop>()
 </script>
 
 <template>
-  <template v-if="cardTypeStyle === PanelPanelConfigStyleEnum.info">
+  <div v-if="compact" class="compact-progress">
+    <div class="compact-line">
+      <span class="compact-label">{{ infoCardLeftText }}</span>
+      <span class="compact-value">{{ Math.round(percentage) }}%</span>
+    </div>
+    <div class="compact-track">
+      <span :style="{ width: `${Math.min(100, Math.max(0, percentage))}%`, background: percentage > 85 ? 'var(--xp-error)' : 'var(--xp-primary)' }" />
+    </div>
+  </div>
+  <template v-else-if="cardTypeStyle === PanelPanelConfigStyleEnum.info">
     <div class="w-full">
       <div class="mb-1 text-[13px]" :style="{ color: textColor }">
         <span>
@@ -55,3 +65,12 @@ defineProps<Prop>()
     </div>
   </template>
 </template>
+
+<style scoped>
+.compact-progress { min-width: 88px; width: 100%; }
+.compact-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.compact-label { overflow: hidden; color: var(--xp-muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.compact-value { color: var(--xp-ink); font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.compact-track { height: 3px; overflow: hidden; border-radius: 2px; background: var(--xp-hairline); }
+.compact-track span { display: block; height: 100%; border-radius: inherit; }
+</style>

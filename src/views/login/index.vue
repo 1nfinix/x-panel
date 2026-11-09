@@ -159,7 +159,7 @@ function handleChangeLanuage(value: Language) {
 .login-card :deep(.n-input) { min-height: 40px; }
 .login-card :deep(.n-button--primary-type) { height: 40px; border-radius: var(--xp-radius-md); }
 .login-title { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 28px; }
-.login-heading { font-family: var(--xp-font-display); font-size: 30px; color: var(--xp-ink); font-weight: 400; letter-spacing: -.3px; }
+.login-heading { font-family: var(--xp-font-display); font-size: 30px; color: var(--xp-ink); font-weight: 600; letter-spacing: 0; }
 .captcha-image { flex: none; width: 160px; height: 48px; margin-right: 12px; cursor: pointer; border-radius: var(--xp-radius-sm); overflow: hidden; }
 .captcha-image :deep(img) { width: 160px; height: 48px; }
 @media (max-width: 390px) { .captcha-image { width: 138px; } .captcha-image :deep(img) { width: 138px; } }
