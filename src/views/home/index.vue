@@ -485,14 +485,14 @@ function handleAddItem(itemIconGroupId?: number) {
             />
           </div>
 
-          <div v-if="visibleCount || (!isGroupedView && visibleGroups.length)" :class="isGroupedView ? 'group-columns' : ''">
+          <div v-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" :class="isGroupedView ? 'group-columns' : ''">
             <section v-for="group in visibleGroups" :key="group.id" class="group-section" :class="{ 'single-section': !isGroupedView }">
               <div v-if="isGroupedView" class="group-heading">
                 <h2>
                   {{ group.title }} <span>{{ group.items?.length ?? 0 }}</span>
                 </h2>
               </div>
-              <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="220" class="url-list" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" delay-on-touch-only ghost-class="sortable-ghost" @end="handleEndDrag">
+              <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="220" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" delay-on-touch-only ghost-class="sortable-ghost" @end="handleEndDrag">
                 <button v-for="item in group.items" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" type="button" :title="item.title" @click="handleItemClick(item)" @contextmenu="(e) => handleContextMenu(e, item)">
                   <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)">
                   <ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" />
@@ -642,6 +642,7 @@ body, html { overflow: hidden; background: var(--goop-bg); color: var(--goop-tex
 .group-heading { display: flex; align-items: center; justify-content: space-between; margin: 0 10px 4px; }
 .group-heading h2 { display: flex; justify-content: space-between; width: 100%; margin: 0; color: var(--goop-muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
 .url-list { min-width: 0; }
+.url-list.arrange-drop-zone { min-height: 36px; border: 1px dashed var(--goop-border); }
 .single-section .url-list { columns: 3 300px; column-gap: 18px; }
 .url-row { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 6px 10px; break-inside: avoid; border: 0; border-radius: 6px; background: transparent; color: var(--goop-text); font: inherit; text-align: left; cursor: pointer; }
 .url-row:hover { background: var(--goop-row-hover); }
