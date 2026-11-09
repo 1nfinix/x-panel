@@ -84,7 +84,7 @@ function iconTextColor(item: Panel.ItemInfo) {
     return '#f2f7f4'
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? '#111827' : '#f2f7f4'
 }
-const selectedGroupId = ref<number | 'all' | null>(null)
+const selectedGroupId = ref<number | 'all' | null>('all')
 const isGroupedView = computed(() => selectedGroupId.value === 'all' || !!listFilter.value.trim())
 const visibleGroups = computed(() => {
   const keyword = listFilter.value.trim().toLowerCase()
@@ -190,7 +190,7 @@ function getList() {
     items.value = data.list.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
     failedIcons.value = new Set()
     if (selectedGroupId.value === null || (selectedGroupId.value !== 'all' && !items.value.some(group => group.id === selectedGroupId.value)))
-      selectedGroupId.value = items.value[0]?.id ?? 'all'
+      selectedGroupId.value = 'all'
     for (let i = 0; i < data.list.length; i++) {
       const element = data.list[i]
       if (element.id)
@@ -630,7 +630,7 @@ body, html { overflow: hidden; background: var(--goop-bg); color: var(--goop-tex
 .cover { background-position: center; background-size: cover; transform: scale(1.03); transition: opacity 600ms ease; }
 .navigation-shell { margin: 28px 0 22px; }
 .navigation-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.brand-name { flex: none; font-size: 26px; font-weight: 850; color: var(--goop-text); white-space: nowrap; }
+.brand-name { flex: none; font-size: 26px; font-weight: 850; color: #f2f7f4; white-space: nowrap; }
 .list-filter { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px; max-width: 420px; margin-left: auto; padding: 8px 14px; border: 1px solid var(--goop-border); border-radius: 999px; background: var(--goop-panel-overlay); color: var(--goop-muted); }
 .list-filter input { min-width: 0; flex: 1; border: 0; outline: 0; background: none; color: var(--goop-text); font: inherit; user-select: text; }
 .list-filter input::placeholder { color: var(--goop-muted); }
