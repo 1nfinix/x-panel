@@ -4,7 +4,8 @@ import { NBackTop, NButton, NDropdown, NModal, NSkeleton, NSpin, useDialog, useM
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { AppStarter, EditItem } from './components'
 import { Clock, SearchBox, SystemMonitor } from '@/components/deskModule'
-import { ItemIcon, SvgIcon } from '@/components/common'
+import { GroupGlyph, ItemIcon, SvgIcon } from '@/components/common'
+import logo from '@/assets/logo.svg'
 import { deletes, getListByGroupId, saveSort } from '@/api/panel/itemIcon'
 import { getList as getGroupList } from '@/api/panel/itemIconGroup'
 
@@ -114,15 +115,117 @@ const systemMonitorVisible = computed(() => panelState.panelConfig.systemMonitor
   && ((panelState.panelConfig.systemMonitorPublicVisitModeShow && authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC)
     || authStore.visitMode === VisitMode.VISIT_MODE_LOGIN))
 const overviewVisible = computed(() => panelState.panelConfig.clockShow || panelState.panelConfig.searchBoxShow || systemMonitorVisible.value)
-const navRef = ref<HTMLElement | null>(null)
-const indicatorStyle = ref({ left: '0px', width: '0px' })
+const railRef = ref<HTMLElement | null>(null)
+const railScrollRef = ref<HTMLElement | null>(null)
+const railFocusKey = ref<string>('all')
+const railIndicator = ref({ transform: 'translateY(0px)', opacity: 0 })
+const tooltipKey = ref<string | null>(null)
+const tooltipPosition = ref({ top: '0px', left: '0px' })
 const { source: wallpaperSource, loaded: wallpaperLoaded, show: showWallpaper } = useWallpaper()
+let tooltipTarget: HTMLElement | null = null
+let tooltipOpenTimer: ReturnType<typeof setTimeout>
+let tooltipCloseTimer: ReturnType<typeof setTimeout>
+let railHot = false
 
-function updateIndicator() {
-  const selected = navRef.value?.querySelector<HTMLElement>('.nav-tab.active')
-  if (selected)
-    indicatorStyle.value = { left: `${selected.offsetLeft}px`, width: `${selected.offsetWidth}px` }
+const selectedGroup = computed(() => items.value.find(group => group.id === selectedGroupId.value))
+const tooltipContent = computed(() => {
+  if (tooltipKey.value === 'brand')
+    return { title: t('panelHome.backToTop'), count: null }
+  if (tooltipKey.value === 'all')
+    return { title: t('panelHome.all'), count: totalCount.value }
+  const group = items.value.find(item => String(item.id) === tooltipKey.value)
+  return { title: group?.title ?? '', count: group?.items?.length ?? 0 }
+})
+
+function updateRailIndicator() {
+  const rail = railRef.value
+  const selected = Array.from(rail?.querySelectorAll<HTMLElement>('[data-rail-key]') ?? [])
+    .find(button => button.dataset.railKey === String(selectedGroupId.value))
+  if (!rail || !selected)
+    return
+  const railRect = rail.getBoundingClientRect()
+  const rect = selected.getBoundingClientRect()
+  const scrollRect = railScrollRef.value?.getBoundingClientRect()
+  const mobile = window.innerWidth < 640
+  let visible = false
+  if (scrollRect)
+    visible = mobile ? (rect.right > scrollRect.left && rect.left < scrollRect.right) : (rect.bottom > scrollRect.top && rect.top < scrollRect.bottom)
+  railIndicator.value = {
+    transform: mobile ? `translateX(${rect.left - railRect.left + 10}px)` : `translateY(${rect.top - railRect.top + 10}px)`,
+    opacity: visible ? 1 : 0,
+  }
 }
+
+function positionTooltip() {
+  if (!tooltipTarget)
+    return
+  const rect = tooltipTarget.getBoundingClientRect()
+  tooltipPosition.value = { top: `${rect.top + rect.height / 2}px`, left: `${rect.right + 12}px` }
+}
+
+function showRailTooltip(key: string, event: FocusEvent | MouseEvent) {
+  if (window.innerWidth < 640 || (event instanceof MouseEvent && !window.matchMedia('(hover: hover)').matches))
+    return
+  clearTimeout(tooltipOpenTimer)
+  clearTimeout(tooltipCloseTimer)
+  tooltipTarget = event.currentTarget as HTMLElement
+  positionTooltip()
+  if (event instanceof FocusEvent || railHot || tooltipKey.value)
+    tooltipKey.value = key
+  else
+    tooltipOpenTimer = setTimeout(() => tooltipKey.value = key, 300)
+  railHot = true
+}
+
+function leaveRail() {
+  clearTimeout(tooltipOpenTimer)
+  clearTimeout(tooltipCloseTimer)
+  tooltipCloseTimer = setTimeout(() => {
+    tooltipKey.value = null
+    tooltipTarget = null
+    railHot = false
+  }, 100)
+}
+
+function onRailFocusOut(event: FocusEvent) {
+  if (!railRef.value?.contains(event.relatedTarget as Node))
+    leaveRail()
+}
+
+function onRailKeydown(event: KeyboardEvent) {
+  const buttons = Array.from(railRef.value?.querySelectorAll<HTMLButtonElement>('[data-rail-key]') ?? [])
+  const current = buttons.indexOf(document.activeElement as HTMLButtonElement)
+  let next = current
+  if (event.key === 'ArrowDown' || event.key === 'ArrowRight')
+    next = Math.min(current + 1, buttons.length - 1)
+  else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft')
+    next = Math.max(current - 1, 0)
+  else if (event.key === 'Home')
+    next = 0
+  else if (event.key === 'End')
+    next = buttons.length - 1
+  else
+    return
+  event.preventDefault()
+  if (next >= 0 && buttons[next]) {
+    railFocusKey.value = buttons[next].dataset.railKey || 'all'
+    buttons[next].focus()
+    buttons[next].scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }
+}
+
+function scrollToTop() {
+  selectGroup('all')
+  scrollContainerRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+watch([selectedGroupId, items], () => nextTick(() => {
+  const selected = Array.from(railRef.value?.querySelectorAll<HTMLElement>('[data-rail-key]') ?? [])
+    .find(button => button.dataset.railKey === String(selectedGroupId.value))
+  if (window.innerWidth < 640)
+    selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  updateRailIndicator()
+}), { deep: true })
 
 function selectGroup(id: number | 'all') {
   if (selectedGroupId.value !== id) {
@@ -137,7 +240,7 @@ function selectGroup(id: number | 'all') {
   rovingItemId.value = null
   listFilter.value = ''
   filterItems.value = items.value
-  nextTick(updateIndicator)
+  nextTick(updateRailIndicator)
 }
 
 function moveRowFocus(event: KeyboardEvent, direction: number) {
@@ -253,7 +356,7 @@ function getList() {
         updateItemIconGroupByNet(i, element.id)
     }
     filterItems.value = items.value
-    nextTick(updateIndicator)
+    nextTick(updateRailIndicator)
     // console.log(items)
   })
 }
@@ -421,7 +524,7 @@ function getDropdownMenuOptions() {
 }
 
 onMounted(() => {
-  window.addEventListener('resize', updateIndicator)
+  window.addEventListener('resize', updateRailIndicator)
   window.addEventListener('keydown', onFilterShortcut)
   // 更新用户信息
   updateLocalUserInfo()
@@ -436,7 +539,9 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   clearTimeout(groupFadeTimer)
-  window.removeEventListener('resize', updateIndicator)
+  clearTimeout(tooltipOpenTimer)
+  clearTimeout(tooltipCloseTimer)
+  window.removeEventListener('resize', updateRailIndicator)
   window.removeEventListener('keydown', onFilterShortcut)
 })
 
@@ -458,7 +563,7 @@ function itemFrontEndSearch(keyword?: string) {
     }
     filterItems.value = filteredData.value
     selectedGroupId.value = 'all'
-    nextTick(updateIndicator)
+    nextTick(updateRailIndicator)
   }
   else {
     filterItems.value = items.value
@@ -491,7 +596,29 @@ function handleAddItem(itemIconGroupId?: number) {
       }"
     />
     <div v-if="panelState.panelConfig.showWallpaper" class="mask" :style="{ backgroundColor: `rgba(24,23,21,${Math.max(0.58, panelState.panelConfig.backgroundMaskNumber ?? 0.58)})` }" />
-    <div ref="scrollContainerRef" class="absolute w-full h-full overflow-auto">
+    <nav ref="railRef" class="group-rail" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" :aria-label="t('panelHome.groups')" @mouseleave="leaveRail" @focusout="onRailFocusOut" @keydown="onRailKeydown">
+      <button class="rail-brand" type="button" :aria-label="t('panelHome.backToTop')" @click="scrollToTop" @mouseenter="showRailTooltip('brand', $event)" @focus="showRailTooltip('brand', $event)">
+        <img :src="logo" alt="" width="28" height="28">
+      </button>
+      <div ref="railScrollRef" class="rail-scroll" @scroll="updateRailIndicator(); positionTooltip()">
+        <button class="rail-button" :class="{ active: selectedGroupId === 'all' }" type="button" data-rail-key="all" :tabindex="railFocusKey === 'all' ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: t('panelHome.all'), count: totalCount })" :aria-current="selectedGroupId === 'all' ? 'page' : undefined" @click="selectGroup('all')" @focus="railFocusKey = 'all'; showRailTooltip('all', $event)" @mouseenter="showRailTooltip('all', $event)">
+          <GroupGlyph icon="lucide-layout-grid" :title="t('panelHome.all')" />
+        </button>
+        <span class="rail-divider" aria-hidden="true" />
+        <button v-for="group in items" :key="group.id" class="rail-button" :class="{ active: selectedGroupId === group.id }" type="button" :data-rail-key="String(group.id)" :tabindex="railFocusKey === String(group.id) ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: group.title, count: group.items?.length ?? 0 })" :aria-current="selectedGroupId === group.id ? 'page' : undefined" @click="selectGroup(group.id as number)" @focus="railFocusKey = String(group.id); showRailTooltip(String(group.id), $event)" @mouseenter="showRailTooltip(String(group.id), $event)">
+          <GroupGlyph :icon="group.icon" :title="group.title" />
+        </button>
+      </div>
+      <span class="rail-indicator" :style="railIndicator" aria-hidden="true" />
+    </nav>
+    <Teleport to="body">
+      <Transition name="rail-tooltip">
+        <div v-if="tooltipKey" class="rail-tooltip" :style="tooltipPosition" role="tooltip">
+          <span>{{ tooltipContent.title }}</span><span v-if="tooltipContent.count !== null" class="rail-tooltip-count"> · {{ tooltipContent.count }}</span>
+        </div>
+      </Transition>
+    </Teleport>
+    <div ref="scrollContainerRef" class="main-scroll absolute w-full h-full overflow-auto">
       <div
         class="px-6 max-sm:px-4 mx-auto"
         :style="{
@@ -520,17 +647,11 @@ function handleAddItem(itemIconGroupId?: number) {
             <SearchBox v-if="panelState.panelConfig.searchBoxShow" class="overview-search" @item-search="itemFrontEndSearch" />
             <SystemMonitor v-if="systemMonitorVisible" class="overview-monitor" :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
           </div>
-          <nav ref="navRef" class="group-navigation" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" :aria-label="t('panelHome.groups')">
-            <span class="nav-indicator" :style="indicatorStyle" aria-hidden="true" />
-            <button class="nav-tab" :class="{ active: selectedGroupId === 'all' }" type="button" @click="selectGroup('all')">
-              {{ t('panelHome.all') }} <b>{{ totalCount }}</b>
-            </button>
-            <button v-for="group in items" :key="group.id" class="nav-tab" :class="{ active: selectedGroupId === group.id }" type="button" @click="selectGroup(group.id as number)">
-              {{ group.title }} <b>{{ group.items?.length ?? 0 }}</b>
-            </button>
-          </nav>
+          <h1 v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-title">
+            {{ selectedGroup.title }} <span>{{ selectedGroup.items?.length ?? 0 }}</span>
+          </h1>
 
-          <div v-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" :class="[isGroupedView ? 'group-columns' : '', { 'group-fade': groupFade, 'first-load-motion': firstLoadMotion }]">
+          <div v-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" class="content-groups" :class="[isGroupedView ? 'group-columns' : '', { 'group-fade': groupFade, 'first-load-motion': firstLoadMotion }]">
             <section v-for="group in visibleGroups" :key="group.id" class="group-section" :style="firstLoadMotion ? { animationDelay: `${Math.min(9, visibleGroups.indexOf(group)) * 30}ms` } : undefined" :class="{ 'single-section': !isGroupedView, 'on-wallpaper': panelState.panelConfig.showWallpaper }">
               <div v-if="isGroupedView" class="group-heading">
                 <h2>
@@ -606,6 +727,7 @@ function handleAddItem(itemIconGroupId?: number) {
     </div>
 
     <NBackTop
+      class="rail-back-top"
       :listen-to="() => scrollContainerRef"
       :right="10"
       :bottom="10"
@@ -657,7 +779,12 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 ::selection { background: var(--xp-primary); color: var(--xp-on-primary); }
 .n-modal { animation: modal-open 260ms cubic-bezier(.16,1,.3,1); }
 @keyframes modal-open { from { transform: scale(.96); opacity: .7; } to { transform: scale(1); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .n-modal { animation: none; } }
+.rail-tooltip { position: fixed; z-index: 3000; transform: translateY(-50%); padding: 6px 10px; border-radius: 6px; background: var(--xp-ink); color: var(--xp-canvas); font: 13px/1.4 var(--xp-font-body); white-space: nowrap; pointer-events: none; box-shadow: none; }
+.rail-tooltip-count { color: color-mix(in srgb, var(--xp-canvas) 65%, var(--xp-ink)); font-variant-numeric: tabular-nums; }
+.rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: opacity 120ms ease, translate 120ms ease; }
+.rail-tooltip-enter-from, .rail-tooltip-leave-to { opacity: 0; translate: -4px 0; }
+@media (max-width: 639px) { .rail-tooltip { display: none; } .rail-back-top { bottom: calc(66px + env(safe-area-inset-bottom)) !important; } }
+@media (prefers-reduced-motion: reduce) { .n-modal { animation: none; } .rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: none; } }
 </style>
 
 <style scoped>
@@ -682,14 +809,23 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .overview-band.has-clock:not(.has-search):not(.has-monitor), .overview-band.has-search:not(.has-clock):not(.has-monitor), .overview-band.has-monitor:not(.has-clock):not(.has-search) { grid-template-columns: minmax(0, 1fr); }
 .overview-clock.on-wallpaper { padding: 8px 12px; border-radius: var(--xp-radius-md); background: color-mix(in srgb, var(--xp-canvas) 92%, transparent); }
 .overview-search { min-width: 0; }
-.group-navigation { position: relative; display: flex; gap: 6px; width: max-content; max-width: 100%; margin-top: 24px; margin-bottom: 16px; overflow-x: auto; scrollbar-width: none; }
-.group-navigation::-webkit-scrollbar { display: none; }
-.nav-tab { position: relative; z-index: 1; flex: none; padding: 8px 14px; border: 0; border-radius: var(--xp-radius-md); color: var(--xp-muted); font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; background: transparent; }
-.nav-tab b { margin-left: 4px; font-size: 13px; font-weight: 500; color: var(--xp-muted-soft); }
-.nav-tab.active { color: var(--xp-ink); }
-.group-navigation.on-wallpaper .nav-tab:not(.active), .group-navigation.on-wallpaper .nav-tab:not(.active) b { color: var(--xp-wallpaper-ink); }
-.nav-indicator { position: absolute; top: 0; bottom: 0; border-radius: var(--xp-radius-md); background: var(--xp-surface-card); transition: left 220ms ease, width 220ms ease; }
-.nav-tab:focus-visible, .url-row:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
+.main-scroll { box-sizing: border-box; padding-left: 64px; }
+.group-rail { position: fixed; z-index: 10; inset: 0 auto 0 0; display: flex; flex-direction: column; align-items: center; width: 64px; padding: 16px 11px; border-right: 1px solid var(--xp-hairline); background: var(--xp-canvas); }
+.group-rail.on-wallpaper { background: color-mix(in srgb, var(--xp-canvas) 88%, transparent); }
+.rail-brand, .rail-button { display: grid; flex: none; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--xp-muted); cursor: pointer; transition: background-color 120ms ease, color 120ms ease; }
+.rail-brand { margin-bottom: 16px; }
+.rail-brand img { width: 28px; height: 28px; border-radius: 8px; }
+.rail-scroll { display: flex; flex: 1; flex-direction: column; align-items: center; gap: 4px; width: 100%; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.rail-scroll::-webkit-scrollbar { display: none; }
+.rail-divider { display: block; flex: none; width: 24px; height: 1px; margin: 6px 0; background: var(--xp-hairline); }
+.rail-button:hover, .rail-brand:hover { background: var(--xp-surface-soft); color: var(--xp-ink); }
+.rail-button.active { background: var(--xp-surface-card); color: var(--xp-ink); }
+.rail-indicator { position: absolute; top: 0; left: 0; width: 3px; height: 20px; border-radius: 3px; background: var(--xp-primary); pointer-events: none; transition: transform 180ms ease, opacity 120ms ease; }
+.rail-brand:focus-visible, .rail-button:focus-visible, .url-row:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
+.selected-group-title { display: flex; align-items: baseline; gap: 8px; margin: 24px 0 16px; color: var(--xp-ink); font: 600 18px/1.4 var(--xp-font-display); }
+.selected-group-title span { color: var(--xp-muted); font: 13px/1 var(--xp-font-body); font-variant-numeric: tabular-nums; }
+.content-groups { margin-top: 24px; }
+.selected-group-title + .content-groups { margin-top: 0; }
 .group-columns { columns: 320px; column-gap: 16px; }
 .group-columns .group-section { display: inline-block; width: 100%; margin-bottom: 16px; break-inside: avoid; }
 .group-section { min-width: 0; padding: 16px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-lg); background: var(--xp-canvas); }
@@ -734,6 +870,13 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
   .single-section .url-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 639px) {
+  .main-scroll { padding-left: 0; padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+  .group-rail { inset: auto 0 0; flex-direction: row; align-items: stretch; width: 100%; height: calc(56px + env(safe-area-inset-bottom)); padding: 0; border-top: 1px solid var(--xp-hairline); border-right: 0; }
+  .rail-brand { display: none; }
+  .rail-scroll { flex-direction: row; gap: 4px; overflow-x: auto; overflow-y: hidden; padding: 7px 12px calc(8px + env(safe-area-inset-bottom)); }
+  .rail-divider { width: 1px; height: 24px; margin: 0 6px; }
+  .rail-indicator { top: 0; left: 0; width: 20px; height: 3px; }
+  .fixed-element { bottom: calc(96px + env(safe-area-inset-bottom)); }
   .navigation-shell { margin-top: 16px; }
   .arrange-button { margin-left: auto; }
   .brand-name { font-size: 24px; }
@@ -742,5 +885,5 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
   .group-columns { columns: 1; }
   .single-section .url-list { grid-template-columns: 1fr; }
 }
-@media (prefers-reduced-motion: reduce) { .cover, .nav-indicator, .url-row, .row-arrow { transition: none !important; } .first-load-motion .group-section, .group-fade { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .cover, .rail-indicator, .rail-button, .rail-brand, .url-row, .row-arrow { transition: none !important; } .first-load-motion .group-section, .group-fade { animation: none !important; } }
 </style>

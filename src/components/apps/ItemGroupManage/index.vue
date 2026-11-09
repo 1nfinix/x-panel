@@ -4,7 +4,8 @@ import type { FormInst, FormRules } from 'naive-ui'
 import { NButton, NCard, NForm, NFormItem, NInput, useDialog, useMessage } from 'naive-ui'
 import { VueDraggable } from 'vue-draggable-plus'
 import { deletes, edit, getList, saveSort } from '@/api/panel/itemIconGroup'
-import { RoundCardModal, SvgIcon } from '@/components/common'
+import { GroupGlyph, RoundCardModal, SvgIcon } from '@/components/common'
+import { groupIcons } from '@/components/common/GroupGlyph/icons'
 import { t } from '@/locales'
 
 interface EditModalArg {
@@ -21,7 +22,7 @@ const sortStatus = ref(false)
 
 const defaultMNodal = {
   title: '',
-  icon: 'material-symbols:ad-group-outline-rounded',
+  icon: '',
   sort: 9999,
 }
 
@@ -43,12 +44,14 @@ const editModalArg = ref<EditModalArg>({
 const groups = ref<Panel.ItemIconGroup[]>([])
 
 function handleAddGroup() {
-  editModalArg.value.show = !editModalArg.value.show
+  editModalArg.value.model = { ...defaultMNodal }
+  editModalArg.value.editStatus = 1
+  editModalArg.value.show = true
 }
 
 function handleEditGroup(groupInfo: Panel.ItemIconGroup) {
   editModalArg.value.show = true
-  editModalArg.value.model = groupInfo
+  editModalArg.value.model = { ...groupInfo }
   editModalArg.value.editStatus = 2
 }
 
@@ -151,8 +154,7 @@ onMounted(() => {
             <div class="flex" :class="sortStatus ? 'cursor-move' : ''">
               <div class="flex items-center">
                 <span class="mr-3">
-                  <SvgIcon class="text-[20px]" icon="material-symbols:ad-group-outline-rounded" />
-                  <!-- <SvgIcon class="text-[20px]" :icon="item.icon" /> -->
+                  <GroupGlyph :icon="item.icon" :title="item.title" :size="20" />
                 </span>
                 <span>
                   {{ item.title }}
@@ -186,9 +188,16 @@ onMounted(() => {
           <NInput v-model:value="editModalArg.model.title" type="text" :maxlength="20" show-count />
         </NFormItem>
 
-        <!-- <NFormItem path="name" label="昵称">
-          <NInput v-model:value="editModalArg.model" type="text" placeholder="请输入昵称" />
-        </NFormItem> -->
+        <NFormItem :label="$t('apps.itemGroupManage.icon')">
+          <div class="group-icon-grid" role="group" :aria-label="$t('apps.itemGroupManage.icon')">
+            <button class="group-icon-option" :class="{ active: !editModalArg.model.icon || !groupIcons.includes(editModalArg.model.icon) }" type="button" :title="t('apps.itemGroupManage.initial')" :aria-label="t('apps.itemGroupManage.initial')" :aria-pressed="!editModalArg.model.icon || !groupIcons.includes(editModalArg.model.icon)" @click="editModalArg.model.icon = ''">
+              <GroupGlyph :title="editModalArg.model.title" />
+            </button>
+            <button v-for="icon in groupIcons" :key="icon" class="group-icon-option" :class="{ active: editModalArg.model.icon === icon }" type="button" :title="icon.replace('lucide-', '')" :aria-label="icon.replace('lucide-', '')" :aria-pressed="editModalArg.model.icon === icon" @click="editModalArg.model.icon = icon">
+              <GroupGlyph :icon="icon" :title="editModalArg.model.title" />
+            </button>
+          </div>
+        </NFormItem>
       </NForm>
       <template #footer>
         <NButton type="primary" size="small" class="float-right" @click="handleSaveGroup">
@@ -198,3 +207,11 @@ onMounted(() => {
     </RoundCardModal>
   </div>
 </template>
+
+<style scoped>
+.group-icon-grid { display: grid; grid-template-columns: repeat(8, 36px); gap: 6px; max-width: 100%; }
+.group-icon-option { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--xp-muted); cursor: pointer; }
+.group-icon-option:hover { background: var(--xp-surface-soft); color: var(--xp-ink); }
+.group-icon-option.active { background: var(--xp-surface-card); color: var(--xp-ink); }
+.group-icon-option:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
+</style>

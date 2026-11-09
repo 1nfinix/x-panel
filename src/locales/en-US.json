@@ -122,7 +122,9 @@
     "itemGroupManage": {
       "appName": "Group Management",
       "deleteWarnText": "Are you sure you want to delete this group [{name}]? The application icons in this group will be lost after deletion.",
-      "groupName": "Group name"
+      "groupName": "Group name",
+      "icon": "Icon",
+      "initial": "Initial"
     },
     "uploadsFileManager": {
       "alertText": "Here you can manage wallpapers and icons you have uploaded.",
@@ -278,6 +280,8 @@
     "openWanUrl": "Open WAN URL",
     "all": "All",
     "groups": "Group navigation",
+    "backToTop": "Back to top",
+    "groupAria": "{name}, {count} sites",
     "filterPlaceholder": "Filter sites by name or domain",
     "resultsCount": "{count} results",
     "arrange": "Arrange",
