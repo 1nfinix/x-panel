@@ -68,7 +68,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="clock w-full text-center">
-    <span class="clock-time text-2xl sm:text-2xl md:text-3xl font-[600]">
+    <span class="clock-time text-[22px] font-medium">
       {{ currentDate.time }}
     </span>
     <div class="hidden sm:hidden md:block">

@@ -19,16 +19,16 @@ const defautSwatchesBackground = [
   '#00000000',
   '#000000',
   '#ffffff',
-  '#18A058',
-  '#2080F0',
-  '#F0A020',
-  'rgba(208, 48, 80, 1)',
-  '#C418D1FF',
+  '#5db872',
+  '#5db8a6',
+  '#e8a55a',
+  '#c64545',
+  '#cc785c',
 ]
 
 const initData: Panel.ItemIcon = {
   itemType: 2,
-  backgroundColor: '#ffffff',
+  backgroundColor: '#efe9de',
 }
 
 const itemIconInfo = computed({
@@ -84,7 +84,7 @@ const handleUploadFinish = ({
 
 <template>
   <div>
-    <div class="mb-[10px]">
+    <div class="mb-3">
       <NRadio
         :checked="itemIconInfo.itemType === 1 "
         :value="1"
@@ -116,22 +116,22 @@ const handleUploadFinish = ({
     <div class=" h-[100px]">
       <div class="flex">
         <div>
-          <div class="border rounded-2xl bg-slate-200 overflow-hidden rounded-2xl transparent-grid">
+          <div class="border rounded-xp-lg bg-surface-soft overflow-hidden rounded-xp-lg transparent-grid">
             <ItemIcon :item-icon="itemIconInfo" />
           </div>
         </div>
         <!-- 文字 -->
-        <div class="ml-[20px]">
+        <div class="ml-5">
           <!-- <NImage :src="model.icon" preview-disabled /> -->
           <div v-if="itemIconInfo.itemType === 1">
-            <NInput v-model:value="itemIconInfo.text" class="mb-[5px]" size="small" type="text" @input="handleChange" />
+            <NInput v-model:value="itemIconInfo.text" class="mb-1" size="small" type="text" @input="handleChange" />
           </div>
 
           <div v-if="itemIconInfo.itemType === 3">
             <div>
-              <NInput v-model:value="itemIconInfo.text" class="mb-[5px]" size="small" type="text" :placeholder="$t('iconItem.inputIconName')" @input="handleChange" />
+              <NInput v-model:value="itemIconInfo.text" class="mb-1" size="small" type="text" :placeholder="$t('iconItem.inputIconName')" @input="handleChange" />
 
-              <NButton quaternary type="info">
+              <NButton text type="primary">
                 <a target="_blank" href="https://icon-sets.iconify.design/">{{ $t('iconItem.onlineIconLibrary') }}</a>
               </NButton>
             </div>
@@ -139,7 +139,7 @@ const handleUploadFinish = ({
 
           <!-- 图片 -->
           <div v-if="itemIconInfo.itemType === 2">
-            <NInput v-model:value="itemIconInfo.src" class="mb-[5px] w-full" size="small" type="text" :placeholder="$t('iconItem.inputIconUrlOrUpload')" @input="handleChange" />
+            <NInput v-model:value="itemIconInfo.src" class="mb-1 w-full" size="small" type="text" :placeholder="$t('iconItem.inputIconUrlOrUpload')" @input="handleChange" />
             <NUpload
               action="/api/file/uploadImg"
               :show-file-list="false"
@@ -157,11 +157,11 @@ const handleUploadFinish = ({
         </div>
       </div>
 
-      <div class="flex items-center mt-[10px]">
-        <div class="w-auto text-slate-500 mr-[10px]">
+      <div class="flex items-center mt-3">
+        <div class="w-auto text-muted mr-3">
           {{ $t('common.backgroundColor') }}
         </div>
-        <div class="w-[150px] flex items-center mr-[10px]">
+        <div class="w-[150px] flex items-center mr-3">
           <NColorPicker
             v-model:value="itemIconInfo.backgroundColor"
             size="small"
@@ -171,8 +171,8 @@ const handleUploadFinish = ({
             @update-value="handleChange"
           />
         </div>
-        <div v-if="itemIconInfo.backgroundColor !== initData.backgroundColor" class="w-auto text-slate-500 mr-[10px] cursor-pointer">
-          <NButton quaternary type="info" @click="handleResetBackgroundColor">
+        <div v-if="itemIconInfo.backgroundColor !== initData.backgroundColor" class="w-auto text-muted mr-3 cursor-pointer">
+          <NButton text type="primary" @click="handleResetBackgroundColor">
             {{ $t('common.reset') }}
           </NButton>
         </div>
@@ -183,8 +183,8 @@ const handleUploadFinish = ({
 
 <style scoped>
 .transparent-grid {
-    background-image: linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%),
-                      linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%);
+    background-image: linear-gradient(45deg, var(--xp-canvas) 25%, transparent 25%, transparent 75%, var(--xp-canvas) 75%),
+                      linear-gradient(45deg, var(--xp-canvas) 25%, transparent 25%, transparent 75%, var(--xp-canvas) 75%);
     background-size: 16px 16px;
     background-position: 0 0, 8px 8px;
 }

@@ -138,24 +138,24 @@ function handleChangeTheme(value: Theme) {
 </script>
 
 <template>
-  <div class="bg-slate-200 dark:bg-zinc-900 p-2 h-full">
-    <NCard style="border-radius:10px" size="small">
+  <div class="bg-surface-soft p-2 h-full">
+    <NCard size="small">
       <div>
-        <div class="text-slate-500 font-bold">
+        <div class="text-ink font-medium">
           {{ $t('common.username') }}
         </div>
         {{ authStore.userInfo?.username }}
       </div>
 
-      <div class="mt-[10px]">
-        <div class="text-slate-500 font-bold">
+      <div class="mt-3">
+        <div class="text-ink font-medium">
           {{ $t('common.nikeName') }}
         </div>
 
         <div v-if="!isEditNickNameStatus">
           {{ authStore.userInfo?.name }}
 
-          <NButton size="small" text type="info" @click="isEditNickNameStatus = !isEditNickNameStatus">
+          <NButton size="small" text type="primary" @click="isEditNickNameStatus = !isEditNickNameStatus">
             {{ $t('common.edit') }}
           </NButton>
         </div>
@@ -164,14 +164,14 @@ function handleChangeTheme(value: Theme) {
           <div class="max-w-[150px]">
             <NInput v-model:value="nickName" type="text" :placeholder="$t('common.inputPlaceholder')" />
           </div>
-          <NButton size="small" quaternary type="info" @click="handleSaveInfo">
+          <NButton size="small" secondary @click="handleSaveInfo">
             {{ $t('common.save') }}
           </NButton>
         </div>
       </div>
 
-      <div class="mt-[10px]">
-        <div class="text-slate-500 font-bold">
+      <div class="mt-3">
+        <div class="text-ink font-medium">
           {{ $t('common.language') }}
         </div>
         <div class="max-w-[200px]">
@@ -179,8 +179,8 @@ function handleChangeTheme(value: Theme) {
         </div>
       </div>
 
-      <div class="mt-[10px]">
-        <div class="text-slate-500 font-bold">
+      <div class="mt-3">
+        <div class="text-ink font-medium">
           {{ $t('apps.userInfo.theme') }}
         </div>
         <div class="max-w-[200px]">
@@ -190,13 +190,13 @@ function handleChangeTheme(value: Theme) {
 
       <NDivider style="margin: 10px 0;" dashed />
       <div>
-        <NButton size="small" text type="info" @click="updatePasswordModalState.show = !updatePasswordModalState.show">
+        <NButton size="small" text type="primary" @click="updatePasswordModalState.show = !updatePasswordModalState.show">
           {{ $t('settingUserInfo.updatePassword') }}
         </NButton>
       </div>
     </NCard>
 
-    <NCard style="border-radius:10px" class="mt-[10px]" size="small">
+    <NCard class="mt-3" size="small">
       <NButton size="small" text type="error" @click="handleLogout">
         <template #icon>
           <SvgIcon icon="tabler:logout" />
@@ -222,7 +222,7 @@ function handleChangeTheme(value: Theme) {
 
       <template #footer>
         <div class="float-right">
-          <NButton type="success" size="small" :loading="updatePasswordModalState.loading" @click="handleUpdatePassword">
+          <NButton type="primary" size="small" :loading="updatePasswordModalState.loading" @click="handleUpdatePassword">
             {{ $t('common.save') }}
           </NButton>
         </div>

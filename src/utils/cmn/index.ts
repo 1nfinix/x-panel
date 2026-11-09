@@ -49,7 +49,7 @@ export function noticeCreate(info: Notice.NoticeInfo) {
         NButton,
         {
           text: true,
-          type: 'info',
+          type: 'primary',
           onClick: () => {
             window.open(info.url, '_blank')
             n.destroy()

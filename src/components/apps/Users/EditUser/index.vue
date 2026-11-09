@@ -132,7 +132,7 @@ const handleValidateButtonClick = (e: MouseEvent) => {
 
     <template #footer>
       <div class="float-right">
-        <NButton type="success" size="small" @click="handleValidateButtonClick">
+        <NButton type="primary" size="small" @click="handleValidateButtonClick">
           {{ $t('common.save') }}
         </NButton>
       </div>

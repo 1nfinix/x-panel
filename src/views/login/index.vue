@@ -33,7 +33,8 @@ const form = ref<Login.LoginReqest>({
 })
 
 onMounted(async () => {
-  showWallpaper(panelState.panelConfig.backgroundImageSrc, panelState.panelConfig.autoWallpaper !== false)
+  if (panelState.panelConfig.showWallpaper)
+    showWallpaper(panelState.panelConfig.backgroundImageSrc, panelState.panelConfig.autoWallpaper !== false)
   try {
     const response = await getLoginConfig<{ loginCaptcha: boolean }>()
     if (response.code === 0)
@@ -86,18 +87,18 @@ function handleChangeLanuage(value: Language) {
 
 <template>
   <div class="login-container">
-    <div class="login-wallpaper" :class="{ loaded: wallpaperLoaded }" :style="{ backgroundImage: wallpaperLoaded ? `linear-gradient(rgba(6,12,15,.72),rgba(6,12,15,.72)),url(${wallpaperSource})` : 'none' }" />
+    <div v-if="panelState.panelConfig.showWallpaper" class="login-wallpaper" :class="{ loaded: wallpaperLoaded }" :style="{ backgroundImage: wallpaperLoaded ? `linear-gradient(rgba(24,23,21,.72),rgba(24,23,21,.72)),url(${wallpaperSource})` : 'none' }" />
     <NCard class="login-card">
       <div class="mb-5 flex items-center justify-end">
         <div class="mr-2">
-          <SvgIcon icon="ion-language" style="width: 20;height: 20;" />
+          <SvgIcon icon="ion-language" style="width: 20px;height: 20px;" />
         </div>
         <div class="min-w-[100px]">
           <NSelect v-model:value="languageValue" size="small" :options="languageOptions" @update-value="handleChangeLanuage" />
         </div>
       </div>
 
-      <div class="login-title  ">
+      <div class="login-title">
         <img :src="srcSvglogo" width="42" height="42" alt="" aria-hidden="true">
         <strong class="login-heading">
           {{ $t('common.appName') }}
@@ -126,23 +127,23 @@ function handleChangeLanuage(value: Language) {
           </div>
           <NInput v-model:value="form.vcode" type="text" maxlength="4" :placeholder="t('login.captchaPlaceholder')" />
         </NFormItem>
-        <NFormItem style="margin-top: 10px">
+        <NFormItem class="mt-3">
           <NButton type="primary" block :loading="loading" @click="handleSubmit">
             {{ $t('login.loginButton') }}
           </NButton>
         </NFormItem>
 
         <!-- <div class="flex justify-end">
-          <NButton v-if="isShowRegister" quaternary type="info" class="flex" @click="$router.push({ path: '/register' })">
+          <NButton v-if="isShowRegister" text type="primary" class="flex" @click="$router.push({ path: '/register' })">
             注册
           </NButton>
-          <NButton quaternary type="info" class="flex" @click="$router.push({ path: '/resetPassword' })">
+          <NButton text type="primary" class="flex" @click="$router.push({ path: '/resetPassword' })">
             忘记密码?
           </NButton>
         </div> -->
 
-        <div class="flex justify-center text-slate-300">
-          Powered By <a href="https://github.com/1nfinix/x-panel" target="_blank" class="ml-[5px] text-slate-500">X-Panel</a>
+        <div class="flex justify-center text-muted-soft text-[13px]">
+          Powered By <a href="https://github.com/1nfinix/x-panel" target="_blank" class="ml-1 text-muted-soft">X-Panel</a>
         </div>
       </NForm>
     </NCard>
@@ -150,13 +151,16 @@ function handleChangeLanuage(value: Language) {
 </template>
 
 <style scoped>
-.login-container { position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background-color: #111827; }
+.login-container { position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background-color: var(--xp-canvas); }
 .login-wallpaper { position: absolute; inset: 0; background-position: center; background-size: cover; opacity: 0; transition: opacity 600ms ease; }
 .login-wallpaper.loaded { opacity: 1; }
-.login-card { position: relative; width: min(100%, 430px); border-radius: 8px !important; background: #1b2734; color: #f2f7f4; }
+.login-card { position: relative; width: min(100%, 430px); border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-lg); background: var(--xp-canvas); color: var(--xp-ink); }
+.login-card :deep(.n-card__content) { padding: 32px; }
+.login-card :deep(.n-input) { min-height: 40px; }
+.login-card :deep(.n-button--primary-type) { height: 40px; border-radius: var(--xp-radius-md); }
 .login-title { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 28px; }
-.login-heading { font-family: 'Arial Rounded MT Bold', 'PingFang SC', system-ui, sans-serif; font-size: 30px; color: #76d99b; font-weight: 850; }
-.captcha-image { flex: none; width: 160px; height: 48px; margin-right: 12px; cursor: pointer; border-radius: 6px; overflow: hidden; }
+.login-heading { font-family: var(--xp-font-display); font-size: 30px; color: var(--xp-ink); font-weight: 400; letter-spacing: -.3px; }
+.captcha-image { flex: none; width: 160px; height: 48px; margin-right: 12px; cursor: pointer; border-radius: var(--xp-radius-sm); overflow: hidden; }
 .captcha-image :deep(img) { width: 160px; height: 48px; }
 @media (max-width: 390px) { .captcha-image { width: 138px; } .captcha-image :deep(img) { width: 138px; } }
 @media (prefers-reduced-motion: reduce) { .login-wallpaper { transition: none; } }

@@ -21,17 +21,17 @@ const DiskEditorRef = ref<InstanceType<typeof DiskEditor>>()
 
 // 默认通用的进度扩展参数
 const defaultGenericProgressStyleExtendParam: GenericProgressStyleExtendParam = {
-  progressColor: '#fff',
-  progressRailColor: '#CFCFCFA8',
-  color: '#fff',
-  backgroundColor: '#2a2a2a6b',
+  progressColor: 'var(--xp-ink)',
+  progressRailColor: 'var(--xp-hairline)',
+  color: 'var(--xp-ink)',
+  backgroundColor: 'var(--xp-surface-card)',
 }
 
 const defaultDiskExtendParam: DiskExtendParam = {
-  progressColor: '#fff',
-  progressRailColor: '#CFCFCFA8',
-  color: '#fff',
-  backgroundColor: '#2a2a2a6b',
+  progressColor: 'var(--xp-ink)',
+  progressRailColor: 'var(--xp-hairline)',
+  color: 'var(--xp-ink)',
+  backgroundColor: 'var(--xp-surface-card)',
   path: '',
 }
 
@@ -119,7 +119,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <NModal v-model:show="show" preset="card" size="small" style="width: 600px;border-radius: 1rem;" :title="monitorData ? t('common.edit') : t('common.add')">
+  <NModal v-model:show="show" preset="card" size="small" style="width: 600px;border-radius: var(--xp-radius-lg);" :title="monitorData ? t('common.edit') : t('common.add')">
     <!-- 选择监视器 -->
     <!-- <div>
       {{ JSON.stringify(currentGenericProgressStyleExtendParam) }}
@@ -140,7 +140,7 @@ async function handleSubmit() {
       {{ t('common.reset') }}
     </NButton>
     <template #footer>
-      <NButton type="success" :loading="submitLoading" style="float: right;" @click="handleSubmit">
+      <NButton type="primary" :loading="submitLoading" style="float: right;" @click="handleSubmit">
         {{ t('common.confirm') }}
       </NButton>
     </template>

@@ -59,7 +59,7 @@ function handleSetHoverStatus(hoverStatus: boolean) {
 }
 
 const cardStyle: CardStyle = {
-  background: '#2a2a2a6b',
+  background: 'var(--xp-surface-card)',
 }
 
 const monitorDatas = ref<MonitorData[]>([])
@@ -80,10 +80,10 @@ async function getData() {
     monitorDatas.value.push(
       {
         extendParam: {
-          backgroundColor: '#2a2a2a6b',
-          color: '#fff',
-          progressColor: '#fff',
-          progressRailColor: '#CFCFCFA8',
+          backgroundColor: 'var(--xp-surface-card)',
+          color: 'var(--xp-ink)',
+          progressColor: 'var(--xp-primary)',
+          progressRailColor: 'var(--xp-hairline)',
         },
         monitorType: MonitorType.cpu,
       },
@@ -173,14 +173,13 @@ function handleRightMenuSelect(key: string | number) {
 <template>
   <div class="system-monitor w-full">
     <div
-      class="mt-[50px]"
-      :class="monitorGroup.sortStatus ? 'shadow-2xl border shadow-[0_0_30px_10px_rgba(0,0,0,0.3)]  p-[10px] rounded-2xl' : ''"
+      class="mt-12 p-4 border border-hairline rounded-xp-lg bg-canvas"
       @mouseenter="handleSetHoverStatus(true)"
       @mouseleave="handleSetHoverStatus(false)"
     >
       <!-- 分组标题 -->
-      <div class="system-monitor-header text-white text-xl font-extrabold mb-[20px] ml-[10px] flex items-center">
-        <span v-if="showTitle" class="text-shadow">
+      <div class="system-monitor-header text-ink text-[16px] font-medium mb-4 ml-2 flex items-center">
+        <span v-if="showTitle">
           {{ $t('deskModule.systemMonitor.systemState') }}
         </span>
         <div
@@ -189,10 +188,10 @@ function handleRightMenuSelect(key: string | number) {
           :class="monitorGroup.hoverStatus ? 'opacity-100' : 'opacity-0'"
         >
           <span class="mr-2 cursor-pointer" @click="handleAddItem()">
-            <SvgIcon class="text-white font-xl" icon="typcn:plus" />
+            <SvgIcon class="text-ink" icon="typcn:plus" />
           </span>
           <span class="mr-2 cursor-pointer" @click="handleSetSortStatus(!monitorGroup.sortStatus)">
-            <SvgIcon class="text-white font-xl" icon="ri:drag-drop-line" />
+            <SvgIcon class="text-ink" icon="ri:drag-drop-line" />
           </span>
         </div>
       </div>
@@ -246,15 +245,15 @@ function handleRightMenuSelect(key: string | number) {
               :icon-text-color="panelState.panelConfig.iconTextColor"
             />
           </div>
-        </vuedraggable>
+        </VueDraggable>
       </template>
 
       <!-- 编辑栏 -->
       <template v-if="monitorGroup.sortStatus && allowEdit">
-        <div class="system-monitor-edit-bar flex mt-[10px]">
-          <NButton color="#2a2a2a6b" @click="handleSaveSort()">
+        <div class="system-monitor-edit-bar flex mt-3">
+          <NButton secondary @click="handleSaveSort()">
             <template #icon>
-              <SvgIcon class="text-white font-xl" icon="material-symbols:save" />
+              <SvgIcon class="text-ink" icon="material-symbols:save" />
             </template>
             <div>
               {{ $t('common.saveSort') }}

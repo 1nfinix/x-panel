@@ -105,6 +105,17 @@ func (a *ItemIcon) AddMultiple(c *gin.Context) {
 	}
 
 	for i := 0; i < len(req); i++ {
+		req[i].Url = strings.TrimSpace(req[i].Url)
+		if !strings.HasPrefix(strings.ToLower(req[i].Url), "http://") && !strings.HasPrefix(strings.ToLower(req[i].Url), "https://") {
+			apiReturn.ErrorParamFomat(c, "URL must start with http:// or https://")
+			return
+		}
+		if title := []rune(req[i].Title); len(title) > 50 {
+			req[i].Title = string(title[:50])
+		}
+		if req[i].Sort == 0 {
+			req[i].Sort = 9999
+		}
 		if req[i].ItemIconGroupId == 0 {
 			apiReturn.ErrorParamFomat(c, "Group is mandatory")
 			return
@@ -213,11 +224,23 @@ func (a *ItemIcon) SaveSort(c *gin.Context) {
 	}
 
 	userInfo, _ := base.GetCurrentUserInfo(c)
+	var groupCount int64
+	if err := global.Db.Model(&models.ItemIconGroup{}).Where("id=? AND user_id=?", req.ItemIconGroupId, userInfo.ID).Count(&groupCount).Error; err != nil {
+		apiReturn.ErrorDatabase(c, err.Error())
+		return
+	}
+	if groupCount == 0 {
+		apiReturn.ErrorDataNotFound(c)
+		return
+	}
 
 	transactionErr := global.Db.Transaction(func(tx *gorm.DB) error {
 		// 在事务中执行一些 db 操作（从这里开始，您应该使用 'tx' 而不是 'db'）
 		for _, v := range req.SortItems {
-			if err := tx.Model(&models.ItemIcon{}).Where("user_id=? AND id=? AND item_icon_group_id=?", userInfo.ID, v.Id, req.ItemIconGroupId).Update("sort", v.Sort).Error; err != nil {
+			if err := tx.Model(&models.ItemIcon{}).Where("user_id=? AND id=?", userInfo.ID, v.Id).Updates(map[string]interface{}{
+				"sort":               v.Sort,
+				"item_icon_group_id": req.ItemIconGroupId,
+			}).Error; err != nil {
 				// 返回任何错误都会回滚事务
 				return err
 			}

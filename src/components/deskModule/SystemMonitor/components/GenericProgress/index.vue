@@ -19,7 +19,7 @@ defineProps<Prop>()
 <template>
   <template v-if="cardTypeStyle === PanelPanelConfigStyleEnum.info">
     <div class="w-full">
-      <div class="mb-1 text-xs" :style="{ color: textColor }">
+      <div class="mb-1 text-[13px]" :style="{ color: textColor }">
         <span>
           {{ infoCardLeftText }}
         </span>
@@ -48,7 +48,7 @@ defineProps<Prop>()
         :percentage="percentage" :stroke-width="15"
         style="width: 50px;"
       >
-        <div class="text-white" style="font-size: 8px;" :style="{ color: textColor }">
+        <div class="text-[13px]" :style="{ color: textColor }">
           {{ percentage }}%
         </div>
       </NProgress>

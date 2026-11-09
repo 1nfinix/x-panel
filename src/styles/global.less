@@ -9,6 +9,53 @@ body {
 	padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* X-Panel theme tokens; html.dark is toggled by useTheme */
-:root { --goop-bg: #F7F5F0; --goop-panel: #FFFFFF; --goop-green: #237a49; --goop-text: #111827; --goop-border: #D9DEE7; --goop-panel-overlay: rgba(255,255,255,.8); --goop-muted: #334155; --goop-row-hover: rgba(47,158,95,.1); --goop-selection-text: #FFFFFF; --goop-active-text: #FFFFFF; --goop-placeholder-text: #FFFFFF; }
-html.dark { --goop-bg: #111827; --goop-panel: #1b2734; --goop-green: #76d99b; --goop-text: #f2f7f4; --goop-border: rgba(220,255,231,.1); --goop-panel-overlay: rgba(17,24,39,.72); --goop-muted: #9fb1a8; --goop-row-hover: rgba(118,217,155,.12); --goop-selection-text: #111827; --goop-active-text: #111827; --goop-placeholder-text: #0d1a12; }
+/* Keep these values in sync with useTheme.ts for Naive UI. */
+:root {
+  --xp-canvas: #faf9f5;
+  --xp-surface-soft: #f5f0e8;
+  --xp-surface-card: #efe9de;
+  --xp-surface-strong: #e8e0d2;
+  --xp-hairline: #e6dfd8;
+  --xp-ink: #141413;
+  --xp-body: #3d3d3a;
+  --xp-muted: #6c6a64;
+  --xp-muted-soft: #8e8b82;
+  --xp-primary: #cc785c;
+  --xp-primary-active: #a9583e;
+  --xp-on-primary: #ffffff;
+  --xp-error: #c64545;
+  --xp-success: #5db872;
+  --xp-focus-ring: rgba(204, 120, 92, .15);
+  --xp-radius-sm: 6px;
+  --xp-radius-md: 8px;
+  --xp-radius-lg: 12px;
+  --xp-radius-pill: 9999px;
+  --xp-font-display: "Tiempos Headline", "Cormorant Garamond", "EB Garamond", Georgia, "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif;
+  --xp-font-body: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", "Microsoft YaHei", sans-serif;
+  --xp-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --xp-wallpaper-ink: #faf9f5;
+}
+
+html.dark {
+  --xp-canvas: #181715;
+  --xp-surface-soft: #1f1e1b;
+  --xp-surface-card: #252320;
+  --xp-surface-strong: #2e2b27;
+  --xp-hairline: #34312c;
+  --xp-ink: #faf9f5;
+  --xp-body: #e3dfd7;
+  --xp-muted: #a09d96;
+  --xp-muted-soft: #8e8b82;
+  --xp-primary: #cc785c;
+  --xp-primary-active: #d98d73;
+  --xp-on-primary: #ffffff;
+  --xp-error: #e06c6c;
+  --xp-success: #5db872;
+  --xp-focus-ring: rgba(204, 120, 92, .28);
+}
+
+body {
+  background: var(--xp-canvas);
+  color: var(--xp-ink);
+  font-family: var(--xp-font-body);
+}
