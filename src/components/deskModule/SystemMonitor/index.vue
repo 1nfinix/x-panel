@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { NButton, NDropdown, useDialog, useMessage } from 'naive-ui'
-import CardCPU from './AppIconSystemMonitor/CPU.vue'
-import Memory from './AppIconSystemMonitor/Memory.vue'
-import Disk from './AppIconSystemMonitor/Disk.vue'
 import { type MonitorData, MonitorType } from './typings'
 import Edit from './Edit/index.vue'
 import { deleteByIndex, getAll, saveAll } from './common'
 import { usePanelState } from '@/store'
-import { PanelPanelConfigStyleEnum } from '@/enums'
+import { getCpuState, getDiskStateByPath, getMemonyState } from '@/api/system/systemMonitor'
 import { SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 
@@ -61,6 +58,41 @@ function handleSetHoverStatus(hoverStatus: boolean) {
 }
 
 const monitorDatas = ref<MonitorData[]>([])
+const metricStates = ref<Record<number, { state: 'loading' | 'ok' | 'error'; value: number; retryAt: number }>>({})
+let metricsTimer: ReturnType<typeof setInterval>
+async function refreshMetrics() {
+  await Promise.all(monitorDatas.value.map(async (item, index) => {
+    const previous = metricStates.value[index]
+    if (previous?.state === 'error' && Date.now() < previous.retryAt)
+      return
+    if (!previous)
+      metricStates.value[index] = { state: 'loading', value: 0, retryAt: 0 }
+    try {
+      const response = item.monitorType === MonitorType.cpu
+        ? await getCpuState<SystemMonitor.CPUInfo>()
+        : item.monitorType === MonitorType.memory
+          ? await getMemonyState<SystemMonitor.MemoryInfo>()
+          : await getDiskStateByPath<SystemMonitor.DiskInfo>(item.extendParam?.path ?? '/')
+      if (response.code !== 0)
+        throw new Error('monitor unavailable')
+      const data = response.data
+      const value = item.monitorType === MonitorType.cpu
+        ? (data as SystemMonitor.CPUInfo).usages[0]
+        : (data as SystemMonitor.MemoryInfo).usedPercent
+      metricStates.value[index] = { state: 'ok', value: Math.max(0, Math.min(100, Number(value) || 0)), retryAt: 0 }
+    }
+    catch {
+      metricStates.value[index] = { state: 'error', value: 0, retryAt: Date.now() + 30000 }
+    }
+  }))
+}
+function metricLabel(item: MonitorData) {
+  if (item.monitorType === MonitorType.cpu)
+    return 'CPU'
+  if (item.monitorType === MonitorType.memory)
+    return 'RAM'
+  return item.extendParam?.path || 'Disk'
+}
 
 function handleClick(index: number, item: MonitorData) {
   if (!props.allowEdit)
@@ -78,23 +110,28 @@ async function getData() {
     monitorDatas.value.push(
       {
         extendParam: {
-          backgroundColor: 'var(--xp-surface-card)',
-          color: 'var(--xp-ink)',
-          progressColor: 'var(--xp-primary)',
-          progressRailColor: 'var(--xp-hairline)',
+          backgroundColor: 'var(--x-bg2)',
+          color: 'var(--x-text1)',
+          progressColor: 'var(--x-primary)',
+          progressRailColor: 'var(--x-sep)',
         },
         monitorType: MonitorType.cpu,
       },
     )
 
     // 生成并保存
-    saveAll(monitorDatas.value)
+    if (props.allowEdit)
+      saveAll(monitorDatas.value)
   }
+  metricStates.value = {}
+  refreshMetrics()
 }
 
 onMounted(() => {
   getData()
+  metricsTimer = setInterval(refreshMetrics, 5000)
 })
+onBeforeUnmount(() => clearInterval(metricsTimer))
 
 function handleSaveDone() {
   getData()
@@ -190,21 +227,15 @@ function handleRightMenuSelect(key: string | number) {
         :class="{ sorting: monitorGroup.sortStatus }" :title="item.description"
         @click="handleClick(index, item)" @contextmenu="(e) => handleContextMenu(e, index)"
       >
-        <CardCPU
-          v-if="item.monitorType === MonitorType.cpu" compact
-          :card-type-style="PanelPanelConfigStyleEnum.info" :refresh-interval="5000"
-          text-color="var(--xp-ink)" progress-color="var(--xp-primary)" progress-rail-color="var(--xp-hairline)"
-        />
-        <Memory
-          v-else-if="item.monitorType === MonitorType.memory" compact
-          :card-type-style="PanelPanelConfigStyleEnum.info" :refresh-interval="5000"
-          text-color="var(--xp-ink)" progress-color="var(--xp-primary)" progress-rail-color="var(--xp-hairline)"
-        />
-        <Disk
-          v-else-if="item.monitorType === MonitorType.disk" compact :path="item.extendParam?.path"
-          :card-type-style="PanelPanelConfigStyleEnum.info" :refresh-interval="5000"
-          text-color="var(--xp-ink)" progress-color="var(--xp-primary)" progress-rail-color="var(--xp-hairline)"
-        />
+        <div class="metric-head">
+          <span>{{ metricLabel(item) }}</span><span class="metric-chip" :class="metricStates[index]?.state === 'error' ? 'error' : metricStates[index]?.value > 85 ? 'high' : 'ok'">{{ metricStates[index]?.state === 'error' ? t('deskModule.systemMonitor.unavailable') : metricStates[index]?.state === 'loading' || !metricStates[index] ? '…' : metricStates[index]?.value > 85 ? t('deskModule.systemMonitor.high') : t('deskModule.systemMonitor.normal') }}</span>
+        </div>
+        <div class="metric-value">
+          {{ metricStates[index]?.state === 'ok' ? `${Math.round(metricStates[index].value)}%` : '—' }}
+        </div>
+        <div class="metric-track">
+          <span :class="{ high: metricStates[index]?.value > 85 }" :style="{ width: metricStates[index]?.state === 'ok' ? `${metricStates[index].value}%` : '0%' }" />
+        </div>
       </div>
     </VueDraggable>
     <NButton v-if="monitorGroup.sortStatus && allowEdit" secondary size="small" class="save-sort" @click="handleSaveSort">
@@ -219,19 +250,18 @@ function handleRightMenuSelect(key: string | number) {
 </template>
 
 <style scoped>
-.system-monitor { min-width: 0; width: 100%; padding: 12px 16px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-md); background: var(--xp-surface); box-shadow: var(--xp-card-shadow); }
+.system-monitor { min-width: 0; width: 100%; }
 .monitor-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 16px; }
 .monitor-toolbar:has(.monitor-title) { margin-bottom: 8px; }
-.monitor-title { color: var(--xp-muted); font-size: 13px; }
+.monitor-title { color: var(--x-text2); font-size: 13px; }
 .monitor-actions { display: flex; gap: 8px; margin-left: auto; opacity: 0; transition: opacity 120ms; }
 .monitor-actions.visible, .monitor-actions:focus-within { opacity: 1; }
-.monitor-actions button { display: grid; width: 24px; height: 24px; place-items: center; color: var(--xp-muted); }
-.monitor-actions button:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
-.monitor-items { display: flex; flex-wrap: wrap; gap: 16px; }
-.monitor-item { flex: 1 1 88px; min-width: 88px; cursor: pointer; }
+.monitor-actions button { display: grid; width: 24px; height: 24px; place-items: center; color: var(--x-text2); }
+.monitor-actions button:focus-visible { outline: 2px solid var(--x-primary); outline-offset: 2px; }
+.monitor-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 12px; }
+.monitor-item { min-width: 0; padding: 20px; border-radius: var(--x-r-small); background: var(--x-bg2); cursor: pointer; }
+.metric-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; color: var(--x-text2); font-size: 13px; }.metric-chip { padding: 4px 7px; border-radius: 999px; background: var(--x-green-tint); color: var(--x-green-fg); white-space: nowrap; }.metric-chip.high { background: var(--x-orange-tint); color: var(--x-orange-fg); }.metric-chip.error { background: var(--x-red-tint); color: var(--x-red-fg); }.metric-value { margin: 20px 0 16px; font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }.metric-track { height: 8px; overflow: hidden; border-radius: 999px; background: var(--x-bg1); }.metric-track span { display: block; height: 100%; border-radius: inherit; background: var(--x-primary); transition: width 150ms; }.metric-track span.high { background: var(--x-orange-sys); }
 .monitor-item.sorting { cursor: grab; }
 .save-sort { margin-top: 8px; }
-.on-wallpaper { background: var(--xp-surface); }
-.on-wallpaper :deep(.compact-label), .on-wallpaper .monitor-title { color: var(--xp-muted); }
 @media (prefers-reduced-motion: reduce) { .monitor-actions { transition: none; } }
 </style>

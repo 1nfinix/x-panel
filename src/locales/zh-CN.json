@@ -232,7 +232,10 @@
       "memoryState": "内存状态",
       "progressColor": "主色",
       "progressRailColor": "副色",
-      "systemState": "系统状态"
+      "systemState": "系统状态",
+      "normal": "正常",
+      "high": "偏高",
+      "unavailable": "无法获取"
     }
   },
   "form": {
@@ -287,7 +290,19 @@
     "arrange": "整理",
     "arrangeDone": "完成",
     "arrangeSaveFailed": "排序保存失败",
-    "noMatches": "没有匹配的网址"
+    "noMatches": "没有匹配的网址",
+    "bookmarks": "个网址",
+    "importBookmarks": "导入书签",
+    "todayWallpaper": "今日壁纸",
+    "moreGroups": "更多分组",
+    "viewAll": "查看全部 {count} 个",
+    "dropHere": "拖到这里",
+    "saving": "保存中",
+    "saved": "已保存",
+    "error": "保存失败",
+    "undo": "撤销",
+    "loadFailed": "加载分组失败",
+    "retry": "重试"
   },
   "settingUserInfo": {
     "confirmLogoutText": "你确定要退出登录吗？",

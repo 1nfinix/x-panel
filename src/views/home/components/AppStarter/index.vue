@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { NLayout, NLayoutContent, NLayoutSider } from 'naive-ui'
 import { useAuthStore } from '@/store'
 import { AppLoader, RoundCardModal, SvgIcon } from '@/components/common'
@@ -13,6 +13,7 @@ interface App {
 }
 const props = defineProps<{
   visible: boolean
+  initialPanel?: string
 }>()
 
 const emit = defineEmits<{
@@ -20,6 +21,10 @@ const emit = defineEmits<{
 }>()
 
 const componentName = ref('UserInfo')
+watch(() => props.visible, (visible) => {
+  if (visible)
+    componentName.value = props.initialPanel ?? 'UserInfo'
+})
 const collapsed = ref(false)
 const screenWidth = ref(0)
 const isSmallScreen = ref(false)
@@ -81,7 +86,7 @@ function getScreenWidth() {
 
 function handleResize() {
   screenWidth.value = getScreenWidth()
-  if (screenWidth.value < 640) {
+  if (screenWidth.value < 768) {
     collapsed.value = true
     isSmallScreen.value = true
   }
@@ -120,7 +125,7 @@ onUnmounted(() => {
     >
       <template #header>
         <div class="flex items-center select-none" @click="collapsed = !collapsed">
-          <div class="text-[22px] cursor-pointer text-ink">
+          <div class="text-[22px] cursor-pointer text-text1">
             <SvgIcon class=" transition-all duration-500" :icon="collapsed ? 'tabler-layout-sidebar-right-collapse-filled' : 'tabler-layout-sidebar-left-collapse-filled'" />
           </div>
           <div class="ml-1">
@@ -129,7 +134,7 @@ onUnmounted(() => {
         </div>
       </template>
       <div class="w-full h-full app-starter-modal-content">
-        <NLayout has-sider class="rounded-xp-lg bg-canvas">
+        <NLayout has-sider class="rounded-card bg-bg0">
           <NLayoutSider
             v-model:collapsed="collapsed"
             collapse-mode="width"
@@ -138,7 +143,7 @@ onUnmounted(() => {
             style="height: 100%;"
             content-style="overflow: hidden"
           >
-            <div class="w-full h-full bg-canvas border-r border-hairline">
+            <div class="w-full h-full bg-bg0">
               <div
                 class="p-2 overflow-auto"
                 :style="{
@@ -161,7 +166,7 @@ onUnmounted(() => {
               </div>
             </div>
           </NLayoutSider>
-          <NLayoutContent class="bg-surface-soft" :content-style="{ height }">
+          <NLayoutContent class="bg-bg0" :content-style="{ height }">
             <div class="h-full overflow-auto min-w-[300px]" :class="(isSmallScreen && !collapsed) ? 'opacity-0' : 'opacity-100'">
               <AppLoader :component-name="componentName" class="h-full" />
             </div>
@@ -173,7 +178,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.category-tab { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 14px; border: 0; border-radius: var(--xp-radius-md); background: transparent; color: var(--xp-muted); font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; }
-.category-tab.active { background: var(--xp-surface-card); color: var(--xp-ink); }
-.category-tab:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
+.category-tab { display: flex; align-items: center; gap: 8px; width: 100%; height: 44px; padding: 0 16px; border: 0; border-radius: var(--x-r-pill); background: transparent; color: var(--x-text2); font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; }
+.category-tab.active { background: var(--x-bg1); color: var(--x-text1); }
+.category-tab:focus-visible { outline: 2px solid var(--x-primary); outline-offset: 2px; }
 </style>

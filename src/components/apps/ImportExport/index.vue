@@ -404,14 +404,14 @@ async function handleStartImport() {
         <NCheckbox :checked="bookmarkAllSelected" :indeterminate="!bookmarkAllSelected && bookmarkPreview.some(group => group.selected)" :disabled="bookmarkImporting" @update:checked="toggleAllBookmarks">
           {{ $t('apps.exportImport.bookmarkSelectAll') }}
         </NCheckbox>
-        <div v-for="group in bookmarkPreview" :key="group.title" class="flex items-start gap-3 py-2 border-b border-hairline">
+        <div v-for="group in bookmarkPreview" :key="group.title" class="flex items-start gap-3 py-2 border-b border-sep">
           <NCheckbox v-model:checked="group.selected" :disabled="bookmarkImporting || !group.items.length" />
           <div class="min-w-0">
             <div class="font-medium">
               {{ group.title }}
-              <span class="ml-2 text-sm text-muted">{{ group.existingGroupId ? $t('apps.exportImport.bookmarkMergeGroup') : $t('apps.exportImport.bookmarkNewGroup') }}</span>
+              <span class="ml-2 text-sm text-text2">{{ group.existingGroupId ? $t('apps.exportImport.bookmarkMergeGroup') : $t('apps.exportImport.bookmarkNewGroup') }}</span>
             </div>
-            <div class="text-sm text-muted">
+            <div class="text-sm text-text2">
               {{ $t('apps.exportImport.bookmarkGroupCount', { count: group.items.length, skipped: group.skippedDuplicate }) }}
             </div>
           </div>

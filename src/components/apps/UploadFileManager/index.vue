@@ -84,7 +84,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-surface-soft p-2 h-full">
+  <div class="bg-bg1 p-2 h-full">
     <NSpin v-show="loading" size="small" />
     <NAlert type="info" :bordered="false">
       {{ $t('apps.uploadsFileManager.alertText') }}
@@ -96,7 +96,7 @@ onMounted(() => {
       <NImageGroup v-else>
         <NGrid cols="2 300:2 600:4 900:6 1100:9" :x-gap="5" :y-gap="5">
           <NGridItem v-for=" item, index in imageList" :key="index">
-            <NCard size="small" style="border-radius: var(--xp-radius-sm);" :bordered="true">
+            <NCard size="small" style="border-radius: var(--x-r-small);" :bordered="false">
               <template #cover>
                 <div class="card transparent-grid">
                   <NImage :lazy="true" style="object-fit: contain;height: 100%;" :src="item.src" />
@@ -143,7 +143,7 @@ onMounted(() => {
       <div>
         <div>
           <div class="mb-2">
-            <span class="text-muted">
+            <span class="text-text2">
               {{ $t('apps.uploadsFileManager.fileName') }}
             </span>
             <div class="text-[13px]">
@@ -151,7 +151,7 @@ onMounted(() => {
             </div>
           </div>
           <div class="mb-2">
-            <span class="text-muted">
+            <span class="text-text2">
               {{ $t('apps.uploadsFileManager.path') }}
             </span>
             <div class="text-[13px]">
@@ -159,7 +159,7 @@ onMounted(() => {
             </div>
           </div>
           <div class="mb-2">
-            <span class="text-muted">
+            <span class="text-text2">
               {{ $t('apps.uploadsFileManager.uploadTime') }}
             </span>
             <div class="text-[13px]">
@@ -180,10 +180,5 @@ onMounted(() => {
   height: 80px;
 }
 
-.transparent-grid {
-  background-image: linear-gradient(45deg, var(--xp-surface-card) 25%, transparent 25%, transparent 75%, var(--xp-surface-card) 75%),
-    linear-gradient(45deg, var(--xp-surface-card) 25%, transparent 25%, transparent 75%, var(--xp-surface-card) 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 8px 8px;
-}
+.transparent-grid { background: var(--x-ph); }
 </style>

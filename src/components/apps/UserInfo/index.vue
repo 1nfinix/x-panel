@@ -98,7 +98,7 @@ function handleUpdatePassword(e: MouseEvent) {
       return
     }
     updatePasswordModalState.value.loading = true
-    updatePassword(updatePasswordModalState.value.form.oldPassword, updatePasswordModalState.value.form.password).then(({ code, msg }) => {
+    updatePassword(updatePasswordModalState.value.form.oldPassword, updatePasswordModalState.value.form.password).then(({ code }) => {
       if (code === 0) {
         // 成功
         updatePasswordModalState.value.show = false
@@ -138,17 +138,17 @@ function handleChangeTheme(value: Theme) {
 </script>
 
 <template>
-  <div class="bg-surface-soft p-2 h-full">
+  <div class="bg-bg1 p-2 h-full">
     <NCard size="small">
       <div>
-        <div class="text-ink font-medium">
+        <div class="text-text1 font-medium">
           {{ $t('common.username') }}
         </div>
         {{ authStore.userInfo?.username }}
       </div>
 
       <div class="mt-3">
-        <div class="text-ink font-medium">
+        <div class="text-text1 font-medium">
           {{ $t('common.nikeName') }}
         </div>
 
@@ -171,7 +171,7 @@ function handleChangeTheme(value: Theme) {
       </div>
 
       <div class="mt-3">
-        <div class="text-ink font-medium">
+        <div class="text-text1 font-medium">
           {{ $t('common.language') }}
         </div>
         <div class="max-w-[200px]">
@@ -180,7 +180,7 @@ function handleChangeTheme(value: Theme) {
       </div>
 
       <div class="mt-3">
-        <div class="text-ink font-medium">
+        <div class="text-text1 font-medium">
           {{ $t('apps.userInfo.theme') }}
         </div>
         <div class="max-w-[200px]">

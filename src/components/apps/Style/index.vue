@@ -103,9 +103,9 @@ function resetPanelConfig() {
 </script>
 
 <template>
-  <div class="bg-surface-soft rounded-xp-lg p-2 overflow-auto">
+  <div class="bg-bg1 rounded-card p-2 overflow-auto">
     <NCard size="small">
-      <div class="text-ink text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[16px] font-medium mb-2">
         LOGO
       </div>
 
@@ -120,7 +120,7 @@ function resetPanelConfig() {
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-ink text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.clock') }}
       </div>
       <div class="flex items-center mt-1">
@@ -134,7 +134,7 @@ function resetPanelConfig() {
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-ink text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.searchBar') }}
       </div>
       <div class="flex items-center mt-1">
@@ -148,7 +148,7 @@ function resetPanelConfig() {
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-ink text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.systemMonitorStatus') }}
       </div>
       <div class="flex items-center mt-1">
@@ -166,7 +166,7 @@ function resetPanelConfig() {
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-ink text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[16px] font-medium mb-2">
         {{ $t('common.icon') }}
       </div>
       <div class="mt-1">
@@ -218,7 +218,7 @@ function resetPanelConfig() {
       </div>
     </NCard>
     <NCard class="mt-3" size="small">
-      <div class="text-ink text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.wallpaper') }}
       </div>
       <div class="flex items-center gap-3 mb-4">
@@ -238,10 +238,10 @@ function resetPanelConfig() {
         >
           <NUploadDragger style="width: 100%;">
             <div
-              class="h-[200px] w-full border bg-surface-card flex justify-center items-center cursor-pointer rounded-xp-lg"
+              class="h-[200px] w-full bg-bg2 flex justify-center items-center cursor-pointer rounded-small"
               :style="{ background: `url(${panelState.panelConfig.backgroundImageSrc}) no-repeat`, backgroundSize: 'cover' }"
             >
-              <div class="text-[color:var(--xp-wallpaper-ink)]">
+              <div class="text-[color:var(--x-on-primary)]">
                 {{ $t('apps.baseSettings.uploadOrDragText') }}
               </div>
             </div>
@@ -274,7 +274,7 @@ function resetPanelConfig() {
     </NCard>
 
     <NCard size="small" class="mt-3">
-      <div class="text-ink text-[16px] font-medium mb-3">
+      <div class="text-text1 text-[16px] font-medium mb-3">
         {{ $t('apps.baseSettings.fillFavicons') }}
       </div>
       <NButton :disabled="fillRunning" @click="loadCandidates">
@@ -284,7 +284,7 @@ function resetPanelConfig() {
         <input v-model="selectedIds" type="checkbox" :value="item.id" :disabled="fillRunning">
         <ItemIcon v-if="item.icon.itemType === 1 || item.icon.src" :item-icon="item.icon" :size="28" />
         <span v-else class="w-[28px] text-center" aria-hidden="true">—</span>
-        <span>{{ item.title }}</span><span class="truncate text-muted">{{ item.url }}</span>
+        <span>{{ item.title }}</span><span class="truncate text-text2">{{ item.url }}</span>
       </div>
       <NPopconfirm v-if="candidates.length" @positive-click="runFill">
         <template #trigger>
@@ -297,13 +297,13 @@ function resetPanelConfig() {
       <div v-if="fillDone" class="mt-3">
         {{ fillDone }}/{{ selectedIds.length }} · {{ $t('apps.baseSettings.fillSuccess') }} {{ fillSuccess }} · {{ $t('apps.baseSettings.fillFailed') }} {{ fillFailures.length }}
       </div>
-      <div v-for="failure in fillFailures" :key="failure" class="text-[color:var(--xp-error)]">
+      <div v-for="failure in fillFailures" :key="failure" class="text-[color:var(--x-red-fg)]">
         {{ failure }}
       </div>
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-ink text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.contentArea') }}
       </div>
 
@@ -348,7 +348,7 @@ function resetPanelConfig() {
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-ink text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[16px] font-medium mb-2">
         {{ $t('apps.baseSettings.customFooter') }}
       </div>
 

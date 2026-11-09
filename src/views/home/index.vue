@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
-import { NBackTop, NButton, NDropdown, NModal, NSkeleton, NSpin, useDialog, useMessage } from 'naive-ui'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { NBackTop, NButton, NDrawer, NDrawerContent, NDropdown, NModal, NSkeleton, NSpin, useDialog, useMessage, useNotification } from 'naive-ui'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { AppStarter, EditItem } from './components'
 import { Clock, SearchBox, SystemMonitor } from '@/components/deskModule'
-import { GroupGlyph, ItemIcon, SvgIcon } from '@/components/common'
-import logo from '@/assets/logo.svg'
-import { deletes, getListByGroupId, saveSort } from '@/api/panel/itemIcon'
+import { GroupGlyph, ItemIcon, SvgIcon, XBrand } from '@/components/common'
+import { deletes, edit as editItem, getListByGroupId, saveSort } from '@/api/panel/itemIcon'
 import { getList as getGroupList } from '@/api/panel/itemIconGroup'
 
 import { setTitle, updateLocalUserInfo } from '@/utils/cmn'
-import { useAuthStore, usePanelState } from '@/store'
+import { useAppStore, useAuthStore, usePanelState } from '@/store'
 import { PanelStateNetworkModeEnum } from '@/enums'
 import { VisitMode } from '@/enums/auth'
 import { router } from '@/router'
@@ -31,7 +30,9 @@ interface DragEndEvent {
 
 const ms = useMessage()
 const dialog = useDialog()
+const notification = useNotification()
 const panelState = usePanelState()
+const appStore = useAppStore()
 const authStore = useAuthStore()
 
 const scrollContainerRef = ref<HTMLElement | undefined>(undefined)
@@ -54,7 +55,9 @@ const currentAddItenIconGroupId = ref<number | undefined>()
 const settingModalShow = ref(false)
 
 const items = ref<ItemGroup[]>([])
+const groupsState = ref<'loading' | 'ready' | 'error'>('loading')
 const filterItems = ref<ItemGroup[]>([])
+const searchBoxKeyword = ref('')
 const listFilter = ref('')
 const arrangeMode = ref(false)
 const listFilterRef = ref<HTMLInputElement | null>(null)
@@ -66,11 +69,11 @@ let groupFadeTimer: ReturnType<typeof setTimeout>
 
 // Icon tile colors honor the item's own backgroundColor; unset means white.
 function iconBackground(item: Panel.ItemInfo) {
-  return item.icon?.backgroundColor || 'var(--xp-surface-card)'
+  return item.icon?.backgroundColor || 'var(--x-bg2)'
 }
 
 const selectedGroupId = ref<number | 'all' | null>('all')
-const isGroupedView = computed(() => selectedGroupId.value === 'all' || !!listFilter.value.trim())
+const isGroupedView = computed(() => selectedGroupId.value === 'all' || !!listFilter.value.trim() || !!searchBoxKeyword.value)
 const visibleGroups = computed(() => {
   const keyword = listFilter.value.trim().toLowerCase()
   const source = keyword ? items.value : filterItems.value
@@ -87,9 +90,13 @@ const systemMonitorVisible = computed(() => panelState.panelConfig.systemMonitor
     || authStore.visitMode === VisitMode.VISIT_MODE_LOGIN))
 const overviewVisible = computed(() => panelState.panelConfig.clockShow || panelState.panelConfig.searchBoxShow || systemMonitorVisible.value)
 const railRef = ref<HTMLElement | null>(null)
-const railScrollRef = ref<HTMLElement | null>(null)
 const railFocusKey = ref<string>('all')
-const railIndicator = ref({ transform: 'translateY(0px)', opacity: 0 })
+const moreDrawerShow = ref(false)
+const initialSettingsPanel = ref('UserInfo')
+const now = ref(new Date())
+const saveStatuses = ref<Record<number, 'saving' | 'saved' | 'error'>>({})
+const saveStatusTimers = new Map<number, ReturnType<typeof setTimeout>>()
+let clockTimer: ReturnType<typeof setInterval>
 const tooltipKey = ref<string | null>(null)
 const tooltipPosition = ref({ top: '0px', left: '0px' })
 const { source: wallpaperSource, loaded: wallpaperLoaded, show: showWallpaper } = useWallpaper()
@@ -99,25 +106,50 @@ let tooltipCloseTimer: ReturnType<typeof setTimeout>
 let railHot = false
 
 const selectedGroup = computed(() => items.value.find(group => group.id === selectedGroupId.value))
-function hueIndex(group: ItemGroup) {
-  return (items.value.findIndex(item => item.id === group.id) % 10) + 1
+const groupColors = ['blue', 'indigo', 'purple', 'pink', 'orange', 'mint', 'brown', 'teal', 'green', 'red'] as const
+function groupColor(group: ItemGroup) {
+  const index = items.value.findIndex(item => item.id === group.id)
+  return groupColors[Math.max(0, index) % groupColors.length]
 }
-
-function hueStyle(group: ItemGroup) {
-  const index = hueIndex(group)
+function groupColorStyle(group: ItemGroup) {
+  const color = groupColor(group)
   return {
-    '--group-fg': `var(--xp-hue-${index}-fg)`,
-    '--group-bg': `var(--xp-hue-${index}-bg)`,
-    '--group-bd': `var(--xp-hue-${index}-bd)`,
+    '--group-fg': `var(--x-${color}-fg)`,
+    '--group-tint': `var(--x-${color}-tint)`,
+    '--group-sys': `var(--x-${color}-sys)`,
   }
 }
-
-function hueFgForId(id: number | 'all' | null) {
+function groupColorForId(id: number | 'all' | null) {
   const group = items.value.find(item => item.id === id)
-  return group ? `var(--xp-hue-${hueIndex(group)}-fg)` : 'var(--xp-muted)'
+  return group ? `var(--x-${groupColor(group)}-sys)` : 'var(--x-primary)'
 }
-
-const tooltipDotColor = computed(() => hueFgForId(Number(tooltipKey.value)))
+const tooltipDotColor = computed(() => groupColorForId(Number(tooltipKey.value)))
+const selectedGroupColor = computed(() => selectedGroup.value ? groupColorStyle(selectedGroup.value) : {})
+const currentDate = computed(() => new Intl.DateTimeFormat(appStore.language === 'en-US' ? 'en-US' : 'zh-CN', { month: 'long', day: 'numeric', weekday: 'long' }).format(now.value))
+const dockGroups = computed(() => {
+  const selected = items.value.findIndex(group => group.id === selectedGroupId.value)
+  if (selected < 0)
+    return items.value.slice(0, 3)
+  const nearby = items.value.map((group, index) => ({ group, index }))
+    .filter(entry => entry.index !== selected)
+    .sort((a, b) => Math.abs(a.index - selected) - Math.abs(b.index - selected))
+    .slice(0, 2)
+  return [...nearby.map(entry => entry.group), items.value[selected]]
+    .sort((a, b) => items.value.indexOf(a) - items.value.indexOf(b))
+})
+function displayedItems(group: ItemGroup) {
+  if (selectedGroupId.value === 'all' && !listFilter.value.trim() && !searchBoxKeyword.value && !arrangeMode.value)
+    return group.items?.slice(0, 8) ?? []
+  return group.items ?? []
+}
+function openImportSettings() {
+  initialSettingsPanel.value = 'ImportExport'
+  settingModalShow.value = true
+}
+function selectDockGroup(id: number | 'all') {
+  selectGroup(id)
+  moreDrawerShow.value = false
+}
 
 const tooltipContent = computed(() => {
   if (tooltipKey.value === 'brand')
@@ -128,34 +160,15 @@ const tooltipContent = computed(() => {
   return { title: group?.title ?? '', count: group?.items?.length ?? 0 }
 })
 
-function updateRailIndicator() {
-  const rail = railRef.value
-  const selected = Array.from(rail?.querySelectorAll<HTMLElement>('[data-rail-key]') ?? [])
-    .find(button => button.dataset.railKey === String(selectedGroupId.value))
-  if (!rail || !selected)
-    return
-  const railRect = rail.getBoundingClientRect()
-  const rect = selected.getBoundingClientRect()
-  const scrollRect = railScrollRef.value?.getBoundingClientRect()
-  const mobile = window.innerWidth < 640
-  let visible = false
-  if (scrollRect)
-    visible = mobile ? (rect.right > scrollRect.left && rect.left < scrollRect.right) : (rect.bottom > scrollRect.top && rect.top < scrollRect.bottom)
-  railIndicator.value = {
-    transform: mobile ? `translateX(${rect.left - railRect.left + 10}px)` : `translateY(${rect.top - railRect.top + 10}px)`,
-    opacity: visible ? 1 : 0,
-  }
-}
-
 function positionTooltip() {
   if (!tooltipTarget)
     return
   const rect = tooltipTarget.getBoundingClientRect()
-  tooltipPosition.value = { top: `${rect.top + rect.height / 2}px`, left: `${rect.right + 12}px` }
+  tooltipPosition.value = { top: `${rect.top + rect.height / 2}px`, left: `${rect.right + 16}px` }
 }
 
 function showRailTooltip(key: string, event: FocusEvent | MouseEvent) {
-  if (window.innerWidth < 640 || (event instanceof MouseEvent && !window.matchMedia('(hover: hover)').matches))
+  if (window.innerWidth < 768 || (event instanceof MouseEvent && !window.matchMedia('(hover: hover)').matches))
     return
   clearTimeout(tooltipOpenTimer)
   clearTimeout(tooltipCloseTimer)
@@ -210,14 +223,6 @@ function scrollToTop() {
   scrollContainerRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-watch([selectedGroupId, items], () => nextTick(() => {
-  const selected = Array.from(railRef.value?.querySelectorAll<HTMLElement>('[data-rail-key]') ?? [])
-    .find(button => button.dataset.railKey === String(selectedGroupId.value))
-  if (window.innerWidth < 640)
-    selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  updateRailIndicator()
-}), { deep: true })
-
 function selectGroup(id: number | 'all') {
   if (selectedGroupId.value !== id) {
     groupFade.value = false
@@ -230,8 +235,8 @@ function selectGroup(id: number | 'all') {
   selectedGroupId.value = id
   rovingItemId.value = null
   listFilter.value = ''
-  filterItems.value = items.value
-  nextTick(updateRailIndicator)
+  if (!searchBoxKeyword.value)
+    filterItems.value = items.value
 }
 
 function moveRowFocus(event: KeyboardEvent, direction: number) {
@@ -332,32 +337,39 @@ function handWindowIframeIdLoad(_payload: Event) {
   windowIframeIsLoad.value = false
 }
 
-function getList() {
-  // 获取组数据
-  getGroupList<Common.ListResponse<ItemGroup[]>>().then(({ code, data }) => {
+async function getList() {
+  groupsState.value = 'loading'
+  try {
+    const { code, data } = await getGroupList<Common.ListResponse<ItemGroup[]>>()
     if (code !== 0)
-      return
+      throw new Error('group load failed')
     items.value = data.list.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
     failedIcons.value = new Set()
     if (selectedGroupId.value === null || (selectedGroupId.value !== 'all' && !items.value.some(group => group.id === selectedGroupId.value)))
       selectedGroupId.value = 'all'
-    for (let i = 0; i < data.list.length; i++) {
-      const element = data.list[i]
-      if (element.id)
-        updateItemIconGroupByNet(i, element.id)
-    }
+    const results = await Promise.all(data.list.map((element, index) => element.id ? updateItemIconGroupByNet(index, element.id) : Promise.resolve(true)))
+    if (results.some(result => !result))
+      throw new Error('item load failed')
     filterItems.value = items.value
-    nextTick(updateRailIndicator)
-    // console.log(items)
-  })
+    groupsState.value = 'ready'
+  }
+  catch {
+    groupsState.value = 'error'
+  }
 }
 
 // 从后端获取组下面的图标
-function updateItemIconGroupByNet(itemIconGroupIndex: number, itemIconGroupId: number) {
-  getListByGroupId<Common.ListResponse<Panel.ItemInfo[]>>(itemIconGroupId).then((res) => {
-    if (res.code === 0)
-      items.value[itemIconGroupIndex].items = res.data.list
-  })
+async function updateItemIconGroupByNet(itemIconGroupIndex: number, itemIconGroupId: number) {
+  try {
+    const res = await getListByGroupId<Common.ListResponse<Panel.ItemInfo[]>>(itemIconGroupId)
+    if (res.code !== 0)
+      return false
+    items.value[itemIconGroupIndex].items = res.data.list
+    return true
+  }
+  catch {
+    return false
+  }
 }
 
 function handleRightMenuSelect(key: string | number) {
@@ -383,25 +395,60 @@ function handleRightMenuSelect(key: string | number) {
       handleEditItem({ ...currentRightSelectItem.value } as Panel.ItemInfo)
       break
     case 'delete':
-      dialog.warning({
+    {
+      const deletedItem = { ...currentRightSelectItem.value } as Panel.ItemInfo
+      const deleteError = ref('')
+      const deleting = ref(false)
+      const confirmDialog = dialog.warning({
         title: t('common.warning'),
-        content: t('common.deleteConfirmByName', { name: currentRightSelectItem.value?.title }),
+        content: () => h('div', [h('p', t('common.deleteConfirmByName', { name: deletedItem.title })), deleteError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, deleteError.value) : null]),
         positiveText: t('common.confirm'),
         negativeText: t('common.cancel'),
-        onPositiveClick: () => {
-          deletes([currentRightSelectItem.value?.id as number]).then(({ code, msg }) => {
+        onPositiveClick: async () => {
+          if (deleting.value)
+            return false
+          deleting.value = true
+          confirmDialog.loading = true
+          try {
+            const { code, msg } = await deletes([deletedItem.id as number])
             if (code === 0) {
-              ms.success(t('common.deleteSuccess'))
               getList()
+              const toast = notification.success({
+                title: t('common.deleteSuccess'),
+                duration: 5000,
+                action: () => h(NButton, {
+                  onClick: async () => {
+                    try {
+                      const { code } = await editItem({ ...deletedItem, id: undefined })
+                      if (code !== 0)
+                        throw new Error(t('common.saveFail'))
+                      toast.destroy()
+                      getList()
+                    }
+                    catch {
+                      ms.error(t('common.saveFail'))
+                    }
+                  },
+                }, () => t('panelHome.undo')),
+              })
             }
             else {
-              ms.error(`${t('common.deleteFail')}:${msg}`)
+              deleteError.value = `${t('common.deleteFail')}: ${msg}`
+              return false
             }
-          })
+          }
+          catch {
+            deleteError.value = t('common.deleteFail')
+            return false
+          }
+          finally {
+            deleting.value = false
+            confirmDialog.loading = false
+          }
         },
       })
-
       break
+    }
     default:
       break
   }
@@ -459,16 +506,21 @@ async function handleEndDrag(event: DragEndEvent) {
   if (!target?.items)
     return
 
+  saveStatuses.value[targetId] = 'saving'
   try {
     const { code } = await saveSort({
       itemIconGroupId: targetId,
       sortItems: target.items.map((item, index) => ({ id: item.id as number, sort: index + 1 })),
     })
-    if (code === 0)
+    if (code === 0) {
+      saveStatuses.value[targetId] = 'saved'
+      saveStatusTimers.set(targetId, setTimeout(() => delete saveStatuses.value[targetId], 1500))
       return
+    }
   }
   catch {}
 
+  saveStatuses.value[targetId] = 'error'
   ms.error(t('panelHome.arrangeSaveFailed'))
   const sourceId = Number(event.from.dataset.groupId)
   for (const id of new Set([sourceId, targetId])) {
@@ -515,7 +567,7 @@ function getDropdownMenuOptions() {
 }
 
 onMounted(() => {
-  window.addEventListener('resize', updateRailIndicator)
+  clockTimer = setInterval(() => now.value = new Date(), 60000)
   window.addEventListener('keydown', onFilterShortcut)
   // 更新用户信息
   updateLocalUserInfo()
@@ -532,13 +584,16 @@ onBeforeUnmount(() => {
   clearTimeout(groupFadeTimer)
   clearTimeout(tooltipOpenTimer)
   clearTimeout(tooltipCloseTimer)
-  window.removeEventListener('resize', updateRailIndicator)
+  clearInterval(clockTimer)
+  for (const timer of saveStatusTimers.values())
+    clearTimeout(timer)
   window.removeEventListener('keydown', onFilterShortcut)
 })
 
 // 前端搜索过滤
 function itemFrontEndSearch(keyword?: string) {
   keyword = keyword?.trim()
+  searchBoxKeyword.value = keyword ?? ''
   if (keyword !== '' && panelState.panelConfig.searchBoxSearchIcon) {
     const filteredData = ref<ItemGroup[]>([])
     for (let i = 0; i < items.value.length; i++) {
@@ -553,8 +608,6 @@ function itemFrontEndSearch(keyword?: string) {
         filteredData.value.push({ ...items.value[i], items: element })
     }
     filterItems.value = filteredData.value
-    selectedGroupId.value = 'all'
-    nextTick(updateRailIndicator)
   }
   else {
     filterItems.value = items.value
@@ -576,317 +629,248 @@ function handleAddItem(itemIconGroupId?: number) {
 </script>
 
 <template>
-  <div class="w-full h-full sun-main">
-    <div
-      v-if="panelState.panelConfig.showWallpaper" class="cover wallpaper" :style="{
-        filter: `blur(${panelState.panelConfig.backgroundBlur}px)`,
-        backgroundImage: wallpaperLoaded ? `url(${wallpaperSource})` : 'none',
-        opacity: wallpaperLoaded ? 1 : 0,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }"
-    />
-    <div v-if="panelState.panelConfig.showWallpaper" class="mask" :style="{ backgroundColor: `rgba(24,23,21,${Math.max(0.58, panelState.panelConfig.backgroundMaskNumber ?? 0.58)})` }" />
-    <nav ref="railRef" class="group-rail" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" :aria-label="t('panelHome.groups')" @mouseleave="leaveRail" @focusout="onRailFocusOut" @keydown="onRailKeydown">
-      <button class="rail-brand" type="button" :aria-label="t('panelHome.backToTop')" @click="scrollToTop" @mouseenter="showRailTooltip('brand', $event)" @focus="showRailTooltip('brand', $event)">
-        <img :src="logo" alt="" width="28" height="28">
-      </button>
-      <div ref="railScrollRef" class="rail-scroll" @scroll="updateRailIndicator(); positionTooltip()">
-        <button class="rail-button is-all" :class="{ active: selectedGroupId === 'all' }" type="button" data-rail-key="all" :tabindex="railFocusKey === 'all' ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: t('panelHome.all'), count: totalCount })" :aria-current="selectedGroupId === 'all' ? 'page' : undefined" @click="selectGroup('all')" @focus="railFocusKey = 'all'; showRailTooltip('all', $event)" @mouseenter="showRailTooltip('all', $event)">
-          <span class="rail-glyph"><GroupGlyph icon="lucide-layout-grid" :title="t('panelHome.all')" :size="18" /></span>
-        </button>
-        <span class="rail-divider" aria-hidden="true" />
-        <button v-for="group in items" :key="group.id" class="rail-button" :style="hueStyle(group)" :class="{ active: selectedGroupId === group.id }" type="button" :data-rail-key="String(group.id)" :tabindex="railFocusKey === String(group.id) ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: group.title, count: group.items?.length ?? 0 })" :aria-current="selectedGroupId === group.id ? 'page' : undefined" @click="selectGroup(group.id as number)" @focus="railFocusKey = String(group.id); showRailTooltip(String(group.id), $event)" @mouseenter="showRailTooltip(String(group.id), $event)">
-          <span class="rail-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="18" /></span>
-        </button>
+  <div class="sun-main">
+    <div v-if="panelState.panelConfig.showWallpaper" class="wallpaper" :style="{ filter: `blur(${panelState.panelConfig.backgroundBlur}px)`, backgroundImage: wallpaperLoaded ? `url(${wallpaperSource})` : 'none' }" />
+    <div v-if="panelState.panelConfig.showWallpaper" class="wallpaper-mask" :style="{ backgroundColor: `rgba(18,18,20,${Math.max(0.35, panelState.panelConfig.backgroundMaskNumber ?? 0.35)})` }" />
+    <div ref="scrollContainerRef" class="main-scroll">
+      <div class="page-layout">
+        <nav ref="railRef" class="group-rail" :aria-label="t('panelHome.groups')" @mouseleave="leaveRail" @focusout="onRailFocusOut" @keydown="onRailKeydown">
+          <button class="rail-brand" type="button" :aria-label="t('panelHome.backToTop')" @click="scrollToTop" @mouseenter="showRailTooltip('brand', $event)" @focus="showRailTooltip('brand', $event)">
+            <XBrand />
+          </button>
+          <div class="rail-scroll" @scroll="positionTooltip">
+            <button class="rail-button is-all" :class="{ active: selectedGroupId === 'all' }" type="button" data-rail-key="all" :tabindex="railFocusKey === 'all' ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: t('panelHome.all'), count: totalCount })" :aria-current="selectedGroupId === 'all' ? 'page' : undefined" @click="selectGroup('all')" @focus="railFocusKey = 'all'; showRailTooltip('all', $event)" @mouseenter="showRailTooltip('all', $event)">
+              <GroupGlyph icon="lucide-layout-grid" :title="t('panelHome.all')" :size="22" />
+            </button>
+            <span class="rail-divider" aria-hidden="true" />
+            <button v-for="group in items" :key="group.id" class="rail-button" :style="groupColorStyle(group)" :class="{ active: selectedGroupId === group.id }" type="button" :data-rail-key="String(group.id)" :tabindex="railFocusKey === String(group.id) ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: group.title, count: group.items?.length ?? 0 })" :aria-current="selectedGroupId === group.id ? 'page' : undefined" @click="selectGroup(group.id as number)" @focus="railFocusKey = String(group.id); showRailTooltip(String(group.id), $event)" @mouseenter="showRailTooltip(String(group.id), $event)">
+              <GroupGlyph :icon="group.icon" :title="group.title" :size="22" />
+            </button>
+          </div>
+        </nav>
+        <main class="page-content" :style="{ maxWidth: (panelState.panelConfig.maxWidth ?? '1200') + panelState.panelConfig.maxWidthUnit, paddingTop: `calc(24px + ${panelState.panelConfig.marginTop}%)`, paddingBottom: `calc(40px + ${panelState.panelConfig.marginBottom}%)` }">
+          <header class="navigation-shell" :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
+            <div class="brand-block" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">
+              <h1>{{ panelState.panelConfig.logoText }}</h1><p>{{ currentDate }} · {{ items.length }} {{ t('panelHome.groups') }} · {{ totalCount }} {{ t('panelHome.bookmarks') }}</p>
+            </div>
+            <div class="header-actions">
+              <label class="list-filter"><SvgIcon icon="iconamoon:search-fill" aria-hidden="true" /><input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')" @keydown="onFilterKeydown"><span v-if="listFilter.trim()" class="filter-count">{{ t('panelHome.resultsCount', { count: visibleCount }) }}</span><kbd v-else>/</kbd></label>
+              <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="quiet-button" :type="arrangeMode ? 'primary' : 'default'" @click="toggleArrangeMode">
+                {{ arrangeMode ? t('panelHome.arrangeDone') : t('panelHome.arrange') }}
+              </NButton>
+              <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="import-button" type="primary" @click="openImportSettings">
+                {{ t('panelHome.importBookmarks') }}
+              </NButton>
+            </div>
+          </header>
+          <div class="content-shell" :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
+            <section v-if="overviewVisible" class="overview-band" :class="{ 'has-clock': panelState.panelConfig.clockShow, 'has-search': panelState.panelConfig.searchBoxShow, 'has-monitor': systemMonitorVisible }">
+              <Clock v-if="panelState.panelConfig.clockShow" class="overview-clock" :hide-second="!panelState.panelConfig.clockShowSecond" />
+              <SearchBox v-if="panelState.panelConfig.searchBoxShow" class="overview-search" @item-search="itemFrontEndSearch" />
+              <SystemMonitor v-if="systemMonitorVisible" class="overview-monitor" :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
+              <div v-if="panelState.panelConfig.showWallpaper" class="wallpaper-card">
+                <div class="wallpaper-preview" :style="wallpaperLoaded ? { backgroundImage: `url(${wallpaperSource})` } : {}">
+                  <span v-if="!wallpaperLoaded">{{ t('panelHome.todayWallpaper') }}<small>320 × 180</small></span>
+                </div><span>{{ t('panelHome.todayWallpaper') }}</span>
+              </div>
+            </section>
+            <h2 v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-title" :style="selectedGroupColor">
+              <span class="title-glyph"><GroupGlyph :icon="selectedGroup.icon" :title="selectedGroup.title" :size="20" /></span>{{ selectedGroup.title }} <span class="title-count">{{ selectedGroup.items?.length ?? 0 }}</span>
+            </h2>
+            <div v-if="groupsState === 'loading'" class="content-groups" aria-busy="true">
+              <NSkeleton v-for="index in 2" :key="index" height="220px" class="rounded-card" />
+            </div>
+            <div v-else-if="groupsState === 'error'" class="empty-list" role="alert">
+              {{ t('panelHome.loadFailed') }} <button class="raised-button" type="button" @click="getList">
+                {{ t('panelHome.retry') }}
+              </button>
+            </div>
+            <div v-else-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" class="content-groups" :class="{ 'group-fade': groupFade, 'first-load-motion': firstLoadMotion }">
+              <section v-for="group in visibleGroups" :key="group.id" class="group-section" :style="{ ...groupColorStyle(group), ...(firstLoadMotion ? { animationDelay: `${Math.min(9, visibleGroups.indexOf(group)) * 30}ms` } : {}) }">
+                <div class="group-heading">
+                  <span class="heading-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="22" /></span><h2>{{ group.title }}</h2><span class="heading-count">{{ group.items?.length ?? 0 }}</span><span v-if="saveStatuses[group.id as number]" class="save-status" :class="saveStatuses[group.id as number]">{{ t(`panelHome.${saveStatuses[group.id as number]}`) }}</span><button v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="group-add raised-button" type="button" :aria-label="t('common.add')" @click="handleAddItem(group.id)">
+                    <SvgIcon icon="typcn:plus" />
+                  </button>
+                </div>
+                <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="150" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" :delay-on-touch-only="true" ghost-class="sortable-ghost" @end="handleEndDrag">
+                  <button v-for="item in displayedItems(group)" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" :data-item-id="item.id" :tabindex="(rovingItemId ?? firstVisibleItemId) === item.id ? 0 : -1" type="button" :title="item.title" @focus="rovingItemId = item.id as number" @click="handleItemClick(item)" @keydown.down="moveRowFocus($event, 1)" @keydown.up="moveRowFocus($event, -1)" @contextmenu="(e) => handleContextMenu(e, item)">
+                    <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)"><ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" /><span v-else class="row-placeholder"><GroupGlyph icon="lucide-globe" :title="item.title" :size="18" /></span>
+                    <span class="row-copy"><span class="row-name">{{ item.title }}</span><span class="row-domain">{{ displayDomain(item.url) }}</span></span><span class="row-arrow" aria-hidden="true">↗</span>
+                  </button>
+                  <div v-if="arrangeMode && !group.items.length" class="drop-target">
+                    {{ t('panelHome.dropHere') }}
+                  </div>
+                </VueDraggable>
+                <button v-if="selectedGroupId === 'all' && !listFilter.trim() && !searchBoxKeyword && !arrangeMode && (group.items?.length ?? 0) > 8" class="view-all raised-button" type="button" @click="selectGroup(group.id as number)">
+                  {{ t('panelHome.viewAll', { count: group.items?.length ?? 0 }) }}
+                </button>
+              </section>
+            </div>
+            <div v-else class="empty-list">
+              {{ t('panelHome.noMatches') }}
+            </div>
+          </div>
+          <div class="footer" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" v-html="panelState.panelConfig.footerHtml" />
+        </main>
       </div>
-      <span class="rail-indicator" :style="{ ...railIndicator, backgroundColor: hueFgForId(selectedGroupId) }" aria-hidden="true" />
-    </nav>
+    </div>
     <Teleport to="body">
       <Transition name="rail-tooltip">
         <div v-if="tooltipKey" class="rail-tooltip" :style="tooltipPosition" role="tooltip">
-          <span v-if="tooltipKey !== 'brand'" class="rail-tooltip-dot" :style="{ backgroundColor: tooltipDotColor }" aria-hidden="true" /><span>{{ tooltipContent.title }}</span><span v-if="tooltipContent.count !== null" class="rail-tooltip-count"> · {{ tooltipContent.count }}</span>
+          <span v-if="tooltipKey !== 'brand'" class="rail-tooltip-dot" :style="{ backgroundColor: tooltipDotColor }" aria-hidden="true" />{{ tooltipContent.title }}<span v-if="tooltipContent.count !== null" class="rail-tooltip-count"> · {{ tooltipContent.count }}</span>
         </div>
       </Transition>
     </Teleport>
-    <div ref="scrollContainerRef" class="main-scroll absolute w-full h-full overflow-auto">
-      <div
-        class="px-6 max-sm:px-4 mx-auto"
-        :style="{
-          marginTop: `${panelState.panelConfig.marginTop}%`,
-          marginBottom: `${panelState.panelConfig.marginBottom}%`,
-          maxWidth: (panelState.panelConfig.maxWidth ?? '1200') + panelState.panelConfig.maxWidthUnit,
-        }"
-      >
-        <header class="navigation-shell" :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
-          <div class="navigation-row">
-            <strong class="brand-name" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">{{ panelState.panelConfig.logoText }}</strong>
-            <label class="list-filter">
-              <SvgIcon icon="iconamoon:search-fill" aria-hidden="true" />
-              <input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')" @keydown="onFilterKeydown">
-              <span v-if="listFilter.trim()" class="filter-count">{{ $t('panelHome.resultsCount', { count: visibleCount }) }}</span>
-              <kbd v-else>/</kbd>
-            </label>
-            <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :type="arrangeMode ? 'primary' : 'default'" :secondary="!arrangeMode" class="arrange-button" @click="toggleArrangeMode">
-              {{ arrangeMode ? t('panelHome.arrangeDone') : t('panelHome.arrange') }}
-            </NButton>
-          </div>
-        </header>
-        <div :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
-          <div v-if="overviewVisible" class="overview-band" :class="{ 'has-clock': panelState.panelConfig.clockShow, 'has-search': panelState.panelConfig.searchBoxShow, 'has-monitor': systemMonitorVisible }">
-            <Clock v-if="panelState.panelConfig.clockShow" class="overview-clock" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" :hide-second="!panelState.panelConfig.clockShowSecond" />
-            <SearchBox v-if="panelState.panelConfig.searchBoxShow" class="overview-search" @item-search="itemFrontEndSearch" />
-            <SystemMonitor v-if="systemMonitorVisible" class="overview-monitor" :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
-          </div>
-          <h1 v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-title" :style="hueStyle(selectedGroup)">
-            <span class="title-glyph"><GroupGlyph :icon="selectedGroup.icon" :title="selectedGroup.title" :size="20" /></span>
-            {{ selectedGroup.title }} <span class="title-count">{{ selectedGroup.items?.length ?? 0 }}</span>
-          </h1>
-
-          <div v-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" class="content-groups" :class="[isGroupedView ? 'group-columns' : '', { 'group-fade': groupFade, 'first-load-motion': firstLoadMotion }]">
-            <section v-for="group in visibleGroups" :key="group.id" class="group-section" :style="{ ...hueStyle(group), ...(firstLoadMotion ? { animationDelay: `${Math.min(9, visibleGroups.indexOf(group)) * 30}ms` } : {}) }" :class="{ 'single-section': !isGroupedView, 'on-wallpaper': panelState.panelConfig.showWallpaper }">
-              <div v-if="isGroupedView" class="group-heading">
-                <h2>
-                  <span class="heading-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="17" /></span>
-                  {{ group.title }} <span class="heading-count">{{ group.items?.length ?? 0 }}</span>
-                </h2>
-              </div>
-              <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="220" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" :delay-on-touch-only="true" ghost-class="sortable-ghost" @end="handleEndDrag">
-                <button v-for="item in group.items" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" :data-item-id="item.id" :tabindex="(rovingItemId ?? firstVisibleItemId) === item.id ? 0 : -1" type="button" :title="item.title" @focus="rovingItemId = item.id as number" @click="handleItemClick(item)" @keydown.down="moveRowFocus($event, 1)" @keydown.up="moveRowFocus($event, -1)" @contextmenu="(e) => handleContextMenu(e, item)">
-                  <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)">
-                  <ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" />
-                  <span v-else class="row-placeholder">{{ (item.icon?.itemType === 1 && item.icon.text ? item.icon.text : item.title).charAt(0).toUpperCase() }}</span>
-                  <span class="row-name" :title="item.title">{{ item.title }}</span>
-                  <span class="row-domain" :title="item.url">{{ displayDomain(item.url) }}</span>
-                  <span class="row-arrow" aria-hidden="true">↗</span>
-                </button>
-                <button v-if="!arrangeMode && !isGroupedView && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="url-row add-row" type="button" @click="handleAddItem(group.id)">
-                  <span class="row-placeholder add-symbol"><SvgIcon icon="typcn:plus" aria-hidden="true" /></span><span>{{ t('common.add') }}</span>
-                </button>
-              </VueDraggable>
-            </section>
-          </div>
-          <div v-else class="empty-list">
-            {{ t('panelHome.noMatches') }}
-          </div>
-        </div>
-        <div class="mt-5 footer" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" v-html="panelState.panelConfig.footerHtml" />
-      </div>
-    </div>
-
-    <!-- 右键菜单 -->
-    <NDropdown
-      placement="bottom-start" trigger="manual" :x="dropdownMenuX" :y="dropdownMenuY"
-      :options="getDropdownMenuOptions()" :show="dropdownShow" :on-clickoutside="onClickoutside" @select="handleRightMenuSelect"
-    />
-
-    <!-- 悬浮按钮 -->
+    <div class="mobile-dock-band" /><nav class="mobile-dock" :aria-label="t('panelHome.groups')">
+      <button class="dock-button is-all" :class="{ active: selectedGroupId === 'all' }" type="button" :aria-label="t('panelHome.all')" @click="selectDockGroup('all')">
+        <GroupGlyph icon="lucide-layout-grid" :title="t('panelHome.all')" :size="22" /><span v-if="selectedGroupId === 'all'">{{ t('panelHome.all') }}</span>
+      </button><button v-for="group in dockGroups" :key="group.id" class="dock-button" :class="{ active: selectedGroupId === group.id }" :style="groupColorStyle(group)" type="button" :aria-label="group.title" @click="selectDockGroup(group.id as number)">
+        <GroupGlyph :icon="group.icon" :title="group.title" :size="22" /><span v-if="selectedGroupId === group.id">{{ group.title }}</span>
+      </button><button class="dock-button more-button" type="button" :aria-label="t('panelHome.moreGroups')" @click="moreDrawerShow = true">
+        <SvgIcon icon="mingcute:more-1-fill" />
+      </button>
+    </nav>
+    <NDrawer v-model:show="moreDrawerShow" placement="bottom" height="min(70vh, 620px)" class="groups-drawer">
+      <NDrawerContent :title="t('panelHome.groups')" closable>
+        <button v-for="group in items" :key="group.id" class="drawer-group" :style="groupColorStyle(group)" type="button" @click="selectDockGroup(group.id as number)">
+          <span class="heading-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="22" /></span><span>{{ group.title }}</span><span class="drawer-count">{{ group.items?.length ?? 0 }}</span>
+        </button>
+      </NDrawerContent>
+    </NDrawer>
+    <NDropdown placement="bottom-start" trigger="manual" :x="dropdownMenuX" :y="dropdownMenuY" :options="getDropdownMenuOptions()" :show="dropdownShow" :on-clickoutside="onClickoutside" @select="handleRightMenuSelect" />
     <div class="fixed-element">
       <div class="floating-actions">
-        <!-- 网络模式切换按钮组 -->
-        <NButton
-          v-if="panelState.networkMode === PanelStateNetworkModeEnum.lan && panelState.panelConfig.netModeChangeButtonShow" circle secondary class="floating-button"
-          :title="t('panelHome.changeToWanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.wan)"
-        >
+        <NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.lan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :title="t('panelHome.changeToWanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.wan)">
           <template #icon>
             <SvgIcon icon="material-symbols:lan-outline-rounded" />
           </template>
-        </NButton>
-
-        <NButton
-          v-if="panelState.networkMode === PanelStateNetworkModeEnum.wan && panelState.panelConfig.netModeChangeButtonShow" circle secondary class="floating-button"
-          :title="t('panelHome.changeToLanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.lan)"
-        >
+        </NButton><NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.wan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :title="t('panelHome.changeToLanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.lan)">
           <template #icon>
             <SvgIcon icon="mdi:wan" />
           </template>
-        </NButton>
-
-        <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" circle secondary class="floating-button" @click="settingModalShow = !settingModalShow">
+        </NButton><NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="floating-button" :aria-label="t('appLauncher.title')" @click="initialSettingsPanel = 'UserInfo'; settingModalShow = true">
           <template #icon>
             <SvgIcon icon="majesticons-applications" />
           </template>
-        </NButton>
-
-        <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" circle secondary class="floating-button" :title="$t('panelHome.goToLogin')" @click="router.push('/login')">
+        </NButton><NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" class="floating-button" :title="t('panelHome.goToLogin')" @click="router.push('/login')">
           <template #icon>
             <SvgIcon icon="material-symbols:account-circle" />
           </template>
         </NButton>
       </div>
-
-      <AppStarter v-model:visible="settingModalShow" />
-      <!-- <Setting v-model:visible="settingModalShow" /> -->
     </div>
-
-    <NBackTop
-      class="rail-back-top"
-      :listen-to="() => scrollContainerRef"
-      :right="10"
-      :bottom="10"
-      style="background-color:transparent;border: none;box-shadow: none;"
-    >
-      <div>
-        <NButton circle secondary class="floating-button">
-          <template #icon>
-            <SvgIcon icon="icon-park-outline:to-top" />
-          </template>
-        </NButton>
+    <AppStarter v-model:visible="settingModalShow" :initial-panel="initialSettingsPanel" />
+    <NBackTop class="rail-back-top" :listen-to="() => scrollContainerRef" :right="16" :bottom="16">
+      <div class="back-top-button">
+        <SvgIcon icon="icon-park-outline:to-top" />
       </div>
     </NBackTop>
-
     <EditItem v-model:visible="editItemInfoShow" :item-info="editItemInfoData" :item-group-id="currentAddItenIconGroupId" @done="handleEditSuccess" />
-
-    <!-- 弹窗 -->
-    <NModal
-      v-model:show="windowShow" :mask-closable="false" preset="card"
-      style="max-width: 1000px;height: 600px;" :bordered="true" size="small" role="dialog"
-      aria-modal="true"
-    >
+    <NModal v-model:show="windowShow" :mask-closable="false" preset="card" style="max-width: 1000px;height: 600px" :bordered="false" size="small" role="dialog" aria-modal="true">
       <template #header>
         <div class="flex items-center">
-          <span class="mr-5">
-            {{ windowTitle }}
-          </span>
-
-          <NSpin v-if="windowIframeIsLoad" size="small" />
+          <span class="mr-5">{{ windowTitle }}</span><NSpin v-if="windowIframeIsLoad" size="small" />
         </div>
-      </template>
-      <div class="w-full h-full rounded-xp-lg overflow-hidden border border-hairline">
+      </template><div class="w-full h-full rounded-small overflow-hidden bg-bg1">
         <div v-if="windowIframeIsLoad" class="flex flex-col p-5">
-          <NSkeleton height="50px" width="100%" class="rounded-xp-md" />
-          <NSkeleton height="180px" width="100%" class="mt-5 rounded-xp-md" />
-          <NSkeleton height="180px" width="100%" class="mt-5 rounded-xp-md" />
-        </div>
-        <iframe
-          v-show="!windowIframeIsLoad" id="windowIframeId" ref="windowIframeRef" :src="windowSrc"
-          class="w-full h-full" frameborder="0" @load="handWindowIframeIdLoad"
-        />
+          <NSkeleton height="50px" width="100%" class="rounded-icon" /><NSkeleton height="180px" width="100%" class="mt-5 rounded-icon" />
+        </div><iframe v-show="!windowIframeIsLoad" id="windowIframeId" ref="windowIframeRef" :src="windowSrc" class="w-full h-full" frameborder="0" @load="handWindowIframeIdLoad" />
       </div>
     </NModal>
   </div>
 </template>
 
 <style>
-body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink); }
-::selection { background: var(--xp-primary); color: var(--xp-on-primary); }
-.n-modal { animation: modal-open 260ms cubic-bezier(.16,1,.3,1); }
-@keyframes modal-open { from { transform: scale(.96); opacity: .7; } to { transform: scale(1); opacity: 1; } }
-.rail-tooltip { position: fixed; z-index: 3000; transform: translateY(-50%); padding: 6px 10px; border-radius: 6px; background: var(--xp-ink); color: var(--xp-canvas); font: 13px/1.4 var(--xp-font-body); white-space: nowrap; pointer-events: none; box-shadow: none; }
+body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); }
+::selection { background: var(--x-primary); color: var(--x-on-primary); }
+.rail-tooltip { position: fixed; z-index: 3000; transform: translateY(-50%); padding: 8px 14px; border-radius: 999px; background: var(--x-inverse-bg); color: var(--x-inverse-fg); font: 13px/1.4 var(--x-font); white-space: nowrap; pointer-events: none; }
 .rail-tooltip-dot { display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; vertical-align: 2px; }
-.rail-tooltip-count { color: color-mix(in srgb, var(--xp-canvas) 65%, var(--xp-ink)); font-variant-numeric: tabular-nums; }
+.rail-tooltip-count { opacity: .65; font-variant-numeric: tabular-nums; }
 .rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: opacity 120ms ease, translate 120ms ease; }
 .rail-tooltip-enter-from, .rail-tooltip-leave-to { opacity: 0; translate: -4px 0; }
-@media (max-width: 639px) { .rail-tooltip { display: none; } .rail-back-top { bottom: calc(66px + env(safe-area-inset-bottom)) !important; } }
-@media (prefers-reduced-motion: reduce) { .n-modal { animation: none; } .rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: none; } }
+.groups-drawer .n-drawer-content { border-radius: 32px 32px 0 0; background: var(--x-bg0); }
+@media (max-width: 767px) { .rail-tooltip { display: none; } .rail-back-top { bottom: calc(136px + env(safe-area-inset-bottom)) !important; } }
+@media (prefers-reduced-motion: reduce) { .rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: none; } }
 </style>
 
 <style scoped>
-.sun-main { position: relative; background: var(--xp-canvas); user-select: none; font-family: var(--xp-font-body); }
-.cover, .mask { position: absolute; inset: 0; }
-.cover { background-position: center; background-size: cover; transform: scale(1.03); transition: opacity 600ms ease; }
-.navigation-shell { margin: 28px 0 0; }
-.navigation-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.brand-name { flex: none; font: 600 28px/1.2 var(--xp-font-display); letter-spacing: 0; color: var(--xp-ink); white-space: nowrap; }
-.brand-name.on-wallpaper { color: var(--xp-wallpaper-ink); }
-.list-filter { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px; max-width: 420px; height: 40px; margin-left: auto; padding: 0 14px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-md); background: var(--xp-surface); box-shadow: var(--xp-card-shadow); color: var(--xp-muted); }
-.list-filter input { min-width: 0; flex: 1; border: 0; outline: 0; background: none; color: var(--xp-ink); font: inherit; user-select: text; }
-.list-filter input::placeholder { color: var(--xp-muted); }
-.filter-count { flex: none; color: var(--xp-muted); font-size: 13px; white-space: nowrap; }
-.list-filter kbd { padding: 0 5px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-sm); font-size: 13px; }
-.list-filter:focus-within { border-color: var(--xp-primary); box-shadow: 0 0 0 3px var(--xp-focus-ring); }
-.arrange-button { height: 40px; border-radius: var(--xp-radius-md); }
-.overview-band { display: grid; grid-template-columns: auto minmax(220px, 1fr) minmax(180px, .75fr); align-items: center; gap: 24px; margin-top: 24px; }
-.overview-band:not(.has-clock) { grid-template-columns: minmax(220px, 1fr) minmax(180px, .75fr); }
-.overview-band:not(.has-search) { grid-template-columns: auto minmax(180px, .75fr); }
-.overview-band:not(.has-monitor) { grid-template-columns: auto minmax(220px, 1fr); }
-.overview-band.has-clock:not(.has-search):not(.has-monitor), .overview-band.has-search:not(.has-clock):not(.has-monitor), .overview-band.has-monitor:not(.has-clock):not(.has-search) { grid-template-columns: minmax(0, 1fr); }
-.overview-clock.on-wallpaper { padding: 8px 12px; border-radius: var(--xp-radius-md); background: var(--xp-surface); }
-.overview-search { min-width: 0; }
-.main-scroll { box-sizing: border-box; padding-left: 64px; }
-.group-rail { position: fixed; z-index: 10; inset: 0 auto 0 0; display: flex; flex-direction: column; align-items: center; width: 64px; padding: 16px 11px; border-right: 1px solid var(--xp-hairline); background: var(--xp-canvas); }
-.group-rail.on-wallpaper { background: var(--xp-canvas); }
-.rail-brand, .rail-button { display: grid; flex: none; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--xp-muted); cursor: pointer; }
-.rail-brand { margin-bottom: 16px; transition: background-color 150ms ease; }
-.rail-brand img { width: 28px; height: 28px; border-radius: 8px; }
-.rail-scroll { display: flex; flex: 1; flex-direction: column; align-items: center; gap: 4px; width: 100%; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.sun-main { position: relative; width: 100%; height: 100%; background: var(--x-bg0); color: var(--x-text1); font-family: var(--x-font); user-select: none; }
+.wallpaper, .wallpaper-mask { position: absolute; inset: 0; pointer-events: none; }
+.wallpaper { background-position: center; background-size: cover; }
+.main-scroll { position: relative; width: 100%; height: 100%; overflow: auto; }
+.page-layout { display: flex; align-items: flex-start; gap: 16px; min-height: 100%; padding: 16px; }
+.group-rail { position: sticky; top: 16px; z-index: 10; display: flex; flex: none; flex-direction: column; align-items: center; width: 88px; min-height: min(720px, calc(100vh - 32px)); max-height: calc(100vh - 32px); padding: 16px 0; border-radius: var(--x-r-card); background: var(--x-bg1); }
+.rail-brand, .rail-button { display: grid; flex: none; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--x-r-icon); cursor: pointer; transition: background-color 150ms, color 150ms; }
+.rail-brand { margin-bottom: 16px; background: var(--x-bg2); color: var(--x-text1); }
+.rail-brand :deep(svg) { width: 27px; height: 27px; }
+.rail-scroll { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
 .rail-scroll::-webkit-scrollbar { display: none; }
-.rail-divider { display: block; flex: none; width: 24px; height: 1px; margin: 6px 0; background: var(--xp-hairline); }
-.rail-button { --group-fg: var(--xp-ink); --group-bg: var(--xp-surface-card); --group-on: #fff; }
-.rail-button.is-all { --group-fg: var(--xp-primary); --group-bg: color-mix(in srgb, var(--xp-primary) 14%, var(--xp-canvas)); --group-on: #fff; }
-.rail-glyph { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--group-bg); color: var(--group-fg); transition: background-color 150ms ease, color 150ms ease; }
-.rail-button:hover .rail-glyph { background: color-mix(in srgb, var(--group-fg) 6%, var(--group-bg)); }
-.rail-button.active .rail-glyph { background: var(--group-fg); color: var(--group-on); }
-.rail-brand:hover { background: var(--xp-surface-soft); }
-.rail-indicator { position: absolute; top: 0; left: 0; width: 3px; height: 20px; border-radius: 3px; background: var(--xp-primary); pointer-events: none; transition: transform 180ms ease, opacity 120ms ease; }
-.rail-brand:focus-visible, .rail-button:focus-visible, .url-row:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 2px; }
-.selected-group-title { display: flex; align-items: center; gap: 8px; margin: 24px 0 16px; color: var(--xp-ink); font: 600 18px/1.4 var(--xp-font-display); }
-.title-glyph, .heading-glyph { display: grid; flex: none; place-items: center; border-radius: 6px; background: var(--group-bg); color: var(--group-fg); }
-.title-glyph { width: 28px; height: 28px; }
-.title-count { color: var(--xp-muted); font: 13px/1 var(--xp-font-body); font-variant-numeric: tabular-nums; }
-.content-groups { margin-top: 24px; }
-.selected-group-title + .content-groups { margin-top: 0; }
-.group-columns { columns: 320px; column-gap: 16px; }
-.group-columns .group-section { display: inline-block; width: 100%; margin-bottom: 16px; break-inside: avoid; }
-.group-section { min-width: 0; padding: 16px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-lg); background: var(--xp-surface); box-shadow: var(--xp-card-shadow); transition: border-color 180ms ease, box-shadow 180ms ease; }
-.group-section.on-wallpaper { background: var(--xp-surface); }
-.group-section:hover { border-color: var(--group-bd); box-shadow: var(--xp-card-shadow-hover); }
-.group-heading { display: flex; align-items: center; justify-content: space-between; margin: -16px -16px 8px; padding: 12px 16px; border-bottom: 1px solid color-mix(in srgb, var(--group-bd) 45%, transparent); border-radius: 11px 11px 0 0; background: var(--group-bg); }
-.group-heading .heading-glyph { background: var(--xp-surface); }
-.group-heading h2 { display: flex; align-items: center; gap: 8px; width: 100%; margin: 0; color: var(--xp-ink); font-size: 15px; font-weight: 600; letter-spacing: 0; }
-.heading-glyph { width: 24px; height: 24px; }
-.group-heading .heading-count { margin-left: auto; color: var(--group-fg); font-size: 13px; font-weight: 400; font-variant-numeric: tabular-nums; }
-.url-list { min-width: 0; }
-.url-list.arrange-drop-zone { min-height: 40px; border: 1px dashed var(--xp-hairline); border-radius: var(--xp-radius-md); }
-.single-section .url-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 12px; }
-.url-row { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid transparent; border-radius: var(--xp-radius-md); background: transparent; color: var(--xp-ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
-.url-row { transition: background-color 120ms ease; }
-.url-row:hover { background: color-mix(in srgb, var(--group-bg) 50%, var(--xp-surface)); }
-.url-row.sorting { border: 1px dashed var(--xp-hairline); cursor: grab; }
-.url-row.sorting:active { cursor: grabbing; }
-.url-row.sortable-ghost { background: var(--xp-surface-strong); opacity: .6; }
-.row-icon, .row-placeholder { flex: none; width: 20px; height: 20px; border-radius: var(--xp-radius-sm); }
-.row-icon { object-fit: contain; padding: 1px; }
-.row-placeholder { display: grid; place-items: center; background: var(--group-bg); color: var(--group-fg); font-size: 11px; font-weight: 800; }
-.add-row .row-placeholder { background: var(--xp-surface-card); color: var(--xp-ink); }
-.row-name, .row-domain { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row-name { flex: 1; }
-.row-domain { flex: 0 1 auto; max-width: 46%; color: var(--xp-muted-soft); font-size: 13px; }
-.row-arrow { flex: none; color: var(--xp-muted-soft); font-size: 13px; transition: color 120ms ease, transform 120ms ease; }
-.url-row:hover .row-arrow { color: var(--xp-ink); transform: translate(2px, -2px); }
-.add-row { color: var(--xp-muted); }
-.add-symbol { font-size: 14px; }
-.empty-list { padding: 32px; color: var(--xp-muted); text-align: center; }
-.footer { color: var(--xp-muted-soft); font-size: 13px; }
-.footer.on-wallpaper, .footer.on-wallpaper :deep(*) { color: var(--xp-wallpaper-ink); }
-.fixed-element { position: fixed; right: 16px; bottom: 40px; }
-.floating-actions { display: flex; flex-direction: column; gap: 8px; }
-.floating-button { width: 36px; height: 36px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-pill); background: var(--xp-canvas); color: var(--xp-ink); }
+.rail-divider { width: 24px; height: 2px; margin: 4px 0; background: var(--x-sep); }
+.rail-button { background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-primary)); }
+.rail-button.is-all { background: var(--x-blue-tint); color: var(--x-blue-fg); }
+.rail-button:hover { background: var(--x-bg2); }
+.rail-button.active { background: var(--group-fg, var(--x-primary)); color: var(--x-bg0); }
+.rail-button.is-all.active { background: var(--x-primary); color: var(--x-on-primary); }
+.page-content { flex: 1; min-width: 0; width: 100%; margin: 0 auto; padding-right: 56px; padding-left: 56px; }
+.navigation-shell { display: flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 80px; }
+.brand-block h1 { margin: 0; font-size: 34px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; }
+.brand-block p { margin: 8px 0 0; color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.brand-block.on-wallpaper h1, .brand-block.on-wallpaper p { color: #fff; }
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.list-filter { display: flex; align-items: center; gap: 12px; min-width: 280px; width: 320px; height: 44px; padding: 0 16px; border: 0; border-radius: var(--x-r-pill); background: var(--x-bg1); color: var(--x-text2); }
+.list-filter input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--x-text1); user-select: text; }
+.list-filter input::placeholder { color: var(--x-text2); }
+.list-filter kbd { padding: 2px 8px; border-radius: 7px; background: var(--x-bg2); color: var(--x-text2); font-size: 13px; }
+.list-filter:focus-within { outline: 2px solid var(--x-primary); box-shadow: 0 0 0 5px var(--x-focus); }
+.filter-count { color: var(--x-text2); font-size: 13px; white-space: nowrap; }
+.quiet-button, .import-button { height: 44px; white-space: nowrap; }
+.quiet-button { background: var(--x-bg1); }
+.content-shell { padding-top: 48px; }
+.overview-band { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: center; gap: 24px; padding: 32px; border-radius: var(--x-r-card); background: var(--x-bg1); }
+.overview-clock { grid-column: span 4; }
+.overview-search { grid-column: span 8; min-width: 0; }
+.overview-monitor { grid-column: span 12; }
+.overview-band:has(.wallpaper-card) .overview-monitor { grid-column: span 9; }
+.overview-band.has-clock:not(.has-search) .overview-clock, .overview-band.has-search:not(.has-clock) .overview-search { grid-column: span 12; }
+.wallpaper-card { grid-column: span 3; min-width: 0; padding: 16px; border-radius: var(--x-r-small); background: var(--x-bg2); font-size: 13px; }
+.wallpaper-preview { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 10px; border-radius: 14px; background: var(--x-ph); background-position: center; background-size: cover; color: var(--x-text2); text-align: center; }
+.wallpaper-preview small { display: block; margin-top: 4px; }
+.selected-group-title { display: flex; align-items: center; gap: 12px; margin: 40px 0 0; font-size: 18px; font-weight: 600; }
+.title-glyph, .heading-glyph { display: grid; flex: none; place-items: center; background: var(--group-tint); color: var(--group-fg); }
+.title-glyph { width: 28px; height: 28px; border-radius: 10px; }
+.title-count { color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.content-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 40px; margin-top: 48px; }
+.selected-group-title + .content-groups { margin-top: 24px; }
+.group-section { min-width: 0; padding: 24px; border-radius: var(--x-r-card); background: var(--x-bg1); }
+.group-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.heading-glyph { width: 44px; height: 44px; border-radius: var(--x-r-icon); }
+.group-heading h2 { flex: 1; min-width: 0; margin: 0; overflow: hidden; color: var(--x-text1); font-size: 17px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.heading-count, .save-status { padding: 5px 9px; border-radius: 999px; background: var(--x-bg2); color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.save-status.saved { color: var(--x-green-fg); }.save-status.error { color: var(--x-red-fg); }
+.raised-button { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--x-bg2); color: var(--x-text1); cursor: pointer; }
+.raised-button:hover { background: var(--x-hover); }
+.group-add { flex: none; width: 44px; padding: 0; font-size: 20px; }
+.url-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 208px), 1fr)); gap: 8px; min-height: 64px; }
+.url-row { display: flex; align-items: center; gap: 12px; min-width: 0; height: 64px; padding: 0 16px; border: 0; border-radius: var(--x-r-small); background: var(--x-bg2); color: var(--x-text1); text-align: left; cursor: pointer; transition: background-color 150ms; }
+.url-row:hover { background: var(--x-hover); }
+.url-row.sorting { cursor: grab; }.url-row.sorting:active { cursor: grabbing; }.url-row.sortable-ghost { opacity: .5; }
+.row-icon, .row-placeholder { flex: none; width: 32px; height: 32px; border-radius: 10px; }
+.row-icon { object-fit: contain; padding: 3px; }
+.row-placeholder { display: grid; place-items: center; background: var(--group-tint); color: var(--group-fg); }
+.row-copy { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.row-name, .row-domain { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-name { font-size: 15px; font-weight: 500; }.row-domain { color: var(--x-text2); font-size: 13px; }
+.row-arrow { flex: none; color: var(--x-icon3); transition: color 150ms, transform 150ms; }.url-row:hover .row-arrow { color: var(--x-text1); transform: translate(2px, -2px); }
+.drop-target { display: grid; place-items: center; height: 64px; border-radius: var(--x-r-small); background: var(--x-bg2); color: var(--x-text2); }
+.view-all { margin-top: 20px; }.empty-list { padding: 48px; color: var(--x-text2); text-align: center; }
+.footer { margin: 40px 0 0; color: var(--x-text2); font-size: 13px; }.footer.on-wallpaper, .footer.on-wallpaper :deep(*) { color: #fff; }
+.fixed-element { position: fixed; z-index: 20; right: 16px; bottom: 72px; }.floating-actions { display: flex; flex-direction: column; gap: 8px; }.floating-button, .back-top-button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: var(--x-bg1); color: var(--x-text1); cursor: pointer; }
+.rail-back-top { border-radius: var(--x-r-icon); background: transparent; }.back-top-button { font-size: 20px; }
+.mobile-dock-band, .mobile-dock { display: none; }.drawer-group { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 8px 16px; border: 0; border-radius: var(--x-r-small); background: var(--x-bg1); color: var(--x-text1); text-align: left; }.drawer-group + .drawer-group { margin-top: 8px; }.drawer-count { margin-left: auto; color: var(--x-text2); }
+.rail-brand:focus-visible, .rail-button:focus-visible, .dock-button:focus-visible, .drawer-group:focus-visible, .url-row:focus-visible, .raised-button:focus-visible, .floating-button:focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
 @keyframes first-card { from { opacity: .2; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes group-appear { from { opacity: .4; } to { opacity: 1; } }
-.first-load-motion .group-section { animation: first-card 130ms ease-out both; }
-.group-fade { animation: group-appear 150ms ease-out; }
-@media (min-width: 640px) and (max-width: 1023px) {
-  .overview-band { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .overview-band.has-search .overview-search { grid-column: 1 / -1; grid-row: 2; }
-  .overview-band:not(.has-clock):not(.has-monitor) { grid-template-columns: minmax(0, 1fr); }
-  .single-section .url-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 639px) {
-  .main-scroll { padding-left: 0; padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
-  .group-rail { inset: auto 0 0; flex-direction: row; align-items: stretch; width: 100%; height: calc(56px + env(safe-area-inset-bottom)); padding: 0; border-top: 1px solid var(--xp-hairline); border-right: 0; }
-  .rail-brand { display: none; }
-  .rail-scroll { flex-direction: row; gap: 4px; overflow-x: auto; overflow-y: hidden; padding: 7px 12px calc(8px + env(safe-area-inset-bottom)); }
-  .rail-divider { width: 1px; height: 24px; margin: 0 6px; }
-  .rail-indicator { top: 0; left: 0; width: 20px; height: 3px; }
-  .fixed-element { bottom: calc(96px + env(safe-area-inset-bottom)); }
-  .navigation-shell { margin-top: 16px; }
-  .arrange-button { margin-left: auto; }
-  .brand-name { font-size: 24px; }
-  .list-filter { order: 3; width: 100%; max-width: none; margin-left: 0; }
-  .overview-band { grid-template-columns: minmax(0, 1fr) !important; gap: 16px; }
-  .group-columns { columns: 1; }
-  .single-section .url-list { grid-template-columns: 1fr; }
-}
-@media (prefers-reduced-motion: reduce) { .cover, .rail-indicator, .rail-glyph, .rail-brand, .group-section, .url-row, .row-arrow { transition: none !important; } .first-load-motion .group-section, .group-fade { animation: none !important; } }
+.first-load-motion .group-section { animation: first-card 150ms ease-out both; }.group-fade { animation: first-card 150ms ease-out; }
+@media (max-width: 1179px) { .overview-clock, .overview-search, .overview-monitor, .overview-band:has(.wallpaper-card) .overview-monitor { grid-column: span 12; }.wallpaper-card { grid-column: span 6; } }
+@media (max-width: 767px) { .page-content { padding-right: 0; padding-left: 0; }.page-layout { padding: 16px 16px calc(136px + env(safe-area-inset-bottom)); }.group-rail { display: none; }.navigation-shell { display: block; }.header-actions { flex-wrap: wrap; margin-top: 24px; }.list-filter { order: -1; width: 100%; }.content-shell { padding-top: 32px; }.overview-band { display: flex; flex-direction: column; align-items: stretch; padding: 24px; }.content-groups { grid-template-columns: 1fr; gap: 24px; margin-top: 40px; }.url-list { grid-template-columns: 1fr; }.mobile-dock-band { position: fixed; z-index: 19; right: 0; bottom: 0; left: 0; display: block; height: calc(112px + env(safe-area-inset-bottom)); background: var(--x-bg0); }.mobile-dock { position: fixed; z-index: 21; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); left: 16px; display: flex; align-items: center; justify-content: space-around; gap: 4px; height: 64px; padding: 8px; border-radius: 24px; background: var(--x-bg1); }.dock-button { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; max-width: 46%; height: 44px; padding: 0 10px; border: 0; border-radius: var(--x-r-icon); background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.dock-button.active { flex: 1; background: var(--x-primary); color: var(--x-on-primary); }.dock-button.active span { overflow: hidden; text-overflow: ellipsis; }.more-button { background: var(--x-bg2); color: var(--x-text1); }.fixed-element { bottom: calc(136px + env(safe-area-inset-bottom)); }.brand-block h1 { font-size: 30px; } }
+@media (prefers-reduced-motion: reduce) { .rail-brand, .rail-button, .url-row, .row-arrow { transition: none; }.first-load-motion .group-section, .group-fade { animation: none; }.url-row:hover .row-arrow { transform: none; } }
 </style>

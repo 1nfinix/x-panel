@@ -17,6 +17,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emit>()
 const ms = useMessage()
 const submitLoading = ref(false)
+const saveError = ref('')
 const getIconLoading = ref([false, false])
 const itemIconGroupOptions = ref<{
   label: string
@@ -92,6 +93,7 @@ async function editApi() {
     }
   }
   submitLoading.value = true
+  saveError.value = ''
   try {
     const { code, data, msg } = await edit<Panel.ItemInfo>(model.value)
     if (code === 0) {
@@ -101,11 +103,11 @@ async function editApi() {
       emit('done', data)
     }
     else {
-      ms.error(`${t('common.saveFail')}:${msg}`)
+      saveError.value = msg || t('common.saveFail')
     }
   }
   catch (error) {
-    ms.error(t('common.saveFail'))
+    saveError.value = t('common.saveFail')
   }
   submitLoading.value = false
 }
@@ -157,6 +159,7 @@ async function getIconByUrl(url: string, loadingIndex: number) {
 
 watch(() => props.visible, (newValue) => {
   if (newValue === true) {
+    saveError.value = ''
     model.value = props.itemInfo ? { ...props.itemInfo } : { ...restoreDefault }
     if (props.itemGroupId)
       model.value.itemIconGroupId = props.itemGroupId
@@ -191,7 +194,7 @@ function getGroupListOptions() {
 </script>
 
 <template>
-  <NModal v-model:show="show" preset="card" size="small" style="width: 600px;border-radius: var(--xp-radius-lg);" :title="itemInfo ? t('iconItem.edit') : t('iconItem.add')">
+  <NModal v-model:show="show" preset="card" size="small" style="width: 600px;border-radius: var(--x-r-card);" :title="itemInfo ? t('iconItem.edit') : t('iconItem.add')">
     <div class="h-[600px] overflow-auto p-1">
       <NForm ref="formRef" :model="model" :rules="rules">
         <NGrid cols="2" :x-gap="10" item-responsive>
@@ -210,7 +213,7 @@ function getGroupListOptions() {
         <NFormItem path="icon" :label="$t('common.icon')">
           <IconEditor v-model:item-icon="model.icon" />
         </NFormItem>
-        <NFormItem path="url" :label="$t('iconItem.url')">
+        <NFormItem path="url" :label="$t('iconItem.url')" :feedback="saveError" :validation-status="saveError ? 'error' : undefined">
           <!-- <NSelect :style="{ width: '100px' }" :options="urlProtocolOptions" /> -->
           <NInputGroup>
             <NInput v-model:value="model.url" type="text" :maxlength="1000" placeholder="http(s)://" @blur="autoFetchIcon" />

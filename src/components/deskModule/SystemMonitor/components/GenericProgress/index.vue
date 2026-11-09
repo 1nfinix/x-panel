@@ -24,7 +24,7 @@ defineProps<Prop>()
       <span class="compact-value">{{ Math.round(percentage) }}%</span>
     </div>
     <div class="compact-track">
-      <span :style="{ width: `${Math.min(100, Math.max(0, percentage))}%`, background: percentage > 85 ? 'var(--xp-error)' : 'var(--xp-primary)' }" />
+      <span :style="{ width: `${Math.min(100, Math.max(0, percentage))}%`, background: percentage > 85 ? 'var(--x-red-fg)' : 'var(--x-primary)' }" />
     </div>
   </div>
   <template v-else-if="cardTypeStyle === PanelPanelConfigStyleEnum.info">
@@ -69,8 +69,8 @@ defineProps<Prop>()
 <style scoped>
 .compact-progress { min-width: 88px; width: 100%; }
 .compact-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.compact-label { overflow: hidden; color: var(--xp-muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.compact-value { color: var(--xp-ink); font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.compact-track { height: 3px; overflow: hidden; border-radius: 2px; background: var(--xp-hairline); }
+.compact-label { overflow: hidden; color: var(--x-text2); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.compact-value { color: var(--x-text1); font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.compact-track { height: 3px; overflow: hidden; border-radius: 2px; background: var(--x-sep); }
 .compact-track span { display: block; height: 100%; border-radius: inherit; }
 </style>

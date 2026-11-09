@@ -232,7 +232,10 @@
       "memoryState": "Memory status",
       "progressColor": "Main color",
       "progressRailColor": "Secondary color",
-      "systemState": "System status"
+      "systemState": "System status",
+      "normal": "Normal",
+      "high": "High",
+      "unavailable": "Unavailable"
     }
   },
   "form": {
@@ -287,7 +290,19 @@
     "arrange": "Arrange",
     "arrangeDone": "Done",
     "arrangeSaveFailed": "Failed to save order",
-    "noMatches": "No matching sites"
+    "noMatches": "No matching sites",
+    "bookmarks": "bookmarks",
+    "importBookmarks": "Import bookmarks",
+    "todayWallpaper": "Today’s wallpaper",
+    "moreGroups": "More groups",
+    "viewAll": "View all {count}",
+    "dropHere": "Drop here",
+    "saving": "Saving",
+    "saved": "Saved",
+    "error": "Save failed",
+    "undo": "Undo",
+    "loadFailed": "Could not load groups",
+    "retry": "Retry"
   },
   "settingUserInfo": {
     "confirmLogoutText": "Are you sure you want to logout?",
