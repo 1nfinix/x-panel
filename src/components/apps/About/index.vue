@@ -32,10 +32,10 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.about-panel { display: flex; flex-direction: column; align-items: center; padding: 28px 16px; color: #f2f7f4; text-align: center; }
+.about-panel { display: flex; flex-direction: column; align-items: center; padding: 28px 16px; color: var(--goop-text); text-align: center; }
 .about-panel h2 { margin: 12px 0 0; font-size: 28px; font-weight: 700; }
 .about-panel p { margin: 8px 0; }
-.about-panel .version { color: #9fb1a8; }
-.about-panel a { color: #76d99b; text-underline-offset: 3px; }
-.about-panel a:focus-visible { outline: 2px solid #76d99b; outline-offset: 3px; }
+.about-panel .version { color: var(--goop-muted); }
+.about-panel a { color: var(--goop-green); text-underline-offset: 3px; }
+.about-panel a:focus-visible { outline: 2px solid var(--goop-green); outline-offset: 3px; }
 </style>

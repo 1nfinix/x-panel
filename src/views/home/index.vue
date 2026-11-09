@@ -614,8 +614,6 @@ function handleAddItem(itemIconGroupId?: number) {
 </template>
 
 <style>
-:root { --goop-bg: #F7F5F0; --goop-panel: #FFFFFF; --goop-green: #237a49; --goop-text: #111827; --goop-border: #D9DEE7; --goop-panel-overlay: rgba(255,255,255,.8); --goop-muted: #334155; --goop-row-hover: rgba(47,158,95,.1); --goop-selection-text: #FFFFFF; --goop-active-text: #FFFFFF; --goop-placeholder-text: #FFFFFF; }
-html.dark { --goop-bg: #111827; --goop-panel: #1b2734; --goop-green: #76d99b; --goop-text: #f2f7f4; --goop-border: rgba(220,255,231,.1); --goop-panel-overlay: rgba(17,24,39,.72); --goop-muted: #9fb1a8; --goop-row-hover: rgba(118,217,155,.12); --goop-selection-text: #111827; --goop-active-text: #111827; --goop-placeholder-text: #0d1a12; }
 body, html { overflow: hidden; background: var(--goop-bg); color: var(--goop-text); }
 ::selection { background: var(--goop-green); color: var(--goop-selection-text); }
 .n-modal, .n-card { border-radius: 8px !important; }
