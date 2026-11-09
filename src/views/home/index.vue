@@ -556,7 +556,7 @@ function handleAddItem(itemIconGroupId?: number) {
             {{ t('panelHome.noMatches') }}
           </div>
         </div>
-        <div class="mt-5 footer" v-html="panelState.panelConfig.footerHtml" />
+        <div class="mt-5 footer" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" v-html="panelState.panelConfig.footerHtml" />
       </div>
     </div>
 
@@ -719,6 +719,7 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 .add-symbol { font-size: 18px; }
 .empty-list { padding: 32px; color: var(--xp-muted); text-align: center; }
 .footer { color: var(--xp-muted-soft); font-size: 13px; }
+.footer.on-wallpaper, .footer.on-wallpaper :deep(*) { color: var(--xp-wallpaper-ink); }
 .fixed-element { position: fixed; right: 16px; bottom: 40px; }
 .floating-actions { display: flex; flex-direction: column; gap: 8px; }
 .floating-button { width: 36px; height: 36px; border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-pill); background: var(--xp-canvas); color: var(--xp-ink); }
