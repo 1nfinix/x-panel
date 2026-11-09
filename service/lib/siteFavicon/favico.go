@@ -5,18 +5,74 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"time"
+	"x-panel/lib/imagecheck"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-var client = &http.Client{Timeout: 10 * time.Second}
+// allowPrivateIPs is only set by package tests using local httptest servers.
+var allowPrivateIPs bool
+
+var client = &http.Client{
+	Timeout: 10 * time.Second,
+	Transport: &http.Transport{
+		Proxy:       nil,
+		DialContext: safeDialContext,
+	},
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 5 || (req.URL.Scheme != "http" && req.URL.Scheme != "https") {
+			return errors.New("redirect rejected")
+		}
+		return nil
+	},
+}
+
+func publicIP(ip netip.Addr) bool {
+	ip = ip.Unmap()
+	if !ip.IsValid() || !ip.IsGlobalUnicast() || ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() || ip.IsMulticast() {
+		return false
+	}
+	cgnat := netip.MustParsePrefix("100.64.0.0/10")
+	return !cgnat.Contains(ip)
+}
+
+func safeDialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, err
+	}
+	ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+	if err != nil {
+		return nil, err
+	}
+	var public []netip.Addr
+	for _, ip := range ips {
+		if allowPrivateIPs || publicIP(ip) {
+			public = append(public, ip)
+		}
+	}
+	if len(public) == 0 {
+		return nil, errors.New("non-public address rejected")
+	}
+	var dialer net.Dialer
+	var lastErr error
+	for _, ip := range public {
+		conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+		if err == nil {
+			return conn, nil
+		}
+		lastErr = err
+	}
+	return nil, lastErr
+}
 
 func GetOneFaviconURL(urlStr string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -47,12 +103,12 @@ func GetOneFaviconURLContext(ctx context.Context, urlStr string) (string, error)
 		return "", err
 	}
 	if href := selectFavicon(doc); href != "" {
-		iconURL, err := pageURL.Parse(href)
+		iconURL, err := resp.Request.URL.Parse(href)
 		if err == nil && (iconURL.Scheme == "http" || iconURL.Scheme == "https") {
 			return iconURL.String(), nil
 		}
 	}
-	return pageURL.ResolveReference(&url.URL{Path: "/favicon.ico"}).String(), nil
+	return resp.Request.URL.ResolveReference(&url.URL{Path: "/favicon.ico"}).String(), nil
 }
 
 func selectFavicon(doc *goquery.Document) string {
@@ -99,8 +155,8 @@ func DownloadImage(urlStr, savePath string, maxSize int64) (*os.File, error) {
 
 func DownloadImageContext(ctx context.Context, urlStr, savePath string, maxSize int64) (*os.File, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
-	if err != nil {
-		return nil, err
+	if err != nil || (req.URL.Scheme != "http" && req.URL.Scheme != "https") || req.URL.Host == "" {
+		return nil, errors.New("invalid icon URL")
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -113,22 +169,25 @@ func DownloadImageContext(ctx context.Context, urlStr, savePath string, maxSize 
 	if resp.ContentLength > maxSize {
 		return nil, errors.New("icon exceeds 1 MB")
 	}
-	ext := path.Ext(req.URL.Path)
-	if ext == "" || len(ext) > 8 {
-		ext = ".ico"
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maxSize {
+		return nil, errors.New("icon exceeds 1 MB")
+	}
+	ext, err := imagecheck.Extension(data)
+	if err != nil {
+		return nil, err
 	}
 	file, err := os.CreateTemp(savePath, "favicon-*"+ext)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
-	n, copyErr := io.Copy(file, io.LimitReader(resp.Body, maxSize+1))
-	if copyErr != nil || n > maxSize {
+	if _, err := file.Write(data); err != nil {
 		os.Remove(file.Name())
-		if copyErr != nil {
-			return nil, copyErr
-		}
-		return nil, errors.New("icon exceeds 1 MB")
+		return nil, err
 	}
 	return file, nil
 }
