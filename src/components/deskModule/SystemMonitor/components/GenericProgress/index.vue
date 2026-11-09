@@ -21,7 +21,7 @@ defineProps<Prop>()
   <div v-if="compact" class="compact-progress">
     <div class="compact-line">
       <span class="compact-label">{{ infoCardLeftText }}</span>
-      <span class="compact-value">{{ percentage }}%</span>
+      <span class="compact-value">{{ Math.round(percentage) }}%</span>
     </div>
     <div class="compact-track">
       <span :style="{ width: `${Math.min(100, Math.max(0, percentage))}%`, background: percentage > 85 ? 'var(--xp-error)' : 'var(--xp-primary)' }" />

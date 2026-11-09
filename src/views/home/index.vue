@@ -500,7 +500,7 @@ function handleAddItem(itemIconGroupId?: number) {
           maxWidth: (panelState.panelConfig.maxWidth ?? '1200') + panelState.panelConfig.maxWidthUnit,
         }"
       >
-        <header class="navigation-shell">
+        <header class="navigation-shell" :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
           <div class="navigation-row">
             <strong class="brand-name" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">{{ panelState.panelConfig.logoText }}</strong>
             <label class="list-filter">
@@ -734,6 +734,7 @@ body, html { overflow: hidden; background: var(--xp-canvas); color: var(--xp-ink
 }
 @media (max-width: 639px) {
   .navigation-shell { margin-top: 16px; }
+  .arrange-button { margin-left: auto; }
   .brand-name { font-size: 24px; }
   .list-filter { order: 3; width: 100%; max-width: none; margin-left: 0; }
   .overview-band { grid-template-columns: minmax(0, 1fr) !important; gap: 16px; }
