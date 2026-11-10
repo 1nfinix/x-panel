@@ -242,7 +242,7 @@ function handleChangeTheme(value: Theme) {
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <NButton size="small" text type="error" @click="handleLogout">
+      <NButton type="error" @click="handleLogout">
         <template #icon>
           <SvgIcon icon="tabler:logout" />
         </template>

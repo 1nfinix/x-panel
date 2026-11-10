@@ -112,7 +112,10 @@ export function useTheme() {
       },
       Button: {
         heightMedium: '44px',
+        borderRadiusTiny: '999px',
+        borderRadiusSmall: '999px',
         borderRadiusMedium: '999px',
+        borderRadiusLarge: '999px',
         border: 'none',
         borderHover: 'none',
         borderPressed: 'none',
@@ -134,6 +137,11 @@ export function useTheme() {
         textColorPrimary: c.onPrimary,
         textColorHoverPrimary: c.onPrimary,
         textColorPressedPrimary: c.onPrimary,
+        // Text-style primary buttons are links: use the link tone so they pass 4.5:1 on dark cards.
+        textColorTextPrimary: c.blueFg,
+        textColorTextHoverPrimary: c.blueFg,
+        textColorTextPressedPrimary: c.blueFg,
+        textColorTextFocusPrimary: c.blueFg,
       },
       Input: {
         heightMedium: '44px',
@@ -147,6 +155,8 @@ export function useTheme() {
       },
       Select: {
         peers: {
+          // The menu is a panel, not a capsule: keep it on the small-card radius.
+          InternalSelectMenu: { borderRadius: '24px', color: c.bg1, boxShadow: 'none', optionColorPending: c.hover, optionTextColorActive: c.blueFg, optionCheckColor: c.blueFg },
           InternalSelection: {
             heightMedium: '44px',
             borderRadius: '999px',
@@ -165,6 +175,11 @@ export function useTheme() {
       Dropdown: { borderRadius: '24px', color: c.bg1, optionColorHover: c.bg2, optionColorActive: c.blueTint, optionTextColorActive: c.blueFg },
       Tooltip: { borderRadius: '999px', color: c.inverseBg, textColor: c.inverseFg, boxShadow: 'none' },
       Tag: { borderRadius: '999px' },
+      // Panels and multi-line surfaces must not inherit the 999px capsule radius from common.
+      ColorPicker: { borderRadius: '24px' },
+      Alert: { borderRadius: '24px' },
+      DataTable: { borderRadius: '24px' },
+      Upload: { borderRadius: '24px' },
       Message: {
         color: c.inverseBg,
         colorInfo: c.inverseBg,
