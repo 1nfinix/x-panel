@@ -6,6 +6,7 @@ import IconEditor from './IconEditor.vue'
 import { edit, getSiteFavicon } from '@/api/panel/itemIcon'
 import { getList as getGroupList } from '@/api/panel/itemIconGroup'
 import { t } from '@/locales'
+import { groupTints } from '@/utils/groupColors'
 
 interface Props {
   visible: boolean
@@ -60,6 +61,8 @@ const rules: FormRules = {
   // },
 }
 
+const defaultIconBackground = computed(() => groupTints[Math.max(0, itemIconGroupOptions.value.findIndex(group => group.value === model.value.itemIconGroupId)) % groupTints.length])
+
 const options = [
   {
     default: true,
@@ -89,7 +92,7 @@ async function editApi() {
     model.value.icon = {
       itemType: 1,
       text: model.value.title.trim().charAt(0).toUpperCase() || '?',
-      backgroundColor: model.value.icon?.backgroundColor || '#efe9de',
+      backgroundColor: model.value.icon?.backgroundColor || defaultIconBackground.value,
     }
   }
   submitLoading.value = true
@@ -211,7 +214,7 @@ function getGroupListOptions() {
         </NGrid>
 
         <NFormItem path="icon" :label="$t('common.icon')">
-          <IconEditor v-model:item-icon="model.icon" />
+          <IconEditor v-model:item-icon="model.icon" :default-background="defaultIconBackground" />
         </NFormItem>
         <NFormItem path="url" :label="$t('iconItem.url')" :feedback="saveError" :validation-status="saveError ? 'error' : undefined">
           <!-- <NSelect :style="{ width: '100px' }" :options="urlProtocolOptions" /> -->

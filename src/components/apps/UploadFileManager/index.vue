@@ -139,7 +139,7 @@ onMounted(() => {
             <NCard size="small" style="border-radius: var(--x-r-small);" :bordered="false">
               <template #cover>
                 <div class="card transparent-grid">
-                  <NImage :lazy="true" style="object-fit: contain;height: 100%;" :src="item.src" />
+                  <NImage :alt="item.fileName ?? ''" :lazy="true" style="object-fit: contain;height: 100%;" :src="item.src" />
                 </div>
               </template>
               <template #footer>

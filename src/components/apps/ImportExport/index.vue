@@ -13,6 +13,7 @@ import { addMultiple as addMultipleIcons, getListByGroupId } from '@/api/panel/i
 
 import { t } from '@/locales'
 import { useFaviconFill } from '@/hooks/useFaviconFill'
+import { groupTints } from '@/utils/groupColors'
 
 interface ItemGroup extends Panel.ItemIconGroup {
   items?: Panel.ItemInfo[]
@@ -26,6 +27,7 @@ interface BookmarkPreviewGroup extends BookmarkGroup {
 
 const ms = useMessage()
 const bookmarkPreview = ref<BookmarkPreviewGroup[]>([])
+const groupTintIndexById = new Map<number, number>()
 const bookmarkSkippedInvalid = ref(0)
 const bookmarkLoading = ref(false)
 const bookmarkImporting = ref(false)
@@ -61,9 +63,12 @@ async function handleBookmarkFileChange(options: { file: UploadFileInfo }) {
       throw new Error(groupResponse.msg)
 
     const existingGroups = new Map<string, number>()
+    groupTintIndexById.clear()
     const existingUrls = new Set<string>()
     step = t('apps.exportImport.bookmarkLoadItemsFailed')
     await Promise.all(groupResponse.data.list.map(async (group) => {
+      if (group.id)
+        groupTintIndexById.set(group.id, groupTintIndexById.size)
       if (group.id && !existingGroups.has(group.title || ''))
         existingGroups.set(group.title || '', group.id)
       const response = await getListByGroupId<Common.ListResponse<Panel.ItemInfo[]>>(group.id)
@@ -113,6 +118,7 @@ async function handleBookmarkImport() {
         if (response.code !== 0 || !response.data?.id)
           throw new Error(response.msg)
         group.existingGroupId = response.data.id
+        groupTintIndexById.set(response.data.id, groupTintIndexById.size)
       }
 
       while (group.items.length) {
@@ -123,7 +129,7 @@ async function handleBookmarkImport() {
           url: item.url,
           itemIconGroupId: group.existingGroupId,
           openMethod: 2,
-          icon: { itemType: 1, text: Array.from(item.title)[0], backgroundColor: '#efe9de' },
+          icon: { itemType: 1, text: Array.from(item.title)[0], backgroundColor: groupTints[(groupTintIndexById.get(group.existingGroupId as number) ?? 0) % groupTints.length] },
         }))
         const response = await addMultipleIcons<Panel.ItemInfo[]>(payload)
         if (response.code !== 0 || response.data?.length !== batch.length)

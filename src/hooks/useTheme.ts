@@ -87,6 +87,8 @@ export function useTheme() {
   const theme = computed(() => isDark.value ? darkTheme : undefined)
   const themeOverrides = computed<GlobalThemeOverrides>(() => {
     const c = colors.value
+    const overlayShadow = isDark.value ? '0 24px 60px -12px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.4)' : '0 24px 60px -12px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.06)'
+    const closeTheme = { closeSize: '44px', closeIconSize: '18px', closeBorderRadius: '14px', closeColorHover: c.hover }
     const focusShadow = `0 0 0 2px ${c.primary}, 0 0 0 5px ${c.focus}`
     return {
       common: {
@@ -103,6 +105,7 @@ export function useTheme() {
         textColor1: c.text1,
         textColor2: c.text2,
         textColor3: c.text2,
+        placeholderColor: c.text2,
         borderColor: c.sep,
         dividerColor: c.sep,
         borderRadius: '12px',
@@ -126,15 +129,21 @@ export function useTheme() {
         borderPressedPrimary: 'none',
         borderFocusPrimary: 'none',
         color: c.bg1,
+        colorFocus: c.bg1,
         colorHover: c.hover,
         colorPressed: c.ph,
         colorSecondary: c.bg1,
         colorSecondaryHover: c.hover,
         textColor: c.text1,
+        textColorFocus: c.text1,
         colorPrimary: c.primary,
+        colorFocusPrimary: c.primary,
         colorHoverPrimary: c.primaryHover,
         colorPressedPrimary: c.primaryActive,
         textColorPrimary: c.onPrimary,
+        textColorFocusPrimary: c.onPrimary,
+        colorFocusError: c.bg1,
+        textColorFocusError: c.text1,
         textColorHoverPrimary: c.onPrimary,
         textColorPressedPrimary: c.onPrimary,
         // Text-style primary buttons are links: use the link tone so they pass 4.5:1 on dark cards.
@@ -144,6 +153,7 @@ export function useTheme() {
         textColorTextFocusPrimary: c.blueFg,
       },
       Input: {
+        placeholderColor: c.text2,
         heightMedium: '44px',
         borderRadius: '12px',
         color: c.bg1,
@@ -156,8 +166,9 @@ export function useTheme() {
       Select: {
         peers: {
           // The menu is a panel, not a capsule: keep it on the small-card radius.
-          InternalSelectMenu: { borderRadius: '12px', color: c.bg1, boxShadow: 'var(--x-shadow-overlay)', optionColorPending: c.hover, optionTextColorActive: c.blueFg, optionCheckColor: c.blueFg },
+          InternalSelectMenu: { borderRadius: '12px', color: c.bg1, boxShadow: overlayShadow, optionColorPending: c.hover, optionTextColorActive: c.blueFg, optionCheckColor: c.blueFg },
           InternalSelection: {
+            placeholderColor: c.text2,
             heightMedium: '44px',
             borderRadius: '12px',
             color: c.bg1,
@@ -168,11 +179,12 @@ export function useTheme() {
           },
         },
       },
-      Card: { borderRadius: '20px', borderColor: c.bg1, boxShadow: 'none', color: c.bg1 },
-      Modal: { color: c.modal, boxShadow: 'var(--x-shadow-overlay)' },
-      Dialog: { borderRadius: '20px', border: 'none', color: c.modal, boxShadow: 'var(--x-shadow-overlay)' },
-      Popover: { borderRadius: '12px', color: c.bg1, boxShadow: 'var(--x-shadow-overlay)' },
-      Dropdown: { borderRadius: '12px', color: c.bg1, boxShadow: 'var(--x-shadow-overlay)', optionColorHover: c.bg2, optionColorActive: c.blueTint, optionTextColorActive: c.blueFg },
+      Card: { ...closeTheme, borderRadius: '20px', borderColor: c.bg1, boxShadow: 'none', color: c.bg1 },
+      Modal: { ...closeTheme, color: c.modal, boxShadow: overlayShadow },
+      Dialog: { ...closeTheme, borderRadius: '20px', border: 'none', color: c.modal, boxShadow: overlayShadow },
+      Drawer: { ...closeTheme },
+      Popover: { borderRadius: '12px', color: c.bg1, boxShadow: overlayShadow },
+      Dropdown: { borderRadius: '12px', color: c.bg1, boxShadow: overlayShadow, optionColorHover: c.bg2, optionColorActive: c.blueTint, optionTextColorActive: c.blueFg },
       Tooltip: { borderRadius: '999px', color: c.inverseBg, textColor: c.inverseFg, boxShadow: 'none' },
       Tag: { borderRadius: '999px' },
       // Panels and multi-line surfaces must not inherit the 999px capsule radius from common.
