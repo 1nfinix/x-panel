@@ -829,12 +829,12 @@ function handleAddItem(itemIconGroupId?: number) {
 <style>
 body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); }
 ::selection { background: var(--x-primary); color: var(--x-on-primary); }
-.rail-tooltip { position: fixed; z-index: 3000; transform: translateY(-50%); padding: 8px 14px; border-radius: var(--x-r-pill); background: var(--x-inverse-bg); color: var(--x-inverse-fg); font: 13px/1.4 var(--x-font); white-space: nowrap; pointer-events: none; box-shadow: var(--x-shadow-overlay); }
+.rail-tooltip { position: fixed; z-index: 3000; transform: translateY(-50%); padding: 8px 14px; border-radius: var(--x-r-pill); background: var(--x-inverse-bg); color: var(--x-inverse-fg); font: 13px/1.4 var(--x-font); white-space: nowrap; pointer-events: none; }
 .rail-tooltip-dot { display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; vertical-align: 2px; }
 .rail-tooltip-count { opacity: .65; font-variant-numeric: tabular-nums; }
 .rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: opacity 120ms ease, translate 120ms ease; }
 .rail-tooltip-enter-from, .rail-tooltip-leave-to { opacity: 0; translate: -4px 0; }
-.groups-drawer.n-drawer, .groups-drawer .n-drawer-content { border-radius: var(--x-r-card) var(--x-r-card) 0 0 !important; background: var(--x-bg0); overflow: hidden; box-shadow: var(--x-shadow-overlay) !important; }
+.groups-drawer.n-drawer, .groups-drawer .n-drawer-content { border-radius: var(--x-r-card) var(--x-r-card) 0 0 !important; background: var(--x-bg0); overflow: hidden; }
 .groups-drawer .n-drawer-header { border-bottom: 0 !important; }
 @media (max-width: 767px) { .rail-tooltip { display: none; } .rail-back-top { bottom: calc(136px + env(safe-area-inset-bottom)) !important; } }
 @media (prefers-reduced-motion: reduce) { .rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: none; } }

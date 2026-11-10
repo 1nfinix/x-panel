@@ -173,7 +173,7 @@ export function useTheme() {
       Dialog: { borderRadius: '20px', border: 'none', color: c.modal, boxShadow: 'var(--x-shadow-overlay)' },
       Popover: { borderRadius: '12px', color: c.bg1, boxShadow: 'var(--x-shadow-overlay)' },
       Dropdown: { borderRadius: '12px', color: c.bg1, boxShadow: 'var(--x-shadow-overlay)', optionColorHover: c.bg2, optionColorActive: c.blueTint, optionTextColorActive: c.blueFg },
-      Tooltip: { borderRadius: '999px', color: c.inverseBg, textColor: c.inverseFg, boxShadow: 'var(--x-shadow-overlay)' },
+      Tooltip: { borderRadius: '999px', color: c.inverseBg, textColor: c.inverseFg, boxShadow: 'none' },
       Tag: { borderRadius: '999px' },
       // Panels and multi-line surfaces must not inherit the 999px capsule radius from common.
       ColorPicker: { borderRadius: '12px' },
@@ -196,14 +196,14 @@ export function useTheme() {
         iconColorSuccess: c.greenSys,
         iconColorError: c.redSys,
         borderRadius: '999px',
-        boxShadow: 'var(--x-shadow-overlay)',
+        boxShadow: 'none',
       },
       Notification: {
         color: c.inverseBg,
         textColor: c.inverseFg,
         iconColorSuccess: c.greenSys,
         iconColorError: c.redSys,
-        boxShadow: 'var(--x-shadow-overlay)',
+        boxShadow: 'none',
         borderRadius: '999px',
       },
     }
