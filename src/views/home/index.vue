@@ -674,9 +674,15 @@ function handleAddItem(itemIconGroupId?: number) {
                 </div><span>{{ t('panelHome.todayWallpaper') }}</span>
               </div>
             </section>
-            <h2 v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-title" :style="selectedGroupColor">
-              <span class="title-glyph"><GroupGlyph :icon="selectedGroup.icon" :title="selectedGroup.title" :size="20" /></span>{{ selectedGroup.title }} <span class="title-count">{{ selectedGroup.items?.length ?? 0 }}</span>
-            </h2>
+            <div v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-bar" :style="selectedGroupColor">
+              <h2 class="selected-group-title">
+                <span class="title-glyph"><GroupGlyph :icon="selectedGroup.icon" :title="selectedGroup.title" :size="20" /></span>{{ selectedGroup.title }} <span class="title-count">{{ selectedGroup.items?.length ?? 0 }}</span>
+              </h2>
+              <span v-if="saveStatuses[selectedGroupId as number] && !isGroupedView" class="save-status" :class="saveStatuses[selectedGroupId as number]">{{ t(`panelHome.${saveStatuses[selectedGroupId as number]}`) }}</span>
+              <button v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN && !isGroupedView" class="group-add raised-button" type="button" :aria-label="t('common.add')" @click="handleAddItem(selectedGroupId as number)">
+                <SvgIcon icon="typcn:plus" />
+              </button>
+            </div>
             <div v-if="groupsState === 'loading'" class="content-groups" aria-busy="true">
               <NSkeleton v-for="index in 2" :key="index" height="220px" class="rounded-card" />
             </div>
@@ -685,9 +691,9 @@ function handleAddItem(itemIconGroupId?: number) {
                 {{ t('panelHome.retry') }}
               </button>
             </div>
-            <div v-else-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" class="content-groups" :class="{ 'group-fade': groupFade, 'first-load-motion': firstLoadMotion }">
+            <div v-else-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" class="content-groups" :class="{ 'group-fade': groupFade, 'first-load-motion': firstLoadMotion, 'single-group': !isGroupedView }">
               <section v-for="group in visibleGroups" :key="group.id" class="group-section" :style="{ ...groupColorStyle(group), ...(firstLoadMotion ? { animationDelay: `${Math.min(9, visibleGroups.indexOf(group)) * 30}ms` } : {}) }">
-                <div class="group-heading">
+                <div v-if="isGroupedView" class="group-heading">
                   <span class="heading-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="22" /></span><h2>{{ group.title }}</h2><span class="heading-count">{{ group.items?.length ?? 0 }}</span><span v-if="saveStatuses[group.id as number]" class="save-status" :class="saveStatuses[group.id as number]">{{ t(`panelHome.${saveStatuses[group.id as number]}`) }}</span><button v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="group-add raised-button" type="button" :aria-label="t('common.add')" @click="handleAddItem(group.id)">
                     <SvgIcon icon="typcn:plus" />
                   </button>
@@ -836,12 +842,18 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .wallpaper-preview { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 10px; border-radius: 14px; background: var(--x-ph); background-position: center; background-size: cover; color: var(--x-text2); text-align: center; }
 .wallpaper-preview small { display: block; margin-top: 4px; }
 .selected-group-title { display: flex; align-items: center; gap: 12px; margin: 40px 0 0; font-size: 18px; font-weight: 600; }
+.selected-group-bar { display: flex; align-items: center; gap: 12px; margin-top: 40px; }
+.selected-group-bar .selected-group-title { flex: 1; min-width: 0; margin: 0; }
+.selected-group-bar .group-add { background: var(--x-bg2); }
 .title-glyph, .heading-glyph { display: grid; flex: none; place-items: center; background: var(--group-tint); color: var(--group-fg); }
 .title-glyph { width: 28px; height: 28px; border-radius: 10px; }
 .title-count { color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
 .content-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 40px; margin-top: 48px; }
-.selected-group-title + .content-groups { margin-top: 24px; }
+.selected-group-bar + .content-groups { margin-top: 24px; }
 .group-section { min-width: 0; padding: 24px; border-radius: var(--x-r-card); background: var(--x-bg1); }
+.content-groups.single-group { display: block; }
+.single-group .group-section { padding: 0; border-radius: 0; background: transparent; }
+.single-group .url-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
 .group-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .heading-glyph { width: 44px; height: 44px; border-radius: var(--x-r-icon); }
 .group-heading h2 { flex: 1; min-width: 0; margin: 0; overflow: hidden; color: var(--x-text1); font-size: 17px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }

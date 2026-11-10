@@ -2,17 +2,17 @@ html, body, #app { height: 100%; }
 body { padding-bottom: env(safe-area-inset-bottom); background: var(--x-bg0); color: var(--x-text1); font-family: var(--x-font); }
 /* X导航 Design Tokens — single source for every artboard. Light is the default; [data-theme="dark"] overrides. */
 :root, [data-theme="light"] {
-  --x-bg0: #FFFFFF;          /* L0 page */
-  --x-bg1: #F6F8FA;          /* L1 card (radius 32) */
+  --x-bg0: #F1F3F6;          /* L0 page */
+  --x-bg1: #F9FAFB;          /* L1 card (radius 32) */
   --x-bg2: #FFFFFF;          /* L2 small card / control on L1 (radius 24 / pill) */
-  --x-hover: #EEF1F4;        /* hover on L2 */
-  --x-ph: #E5E8EC;           /* placeholder fill */
+  --x-hover: #EBEEF2;        /* hover on L2 */
+  --x-ph: #E3E7EC;           /* placeholder fill */
   --x-ph-text: #3A3A3C;
   --x-ph-sub: #5B5B60;
   --x-text1: #1D1D1F;
-  --x-text2: #6E6E73;        /* 5.07 on bg0, 4.76 on bg1 */
+  --x-text2: #636368;
   --x-icon3: #8E8E93;        /* decorative icons, 3.26 on bg2 */
-  --x-sep: #E5E8EC;
+  --x-sep: #E3E7EC;
   --x-disabled-bg: #E5E8EC;
   --x-disabled-fg: #8E8E93;
   --x-primary: #0071E3;      /* Apple Blue (web); white text 4.70 */
@@ -50,17 +50,17 @@ body { padding-bottom: env(safe-area-inset-bottom); background: var(--x-bg0); co
 }
 
 html.dark, [data-theme="dark"] {
-  --x-bg0: #121214;
-  --x-bg1: #1C1C1E;
-  --x-bg2: #2C2C2E;
-  --x-hover: #3A3A3C;
-  --x-ph: #3A3A3C;
+  --x-bg0: #1B1C1F;
+  --x-bg1: #242529;
+  --x-bg2: #2F3035;
+  --x-hover: #3A3B41;
+  --x-ph: #3A3B41;
   --x-ph-text: #EBEBF0;
   --x-ph-sub: #AEAEB2;
   --x-text1: #F5F5F7;
-  --x-text2: #A1A1A6;        /* 6.61 on bg1, 5.42 on bg2 */
+  --x-text2: #ADADB2;
   --x-icon3: #8E8E93;
-  --x-sep: #3A3A3C;
+  --x-sep: #3A3B41;
   --x-disabled-bg: #3A3A3C;
   --x-disabled-fg: #8E8E93;
   --x-primary: #0071E3;
@@ -101,26 +101,34 @@ html.dark, [data-theme="dark"] {
 .app-starter-modal-content .n-input,
 .app-starter-modal-content .n-base-selection { min-height: var(--x-control); }
 .app-starter-modal-content .bg-bg1 .n-button:not(.n-button--primary-type):not(.n-button--error-type) { background: var(--x-bg2); }
+html:not(.dark) .app-starter-modal-content .bg-bg1 .n-card .n-input,
+html:not(.dark) .app-starter-modal-content .bg-bg1 .n-card .n-base-selection,
+html:not(.dark) .app-starter-modal-content .bg-bg1 .n-card .n-button:not(.n-button--primary-type):not(.n-button--error-type) { background: var(--x-hover); }
 .n-button--error-type:not(.n-button--text-type) { background: var(--x-red-tint) !important; color: var(--x-red-fg) !important; border: 0 !important; }
 .n-button--error-type:not(.n-button--text-type):hover { background: var(--x-danger-hover) !important; }
 .n-button--error-type:not(.n-button--text-type):active { background: var(--x-red-fg) !important; color: var(--x-bg0) !important; }
 .n-button--error-type .n-button__border, .n-button--error-type .n-button__state-border { border: 0 !important; }
 
-/* Dark overlays are elevated one step, so every layer inside shifts up and stays distinct from its parent. */
+/* Overlay surfaces keep their inner panels distinct from the modal base. */
+html:not(.dark) .n-modal, html:not(.dark) .n-dialog, html:not(.dark) .n-drawer {
+  --x-bg0: #F9FAFB;
+  --x-bg1: #F1F3F6;
+  --x-bg2: #FFFFFF;
+}
 html.dark .n-modal, html.dark .n-dialog, html.dark .n-drawer {
-  --x-bg0: #1C1C1E;
-  --x-bg1: #2C2C2E;
-  --x-bg2: #3A3A3C;
-  --x-hover: #48484A;
-  --x-ph: #48484A;
-  --x-sep: #48484A;
+  --x-bg0: #242529;
+  --x-bg1: #2F3035;
+  --x-bg2: #3A3B41;
+  --x-hover: #45464D;
+  --x-ph: #45464D;
+  --x-sep: #45464D;
 }
 html.dark .n-modal-mask { background-color: rgba(0, 0, 0, .6); }
 
-/* Naive inputs carry literal colors; inside dark overlays follow the shifted layer so a control on a card is one step lighter, never darker. */
-html.dark .n-modal .n-base-selection, html.dark .n-modal .n-input,
-html.dark .n-dialog .n-base-selection, html.dark .n-dialog .n-input,
-html.dark .n-drawer .n-base-selection, html.dark .n-drawer .n-input {
+/* Naive inputs carry literal colors; inside overlays use the hover tone so a control always differs from the card it sits on (light: darker than white, dark: lighter than the shifted card). */
+.n-modal .n-base-selection, .n-modal .n-input,
+.n-dialog .n-base-selection, .n-dialog .n-input,
+.n-drawer .n-base-selection, .n-drawer .n-input {
   --n-color: var(--x-hover) !important;
   --n-color-active: var(--x-hover) !important;
   --n-color-focus: var(--x-hover) !important;
