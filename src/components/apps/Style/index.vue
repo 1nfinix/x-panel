@@ -112,6 +112,25 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
 
 <template>
   <div class="p-2 overflow-auto">
+    <div class="panel-actions">
+      <NButton type="primary" :loading="saveState === 'saving'" @click="uploadCloud">
+        {{ $t('common.save') }}
+      </NButton>
+      <NPopconfirm @positive-click="resetPanelConfig">
+        <template #trigger>
+          <NButton secondary>
+            {{ $t('common.reset') }}
+          </NButton>
+        </template>
+        {{ $t('apps.baseSettings.resetWarnText') }}
+      </NPopconfirm>
+      <span v-if="saveState === 'saved'" class="setting-status" role="status">{{ t('panelHome.saved') }}</span>
+    </div>
+    <p v-if="saveState === 'error'" class="setting-error" role="alert">
+      {{ saveError }} <NButton size="small" @click="uploadCloud">
+        {{ t('panelHome.retry') }}
+      </NButton>
+    </p>
     <NCard size="small">
       <div class="text-text1 text-[17px] font-medium mb-2">
         LOGO
@@ -329,29 +348,6 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
         type="textarea"
         clearable
       />
-    </NCard>
-
-    <NCard class="mt-3" size="small">
-      <NPopconfirm
-        @positive-click="resetPanelConfig"
-      >
-        <template #trigger>
-          <NButton size="small" quaternary type="error">
-            {{ $t('common.reset') }}
-          </NButton>
-        </template>
-        {{ $t('apps.baseSettings.resetWarnText') }}
-      </NPopconfirm>
-
-      <NButton size="small" secondary class="ml-3" :loading="saveState === 'saving'" @click="uploadCloud">
-        {{ $t('common.save') }}
-      </NButton>
-      <span v-if="saveState === 'saved'" class="setting-status" role="status">{{ t('panelHome.saved') }}</span>
-      <p v-if="saveState === 'error'" class="setting-error" role="alert">
-        {{ saveError }} <NButton size="small" @click="uploadCloud">
-          {{ t('panelHome.retry') }}
-        </NButton>
-      </p>
     </NCard>
   </div>
 </template>

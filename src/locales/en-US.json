@@ -86,6 +86,7 @@
     },
     "exportImport": {
       "appName": "Export/Import",
+      "configBackup": "Configuration backup",
       "bookmarkTitle": "Import browser bookmarks",
       "bookmarkDescription": "Supports bookmark HTML files exported from Chrome, Edge, Safari, and Firefox",
       "bookmarkChooseFile": "Choose bookmark file",
@@ -299,6 +300,8 @@
     "todayWallpaper": "Today’s wallpaper",
     "moreGroups": "More groups",
     "viewAll": "View all {count}",
+    "noBookmarks": "No bookmarks yet",
+    "addBookmark": "Add bookmark",
     "dropHere": "Drop here",
     "saving": "Saving",
     "saved": "Saved",

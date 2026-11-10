@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { FormInst, FormRules } from 'naive-ui'
-import { NButton, NCard, NDivider, NForm, NFormItem, NInput, NSelect, useDialog, useMessage } from 'naive-ui'
+import { NButton, NCard, NForm, NFormItem, NInput, NSelect, useDialog, useMessage } from 'naive-ui'
 import { h, ref, watch } from 'vue'
 import { useAppStore, useAuthStore, usePanelState, useUserStore } from '@/store'
 import { languageOptions } from '@/utils/defaultData'
@@ -181,6 +181,17 @@ function handleChangeTheme(value: Theme) {
 
 <template>
   <div class="p-2 h-full">
+    <div class="panel-actions">
+      <NButton type="primary" @click="updatePasswordModalState.show = !updatePasswordModalState.show">
+        {{ $t('settingUserInfo.updatePassword') }}
+      </NButton>
+      <NButton type="error" @click="handleLogout">
+        <template #icon>
+          <SvgIcon icon="lucide-log-out" />
+        </template>
+        {{ $t('settingUserInfo.logout') }}
+      </NButton>
+    </div>
     <NCard size="small">
       <div>
         <div class="text-text1 font-medium">
@@ -232,22 +243,6 @@ function handleChangeTheme(value: Theme) {
           <NSelect v-model:value="themeValue" :options="themeOptions" :aria-label="$t('apps.userInfo.theme')" @update-value="handleChangeTheme" />
         </div>
       </div>
-
-      <NDivider style="margin: 10px 0;" dashed />
-      <div>
-        <NButton size="small" text type="primary" @click="updatePasswordModalState.show = !updatePasswordModalState.show">
-          {{ $t('settingUserInfo.updatePassword') }}
-        </NButton>
-      </div>
-    </NCard>
-
-    <NCard class="mt-3" size="small">
-      <NButton type="error" @click="handleLogout">
-        <template #icon>
-          <SvgIcon icon="tabler:logout" />
-        </template>
-        {{ $t('settingUserInfo.logout') }}
-      </NButton>
     </NCard>
 
     <RoundCardModal v-model:show="updatePasswordModalState.show" size="small" preset="card" style="width: 400px" :title="$t('settingUserInfo.updatePassword')">

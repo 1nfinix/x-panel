@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NAlert, NButton, NButtonGroup, NCard, NEllipsis, NGrid, NGridItem, NImage, NImageGroup, NSpin, useDialog, useMessage } from 'naive-ui'
+import { NAlert, NButton, NCard, NGrid, NGridItem, NImage, NImageGroup, NSpin, useDialog, useMessage } from 'naive-ui'
 import { h, onMounted, ref } from 'vue'
 import { deletes, getList } from '@/api/system/file'
 import { set as savePanelConfig } from '@/api/panel/userConfig'
@@ -126,51 +126,50 @@ onMounted(() => {
         {{ t('panelHome.retry') }}
       </NButton>
     </p>
-    <NAlert type="info" :bordered="false">
+    <NAlert class="panel-alert" type="info" :bordered="false">
+      <template #icon>
+        <SvgIcon icon="lucide-info" />
+      </template>
       {{ $t('apps.uploadsFileManager.alertText') }}
     </NAlert>
-    <div class="flex justify-center mt-2">
+    <div class="upload-grid-wrap">
       <div v-if="imageList.length === 0 && !loading" class="flex">
         {{ $t('apps.uploadsFileManager.nothingText') }}
       </div>
       <NImageGroup v-else>
-        <NGrid cols="2 300:2 600:4 900:6 1100:9" :x-gap="5" :y-gap="5">
+        <NGrid cols="1 420:2 600:3" :x-gap="12" :y-gap="12">
           <NGridItem v-for=" item, index in imageList" :key="index">
             <NCard size="small" style="border-radius: var(--x-r-small);" :bordered="false">
               <template #cover>
-                <div class="card transparent-grid">
-                  <NImage :alt="item.fileName ?? ''" :lazy="true" style="object-fit: contain;height: 100%;" :src="item.src" />
+                <div class="file-thumbnail">
+                  <NImage :alt="item.fileName ?? ''" :lazy="true" :src="item.src" />
                 </div>
               </template>
               <template #footer>
-                <span class="text-[13px]">
-                  <NEllipsis>
-                    {{ item.fileName }}
-                  </NEllipsis>
-                </span>
-                <div class="flex justify-center mt-3">
-                  <NButtonGroup>
-                    <NButton size="tiny" tertiary style="cursor: pointer;" :title="$t('apps.uploadsFileManager.copyLink')" :aria-label="$t('apps.uploadsFileManager.copyLink')" @click="copyImageUrl(item.src)">
-                      <template #icon>
-                        <SvgIcon icon="ion-copy" />
-                      </template>
-                    </NButton>
-                    <NButton size="tiny" tertiary style="cursor: pointer;" :title="timeFormat(item.createTime)" :aria-label="$t('apps.uploadsFileManager.infoTitle')" @click="handleInfoClick(item)">
-                      <template #icon>
-                        <SvgIcon icon="mdi-information-box-outline" />
-                      </template>
-                    </NButton>
-                    <NButton size="tiny" tertiary style="cursor: pointer;" :loading="wallpaperLoadingId === item.id" :title="$t('apps.uploadsFileManager.setWallpaper')" :aria-label="$t('apps.uploadsFileManager.setWallpaper')" @click="handleSetWallpaper(item.src, item.id as number)">
-                      <template #icon>
-                        <SvgIcon icon="lucide:wallpaper" />
-                      </template>
-                    </NButton>
-                    <NButton size="tiny" type="error" style="cursor: pointer;" :loading="deleteLoadingId === item.id" :title="$t('common.delete')" :aria-label="$t('common.delete')" @click="handleDelete(item.id as number)">
-                      <template #icon>
-                        <SvgIcon icon="material-symbols-delete" />
-                      </template>
-                    </NButton>
-                  </NButtonGroup>
+                <div class="file-name" :title="item.fileName">
+                  {{ item.fileName }}
+                </div>
+                <div class="file-actions">
+                  <NButton quaternary class="file-action" :title="$t('apps.uploadsFileManager.copyLink')" :aria-label="$t('apps.uploadsFileManager.copyLink')" @click="copyImageUrl(item.src)">
+                    <template #icon>
+                      <SvgIcon icon="lucide-copy" />
+                    </template>
+                  </NButton>
+                  <NButton quaternary class="file-action" :title="timeFormat(item.createTime)" :aria-label="$t('apps.uploadsFileManager.infoTitle')" @click="handleInfoClick(item)">
+                    <template #icon>
+                      <SvgIcon icon="lucide-info" />
+                    </template>
+                  </NButton>
+                  <NButton quaternary class="file-action" :loading="wallpaperLoadingId === item.id" :title="$t('apps.uploadsFileManager.setWallpaper')" :aria-label="$t('apps.uploadsFileManager.setWallpaper')" @click="handleSetWallpaper(item.src, item.id as number)">
+                    <template #icon>
+                      <SvgIcon icon="lucide-image" />
+                    </template>
+                  </NButton>
+                  <NButton class="file-action file-delete" :loading="deleteLoadingId === item.id" :title="$t('common.delete')" :aria-label="$t('common.delete')" @click="handleDelete(item.id as number)">
+                    <template #icon>
+                      <SvgIcon icon="lucide-trash-2" />
+                    </template>
+                  </NButton>
                 </div>
               </template>
             </NCard>
@@ -214,12 +213,13 @@ onMounted(() => {
 
 <style scoped>
 .operation-error { margin: 8px 0; color: var(--x-red-fg); font-size: 13px; }
-.card {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 80px;
-}
-
-.transparent-grid { background: var(--x-ph); }
+.upload-grid-wrap { margin-top: 16px; }
+.file-thumbnail { display: grid; place-items: center; height: 96px; overflow: hidden; border-radius: var(--x-r-small); background: var(--x-bg2); }
+.file-thumbnail :deep(.n-image), .file-thumbnail :deep(img) { display: block; max-width: 100%; width: 100%; height: 100%; object-fit: contain; }
+.file-name { min-width: 0; overflow: hidden; color: var(--x-text1); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.file-actions { display: flex; justify-content: flex-start; gap: 4px; margin-top: 12px; }
+.file-action { width: 32px; min-width: 32px; height: 32px; min-height: 32px; padding: 0; border-radius: var(--x-r-glyph); font-size: 18px; }
+.file-action:hover { background: var(--x-hover); }
+.file-delete { background: var(--x-red-tint); color: var(--x-red-fg); }
+.file-delete:hover { background: var(--x-danger-hover); }
 </style>

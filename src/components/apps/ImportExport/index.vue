@@ -428,13 +428,17 @@ async function handleStartImport() {
 </script>
 
 <template>
-  <div class="pt-2">
-    <NCard size="small" class="mb-5" :title="$t('apps.exportImport.bookmarkTitle')">
-      <p class="mb-3">
+  <div class="import-export-panel">
+    <NCard size="small" class="import-export-card">
+      <h2>{{ $t('apps.exportImport.bookmarkTitle') }}</h2>
+      <p class="card-description">
         {{ $t('apps.exportImport.bookmarkDescription') }}
       </p>
       <NUpload accept=".html,.htm" :default-upload="false" :show-file-list="false" :disabled="bookmarkImporting" @change="handleBookmarkFileChange">
-        <NButton :loading="bookmarkLoading" :disabled="bookmarkImporting">
+        <NButton secondary :loading="bookmarkLoading" :disabled="bookmarkImporting">
+          <template #icon>
+            <SvgIcon icon="lucide-upload" />
+          </template>
           {{ $t('apps.exportImport.bookmarkChooseFile') }}
         </NButton>
       </NUpload>
@@ -476,16 +480,17 @@ async function handleStartImport() {
         </div>
       </div>
     </NCard>
-    <NAlert type="info" :bordered="false">
-      <p>{{ $t('apps.exportImport.tip') }}</p>
-    </NAlert>
-    <p v-if="versionError" class="async-error" role="alert">
-      {{ versionError }} <NButton size="small" :loading="versionLoading" @click="loadVersion">
-        {{ t('panelHome.retry') }}
-      </NButton>
-    </p>
-    <div class="flex justify-center m-12">
-      <div class="m-3">
+    <NCard size="small" class="import-export-card">
+      <h2>{{ $t('apps.exportImport.configBackup') }}</h2>
+      <p class="card-description">
+        {{ $t('apps.exportImport.tip') }}
+      </p>
+      <p v-if="versionError" class="async-error" role="alert">
+        {{ versionError }} <NButton size="small" :loading="versionLoading" @click="loadVersion">
+          {{ t('panelHome.retry') }}
+        </NButton>
+      </p>
+      <div class="card-actions">
         <NUpload
           accept=".sun-panel.json,.sunpanel.json"
           directory-dnd
@@ -493,30 +498,25 @@ async function handleStartImport() {
           :show-file-list="false"
           @change="handleFileChange"
         >
-          <NButton type="primary" size="large" :loading="uploadLoading">
+          <NButton type="primary" :loading="uploadLoading">
             <template #icon>
-              <SvgIcon icon="fa6:solid-file-import" />
+              <SvgIcon icon="lucide-file-input" />
             </template>
             {{ $t('apps.exportImport.import') }}
           </NButton>
         </NUpload>
-      </div>
-      <div class="m-3">
-        <NButton secondary size="large" @click="exportRoundModalShow = !exportRoundModalShow">
+        <NButton secondary @click="exportRoundModalShow = !exportRoundModalShow">
           <template #icon>
-            <SvgIcon icon="fa6:solid-file-export" />
+            <SvgIcon icon="lucide-file-output" />
           </template>
           {{ $t('apps.exportImport.export') }}
         </NButton>
       </div>
-    </div>
-    <p v-if="ioError && !importRoundModalShow && !exportRoundModalShow" class="async-error" role="alert">
-      {{ ioError }}
-    </p>
-
-    <div class="flex justify-center">
-      <a href="https://hslr-s.github.io/sun-panel-tool-page/#/" target="_blank">{{ $t('apps.exportImport.transmuteStandard') }}</a>
-    </div>
+      <p v-if="ioError && !importRoundModalShow && !exportRoundModalShow" class="async-error" role="alert">
+        {{ ioError }}
+      </p>
+      <a class="converter-link" href="https://hslr-s.github.io/sun-panel-tool-page/#/" target="_blank" rel="noopener noreferrer">{{ $t('apps.exportImport.transmuteStandard') }}</a>
+    </NCard>
 
     <!-- 调试模式 -->
     <div v-if="debug">
@@ -550,6 +550,9 @@ async function handleStartImport() {
       </p>
       <div v-if="importWarning.length > 0">
         <NAlert :title="$t('common.warning')" type="warning">
+          <template #icon>
+            <SvgIcon icon="lucide-triangle-alert" />
+          </template>
           <div v-for="(text, index) in importWarning " :key="index">
             {{ text }}
           </div>
@@ -601,4 +604,10 @@ async function handleStartImport() {
 
 <style scoped>
 .async-error { margin-top: 12px; color: var(--x-red-fg); font-size: 13px; }
+.import-export-panel { display: grid; align-content: start; gap: 16px; padding: 8px; }
+.import-export-card :deep(.n-card__content) { padding: 20px; }
+.import-export-card h2 { margin: 0 0 8px; color: var(--x-text1); font-size: 17px; font-weight: 600; }
+.card-description { margin: 0 0 16px; color: var(--x-text2); font-size: 13px; }
+.card-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.converter-link { display: inline-block; margin-top: 16px; color: var(--x-link); font-size: 13px; }
 </style>
