@@ -180,7 +180,7 @@ function handleChangeTheme(value: Theme) {
 </script>
 
 <template>
-  <div class="bg-bg1 p-2 h-full">
+  <div class="p-2 h-full">
     <NCard size="small">
       <div>
         <div class="text-text1 font-medium">

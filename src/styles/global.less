@@ -3,8 +3,8 @@ body { padding-bottom: env(safe-area-inset-bottom); background: var(--x-bg0); co
 /* X导航 Design Tokens — single source for every artboard. Light is the default; [data-theme="dark"] overrides. */
 :root, [data-theme="light"] {
   --x-bg0: #F1F3F6;          /* L0 page */
-  --x-bg1: #F9FAFB;          /* L1 card (radius 32) */
-  --x-bg2: #FFFFFF;          /* L2 small card / control on L1 (radius 24 / pill) */
+  --x-bg1: #F9FAFB;          /* L1 card (radius 20) */
+  --x-bg2: #FFFFFF;          /* L2 small card / control on L1 (radius 12 / pill) */
   --x-hover: #EBEEF2;        /* hover on L2 */
   --x-ph: #E3E7EC;           /* placeholder fill */
   --x-ph-text: #3A3A3C;
@@ -38,18 +38,20 @@ body { padding-bottom: env(safe-area-inset-bottom); background: var(--x-bg0); co
   --x-mint-fg: #0C7A74;   --x-mint-tint: #E4F3F2;   --x-mint-sys: #00C7BE;
   --x-brown-fg: #7F6545;  --x-brown-tint: #F3EFEA;  --x-brown-sys: #A2845E;
 
-  --x-r-card: 32px;
-  --x-r-small: 24px;
+  --x-r-card: 20px;
+  --x-r-small: 12px;
   --x-r-pill: 999px;
-  --x-r-icon: 14px;          /* icon tiles: rail, nav, group glyph */
-  --x-r-glyph: 10px;         /* 32px site glyph */
+  --x-r-icon: 12px;          /* icon tiles: rail, nav, group glyph */
+  --x-r-glyph: 8px;          /* small glyphs and rows */
   --x-s1: 8px; --x-s2: 16px; --x-s3: 24px; --x-s4: 32px; --x-s5: 40px; --x-s6: 48px; --x-s7: 56px;
   --x-control: 44px;
   --x-font: Onest, -apple-system, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
   --x-ease: cubic-bezier(.2, .8, .2, 1);
+  --x-shadow-overlay: 0 24px 60px -12px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.06);
 }
 
 html.dark, [data-theme="dark"] {
+  --x-shadow-overlay: 0 24px 60px -12px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.4);
   --x-bg0: #1B1C1F;
   --x-bg1: #242529;
   --x-bg2: #2F3035;
@@ -88,12 +90,14 @@ html.dark, [data-theme="dark"] {
 }
 
 
+html { caret-color: var(--x-primary); accent-color: var(--x-primary); font-variant-numeric: tabular-nums; }
 :where(button, a):focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
 .n-card { border: 0 !important; box-shadow: none !important; }
-.n-modal { border: 0 !important; box-shadow: none !important; }
+.n-modal { border: 0 !important; box-shadow: var(--x-shadow-overlay) !important; }
+.n-dialog, .n-drawer, .n-drawer-content { box-shadow: var(--x-shadow-overlay) !important; border-radius: var(--x-r-card) !important; }
 .n-modal.n-card { background: var(--x-bg0) !important; border-radius: var(--x-r-card) !important; }
-.n-popover, .n-dropdown-menu { border: 0 !important; box-shadow: none !important; }
-.app-starter-modal-content .n-card { background: var(--x-bg1); }
+.n-popover, .n-dropdown-menu { border: 0 !important; box-shadow: var(--x-shadow-overlay) !important; }
+.app-starter-modal-content .n-card { background: var(--x-bg1); border-radius: var(--x-r-small) !important; }
 .app-starter-modal-content .bg-bg1 .n-card { background: var(--x-bg2); }
 .app-starter-modal-content .bg-bg1 .n-input,
 .app-starter-modal-content .bg-bg1 .n-base-selection { background: var(--x-bg2); }
@@ -137,3 +141,5 @@ html.dark .n-modal-mask { background-color: rgba(0, 0, 0, .6); }
 html.dark .n-modal .n-base-selection, html.dark .n-dialog .n-base-selection, html.dark .n-drawer .n-base-selection {
   --n-text-color: var(--x-text1) !important;
 }
+
+.n-input, .n-base-selection { border-radius: var(--x-r-small) !important; }

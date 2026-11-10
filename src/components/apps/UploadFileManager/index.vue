@@ -116,7 +116,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-bg1 p-2 h-full">
+  <div class="p-2 h-full">
     <NSpin v-show="loading" size="small" />
     <p v-if="operationError" class="operation-error" role="alert">
       {{ operationError }}

@@ -161,7 +161,7 @@ onUnmounted(() => {
                   :aria-current="componentName === item.componentName ? 'page' : undefined"
                   @click="handleClickApp(item)"
                 >
-                  <SvgIcon class="text-[18px]" :icon="item.icon" />
+                  <SvgIcon class="text-[17px]" :icon="item.icon" />
                   <span>{{ item.name }}</span>
                 </button>
               </div>
@@ -179,7 +179,8 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.category-tab { display: flex; align-items: center; gap: 8px; width: 100%; height: 44px; padding: 0 16px; border: 0; border-radius: var(--x-r-pill); background: transparent; color: var(--x-text2); font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; }
+.category-tab { display: flex; align-items: center; gap: 8px; width: 100%; position: relative; height: 40px; padding: 0 16px; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text2); font-size: 15px; font-weight: 500; text-align: left; cursor: pointer; }
+.category-tab::before { position: absolute; inset: -2px 0; content: ""; }
 .category-tab.active { background: var(--x-bg1); color: var(--x-text1); }
 .category-tab:focus-visible { outline: 2px solid var(--x-primary); outline-offset: 2px; }
 </style>

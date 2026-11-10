@@ -172,11 +172,11 @@ function handleChangeLanuage(value: Language) {
 .wallpaper-mask { position: absolute; inset: 0; background: rgba(18,18,20,.55); }
 .login-card { position: relative; width: min(100%, 430px); border: 0; border-radius: var(--x-r-card); background: var(--x-bg1); color: var(--x-text1); box-shadow: none; }
 .login-card :deep(.n-card__content) { padding: 40px; }
-.login-card :deep(.n-input) { min-height: 44px; background: var(--x-bg2); }
+.login-card :deep(.n-input) { min-height: 44px; border-radius: var(--x-r-small); background: var(--x-bg2); }
 .login-card :deep(.n-button--primary-type) { height: 44px; border-radius: var(--x-r-pill); }
 .login-title { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 28px; }
 .login-brand { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--x-r-icon); background: var(--x-bg2); }.login-brand :deep(svg) { width: 28px; height: 28px; }
-.login-heading { font-family: var(--x-font); font-size: 30px; color: var(--x-text1); font-weight: 600; letter-spacing: 0; }
+.login-heading { font-family: var(--x-font); font-size: 22px; color: var(--x-text1); font-weight: 600; letter-spacing: -.02em; }
 .captcha-image { flex: none; width: 160px; height: 48px; margin-right: 12px; cursor: pointer; border-radius: var(--x-r-icon); overflow: hidden; }
 .captcha-image :deep(img) { width: 160px; height: 48px; }
 @media (max-width: 390px) { .captcha-image { width: 138px; } .captcha-image :deep(img) { width: 138px; } }

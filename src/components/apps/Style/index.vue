@@ -111,9 +111,9 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
 </script>
 
 <template>
-  <div class="bg-bg1 rounded-card p-2 overflow-auto">
+  <div class="p-2 overflow-auto">
     <NCard size="small">
-      <div class="text-text1 text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[17px] font-medium mb-2">
         LOGO
       </div>
 
@@ -128,7 +128,7 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-text1 text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[17px] font-medium mb-2">
         {{ $t('apps.baseSettings.clock') }}
       </div>
       <div class="flex items-center mt-1">
@@ -142,7 +142,7 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-text1 text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[17px] font-medium mb-2">
         {{ $t('apps.baseSettings.searchBar') }}
       </div>
       <div class="flex items-center mt-1">
@@ -156,7 +156,7 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-text1 text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[17px] font-medium mb-2">
         {{ $t('apps.baseSettings.systemMonitorStatus') }}
       </div>
       <div class="flex items-center mt-1">
@@ -174,7 +174,7 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-text1 text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[17px] font-medium mb-2">
         {{ $t('apps.baseSettings.wallpaper') }}
       </div>
       <div class="flex items-center gap-3 mb-4">
@@ -230,7 +230,7 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
     </NCard>
 
     <NCard size="small" class="mt-3">
-      <div class="text-text1 text-[16px] font-medium mb-3">
+      <div class="text-text1 text-[17px] font-medium mb-3">
         {{ $t('apps.baseSettings.fillFavicons') }}
       </div>
       <NButton :disabled="fillRunning" :loading="candidateLoading" @click="loadCandidates">
@@ -264,7 +264,7 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-text1 text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[17px] font-medium mb-2">
         {{ $t('apps.baseSettings.contentArea') }}
       </div>
 
@@ -309,7 +309,7 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
     </NCard>
 
     <NCard class="mt-3" size="small">
-      <div class="text-text1 text-[16px] font-medium mb-2">
+      <div class="text-text1 text-[17px] font-medium mb-2">
         {{ $t('apps.baseSettings.customFooter') }}
       </div>
 
