@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { h, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import { NButton, NDropdown, useDialog, useMessage } from 'naive-ui'
+import { NDropdown, useDialog, useMessage } from 'naive-ui'
 import { type MonitorData, MonitorType } from './typings'
 import Edit from './Edit/index.vue'
 import { deleteByIndex, getAll, saveAll } from './common'
-import { usePanelState } from '@/store'
 import { getCpuState, getDiskStateByPath, getMemonyState } from '@/api/system/systemMonitor'
 import { SvgIcon } from '@/components/common'
 import { t } from '@/locales'
@@ -13,7 +12,6 @@ import { useThemeColors } from '@/hooks/useTheme'
 
 interface MonitorGroup extends Panel.ItemIconGroup {
   sortStatus?: boolean
-  hoverStatus: boolean
   items?: Panel.ItemInfo[]
 }
 
@@ -21,7 +19,6 @@ const props = defineProps<{
   allowEdit?: boolean
   showTitle?: boolean
 }>()
-const panelState = usePanelState()
 const { colors } = useThemeColors()
 
 const dialog = useDialog()
@@ -37,7 +34,6 @@ const dataError = ref('')
 const dataLoading = ref(false)
 
 const monitorGroup = ref<MonitorGroup>({
-  hoverStatus: false,
   sortStatus: false,
 })
 
@@ -59,11 +55,41 @@ function handleSetSortStatus(sortStatus: boolean) {
     getData()
 }
 
-function handleSetHoverStatus(hoverStatus: boolean) {
-  monitorGroup.value.hoverStatus = hoverStatus
-}
-
 const monitorDatas = ref<MonitorData[]>([])
+const actionOptions = computed(() => [
+  { label: t('common.add'), key: 'add' },
+  ...monitorDatas.value.map((item, index) => ({ label: `${t('common.edit')} ${metricLabel(item)}`, key: `edit-${index}` })),
+  { label: t(monitorGroup.value.sortStatus ? 'common.saveSort' : 'common.sort'), key: monitorGroup.value.sortStatus ? 'save-sort' : 'sort' },
+  ...(monitorGroup.value.sortStatus ? [{ label: t('common.cancel'), key: 'cancel-sort' }] : []),
+  ...monitorDatas.value.map((item, index) => ({ label: `${t('common.delete')} ${metricLabel(item)}`, key: `delete-${index}` })),
+  ...(dataError.value ? [{ label: t('panelHome.retry'), key: 'retry' }] : []),
+])
+function handleAction(key: string | number) {
+  const action = String(key)
+  if (action === 'add') {
+    handleAddItem()
+  }
+  else if (action === 'sort') {
+    handleSetSortStatus(true)
+  }
+  else if (action === 'save-sort') {
+    handleSaveSort()
+  }
+  else if (action === 'cancel-sort') {
+    handleSetSortStatus(false)
+  }
+  else if (action === 'retry') {
+    getData()
+  }
+  else if (action.startsWith('edit-')) {
+    const index = Number(action.slice(5))
+    handleClick(index, monitorDatas.value[index])
+  }
+  else if (action.startsWith('delete-')) {
+    currentRightSelectIndex.value = Number(action.slice(7))
+    handleRightMenuSelect('delete')
+  }
+}
 const metricStates = ref<Record<number, { state: 'loading' | 'ok' | 'error'; value: number; retryAt: number }>>({})
 let metricsTimer: ReturnType<typeof setInterval>
 async function refreshMetrics() {
@@ -256,85 +282,60 @@ function handleRightMenuSelect(key: string | number) {
 </script>
 
 <template>
-  <div class="system-monitor" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" @mouseenter="handleSetHoverStatus(true)" @mouseleave="handleSetHoverStatus(false)">
-    <div class="monitor-toolbar">
-      <span v-if="showTitle" class="monitor-title">{{ $t('deskModule.systemMonitor.systemState') }}</span>
-      <div v-if="allowEdit" class="monitor-actions" :class="{ visible: monitorGroup.hoverStatus || monitorGroup.sortStatus }">
-        <button type="button" :aria-label="t('common.add')" @click="handleAddItem">
-          <SvgIcon icon="typcn:plus" />
-        </button>
-        <button type="button" :aria-label="t('common.saveSort')" @click="handleSetSortStatus(!monitorGroup.sortStatus)">
-          <SvgIcon icon="ri:drag-drop-line" />
-        </button>
-      </div>
-    </div>
-    <p v-if="dataLoading" class="sort-error" aria-live="polite">
-      {{ t('panelHome.loading') }}
-    </p>
-    <p v-if="dataError" class="sort-error" role="alert">
-      {{ dataError }} <NButton size="small" @click="getData">
-        {{ t('panelHome.retry') }}
-      </NButton>
-    </p>
-    <VueDraggable
-      v-model="monitorDatas" item-key="sort" :animation="220" class="monitor-items"
-      :disabled="!monitorGroup.sortStatus"
-    >
-      <div
-        v-for="item, index in monitorDatas" :key="index" class="monitor-item"
-        :class="{ sorting: monitorGroup.sortStatus }" :title="item.description"
-        @click="handleClick(index, item)" @contextmenu="(e) => handleContextMenu(e, index)"
-      >
+  <div class="system-monitor" :aria-label="showTitle ? t('deskModule.systemMonitor.systemState') : undefined" :title="showTitle ? t('deskModule.systemMonitor.systemState') : undefined">
+    <VueDraggable v-model="monitorDatas" item-key="sort" :animation="220" class="monitor-items" :disabled="!monitorGroup.sortStatus">
+      <div v-for="item, index in monitorDatas" :key="index" class="monitor-item" :class="{ sorting: monitorGroup.sortStatus }" :title="item.description" @contextmenu="(e) => handleContextMenu(e, index)">
         <div class="metric-head">
-          <span>{{ metricLabel(item) }}</span><span v-if="metricStates[index]?.state === 'error' || (metricStates[index]?.state === 'ok' && metricStates[index]?.value > 85)" class="metric-chip" :class="metricStates[index]?.state === 'error' ? 'error' : 'high'">{{ metricStates[index]?.state === 'error' ? t('deskModule.systemMonitor.unavailable') : t('deskModule.systemMonitor.high') }}</span>
+          <span>{{ metricLabel(item) }}</span><span v-if="metricStates[index]?.state === 'error' || dataError" class="metric-error-dot" :title="t('deskModule.systemMonitor.unavailable')" :aria-label="t('deskModule.systemMonitor.unavailable')" />
         </div>
         <div class="metric-value">
-          {{ metricStates[index]?.state === 'ok' ? `${Math.round(metricStates[index].value)}%` : '—' }}
+          {{ !dataError && metricStates[index]?.state === 'ok' ? `${Math.round(metricStates[index].value)}%` : '—' }}
         </div>
         <div class="metric-track">
           <span v-if="metricStates[index]?.state === 'ok'" :class="{ high: metricStates[index].value > 85 }" :style="{ width: `${metricStates[index].value}%` }" />
         </div>
       </div>
+      <div v-if="dataError && !monitorDatas.length" class="monitor-item" :title="dataError">
+        <div class="metric-head">
+          <span>{{ t('deskModule.systemMonitor.systemState') }}</span><span class="metric-error-dot" :title="t('deskModule.systemMonitor.unavailable')" />
+        </div>
+        <div class="metric-value">
+          —
+        </div>
+        <div class="metric-track" />
+      </div>
     </VueDraggable>
-    <p v-if="sortError" class="sort-error" role="alert">
-      {{ sortError }}
-    </p>
-    <NButton v-if="monitorGroup.sortStatus && allowEdit" secondary size="small" class="save-sort" :loading="sortSaving" @click="handleSaveSort">
-      {{ $t('common.saveSort') }}
-    </NButton>
+    <NDropdown v-if="allowEdit" trigger="click" placement="bottom-end" :options="actionOptions" @select="handleAction">
+      <button class="monitor-more" type="button" :aria-label="t('deskModule.systemMonitor.systemState')" :disabled="sortSaving" :title="sortError || dataError || t('deskModule.systemMonitor.systemState')">
+        <SvgIcon icon="lucide-ellipsis" />
+      </button>
+    </NDropdown>
+    <button v-else-if="dataError" class="monitor-retry" type="button" :title="dataError" :aria-label="t('panelHome.retry')" @click="getData">
+      <SvgIcon icon="lucide-refresh-cw" />
+    </button>
+    <span v-if="dataLoading" class="sr-only" aria-live="polite">{{ t('panelHome.loading') }}</span>
+    <span v-if="sortError" class="sr-only" role="alert">{{ sortError }}</span>
     <Edit v-model:visible="editShowStatus" :monitor-data="editData" :index="editIndex" @done="handleSaveDone" />
-    <NDropdown
-      placement="bottom-start" trigger="manual" :x="dropdownMenuX" :y="dropdownMenuY"
-      :options="getDropdownMenuOptions()" :show="dropdownShow" :on-clickoutside="onClickoutside" @select="handleRightMenuSelect"
-    />
+    <NDropdown placement="bottom-start" trigger="manual" :x="dropdownMenuX" :y="dropdownMenuY" :options="getDropdownMenuOptions()" :show="dropdownShow" :on-clickoutside="onClickoutside" @select="handleRightMenuSelect" />
   </div>
 </template>
 
 <style scoped>
-.system-monitor { min-width: 0; width: 100%; }
-.monitor-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 16px; }
-.monitor-toolbar:has(.monitor-title) { margin-bottom: 8px; }
-.monitor-title { color: var(--x-text2); font-size: 13px; }
-.system-monitor.on-wallpaper .monitor-title { color: var(--x-on-primary); }
-.monitor-actions { display: flex; gap: 8px; margin-left: auto; opacity: 0; transition: opacity 120ms; }
-.monitor-actions.visible, .monitor-actions:focus-within { opacity: 1; }
-.monitor-actions button { display: grid; width: 24px; height: 24px; place-items: center; color: var(--x-text2); }
-.monitor-actions button:focus-visible { outline: 2px solid var(--x-primary); outline-offset: 2px; }
-.monitor-items { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); min-height: 116px; overflow: hidden; border-radius: var(--x-r-small); background: var(--x-bg1); }
-.monitor-item { position: relative; min-width: 0; padding: 20px; background: transparent; cursor: pointer; }
-.monitor-item + .monitor-item::before { position: absolute; top: 20px; bottom: 20px; left: 0; width: 1px; background: var(--x-sep); content: ''; }
-.monitor-item:nth-child(4n + 1)::before { display: none; }
-.metric-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; color: var(--x-text2); font-size: 13px; }
-.metric-chip { color: var(--x-orange-fg); white-space: nowrap; }
-.metric-chip.error { color: var(--x-red-fg); }
-.metric-value { margin: 14px 0 12px; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.metric-track { width: 100%; height: 3px; overflow: hidden; border-radius: var(--x-r-pill); background: var(--x-sep); }
+.system-monitor { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.monitor-items { display: flex; align-items: center; gap: 16px; min-width: 0; overflow-x: auto; }
+.monitor-item { width: 72px; min-width: 72px; }
+.monitor-item.sorting { cursor: grab; }
+.monitor-more:focus-visible, .monitor-retry:focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
+.metric-head { display: flex; align-items: center; gap: 4px; overflow: hidden; color: var(--x-text2); font-size: 12px; line-height: 16px; white-space: nowrap; text-overflow: ellipsis; }
+.metric-head span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.metric-error-dot { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--x-red-sys); }
+.metric-value { color: var(--x-text1); font-size: 15px; font-weight: 600; line-height: 18px; font-variant-numeric: tabular-nums; }
+.metric-track { width: 72px; height: 3px; margin-top: 3px; overflow: hidden; border-radius: var(--x-r-pill); background: var(--x-sep); }
 .metric-track span { display: block; height: 100%; border-radius: inherit; background: var(--x-primary); transition: width 150ms; }
 .metric-track span.high { background: var(--x-orange-sys); }
-.monitor-item.sorting { cursor: grab; }
-.save-sort { margin-top: 8px; }
-.sort-error { margin-top: 12px; color: var(--x-red-fg); font-size: 13px; }
-@media (max-width: 1179px) { .monitor-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }.monitor-item:nth-child(4n + 1)::before { display: block; }.monitor-item:nth-child(2n + 1)::before { display: none; } }
-@media (max-width: 767px) { .monitor-item + .monitor-item::before { display: none; } }
-@media (prefers-reduced-motion: reduce) { .monitor-actions { transition: none; } }
+.monitor-more, .monitor-retry { display: grid; flex: none; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text2); cursor: pointer; }
+.monitor-more:hover, .monitor-retry:hover { background: var(--x-hover); color: var(--x-text1); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@media (max-width: 767px) { .system-monitor { flex: 1; } .monitor-items { display: grid; flex: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); } .monitor-item { width: 100%; min-width: 0; } }
+@media (prefers-reduced-motion: reduce) { .metric-track span { transition: none; } }
 </style>
