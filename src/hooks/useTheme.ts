@@ -180,7 +180,8 @@ export function useTheme() {
         },
       },
       Card: { ...closeTheme, borderRadius: '20px', borderColor: c.bg1, boxShadow: 'none', color: c.bg1 },
-      Modal: { ...closeTheme, color: c.modal, boxShadow: overlayShadow },
+      // preset="card"/"dialog" modals render through these peers, so the close target must be set here too.
+      Modal: { ...closeTheme, color: c.modal, boxShadow: overlayShadow, peers: { Card: closeTheme, Dialog: closeTheme } },
       Dialog: { ...closeTheme, borderRadius: '20px', border: 'none', color: c.modal, boxShadow: overlayShadow },
       Drawer: { ...closeTheme },
       Popover: { borderRadius: '12px', color: c.bg1, boxShadow: overlayShadow },
