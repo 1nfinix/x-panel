@@ -943,9 +943,11 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
   .page-content { padding-right: 0; padding-left: 0; }
   .page-layout { padding: 16px 16px calc(136px + env(safe-area-inset-bottom)); }
   .group-rail { display: none; }
-  .navigation-shell { display: flex; flex-wrap: wrap; }
-  .brand-block { flex: 1; min-width: 0; }
-  .header-actions { width: 100%; flex-wrap: wrap; margin-top: 24px; }
+  .navigation-shell { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 0; }
+  .brand-block { display: contents; }
+  .brand-block h1 { grid-column: 1; grid-row: 1; }
+  .brand-block p { grid-column: 1 / -1; grid-row: 2; }
+  .header-actions { grid-column: 1 / -1; grid-row: 3; width: 100%; flex-wrap: wrap; margin-top: 24px; }
   .list-filter { order: -1; width: 100%; }
   .content-shell { padding-top: 32px; }
   .overview-band { display: flex; flex-direction: column; align-items: stretch; gap: 24px; }
@@ -959,7 +961,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
   .dock-button.is-all.active { background: var(--x-blue-tint); color: var(--x-blue-fg); }
   .dock-button.active span { overflow: hidden; text-overflow: ellipsis; }
   .more-button { background: transparent; color: var(--x-text2); }
-  .fixed-element { position: static; flex: none; }
+  .fixed-element { grid-column: 2; grid-row: 1; position: static; }
   .floating-actions { flex-direction: row; }
 }
 @media (prefers-reduced-motion: reduce) { .rail-brand, .rail-button, .url-row, .row-arrow { transition: none; }.first-load-motion .group-section, .group-fade { animation: none; }.url-row:hover .row-arrow { transform: none; } }

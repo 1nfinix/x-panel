@@ -218,13 +218,17 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
         </div>
 
         <div class="flex items-center mt-3">
-          <span class="mr-3">{{ $t('apps.baseSettings.vague') }}</span>
-          <NSlider v-model:value="panelState.panelConfig.backgroundBlur" class="max-w-[200px]" :step="2" :max="20" :aria-label="$t('apps.baseSettings.vague')" />
+          <span id="style-background-blur-label" class="mr-3">{{ $t('apps.baseSettings.vague') }}</span>
+          <div role="group" aria-labelledby="style-background-blur-label" class="w-full max-w-[200px]">
+            <NSlider v-model:value="panelState.panelConfig.backgroundBlur" :step="2" :max="20" />
+          </div>
         </div>
 
         <div class="flex items-center mt-3">
-          <span class="mr-3">{{ $t('apps.baseSettings.mask') }}</span>
-          <NSlider v-model:value="panelState.panelConfig.backgroundMaskNumber" class="max-w-[200px]" :step="0.1" :max="1" :aria-label="$t('apps.baseSettings.mask')" />
+          <span id="style-background-mask-label" class="mr-3">{{ $t('apps.baseSettings.mask') }}</span>
+          <div role="group" aria-labelledby="style-background-mask-label" class="w-full max-w-[200px]">
+            <NSlider v-model:value="panelState.panelConfig.backgroundMaskNumber" :step="0.1" :max="1" />
+          </div>
         </div>
       </div>
     </NCard>
@@ -289,20 +293,26 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
         </NGridItem>
         <NGridItem span="12 400:12">
           <div class="flex items-center mt-3">
-            <span class="mr-3">{{ $t('apps.baseSettings.leftRightMargin') }}</span>
-            <NSlider v-model:value="panelState.panelConfig.marginX" class="max-w-[200px]" :step="1" :max="100" :aria-label="$t('apps.baseSettings.leftRightMargin')" />
+            <span id="style-horizontal-margin-label" class="mr-3">{{ $t('apps.baseSettings.leftRightMargin') }}</span>
+            <div role="group" aria-labelledby="style-horizontal-margin-label" class="w-full max-w-[200px]">
+              <NSlider v-model:value="panelState.panelConfig.marginX" :step="1" :max="100" />
+            </div>
           </div>
         </NGridItem>
         <NGridItem span="12 400:12">
           <div class="flex items-center mt-3">
-            <span class="mr-3">{{ $t('apps.baseSettings.topMargin') }} (%)</span>
-            <NSlider v-model:value="panelState.panelConfig.marginTop" class="max-w-[200px]" :step="1" :max="50" :aria-label="$t('apps.baseSettings.topMargin')" />
+            <span id="style-top-margin-label" class="mr-3">{{ $t('apps.baseSettings.topMargin') }} (%)</span>
+            <div role="group" aria-labelledby="style-top-margin-label" class="w-full max-w-[200px]">
+              <NSlider v-model:value="panelState.panelConfig.marginTop" :step="1" :max="50" />
+            </div>
           </div>
         </NGridItem>
         <NGridItem span="12 400:6">
           <div class="flex items-center mt-3">
-            <span class="mr-3">{{ $t('apps.baseSettings.bottomMargin') }} (%)</span>
-            <NSlider v-model:value="panelState.panelConfig.marginBottom" class="max-w-[200px]" :step="1" :max="50" :aria-label="$t('apps.baseSettings.bottomMargin')" />
+            <span id="style-bottom-margin-label" class="mr-3">{{ $t('apps.baseSettings.bottomMargin') }} (%)</span>
+            <div role="group" aria-labelledby="style-bottom-margin-label" class="w-full max-w-[200px]">
+              <NSlider v-model:value="panelState.panelConfig.marginBottom" :step="1" :max="50" />
+            </div>
           </div>
         </NGridItem>
       </NGrid>

@@ -292,7 +292,7 @@ function handleRightMenuSelect(key: string | number) {
           {{ metricStates[index]?.state === 'ok' ? `${Math.round(metricStates[index].value)}%` : '—' }}
         </div>
         <div class="metric-track">
-          <span :class="{ high: metricStates[index]?.value > 85 }" :style="{ width: metricStates[index]?.state === 'ok' ? `${metricStates[index].value}%` : '0%' }" />
+          <span v-if="metricStates[index]?.state === 'ok'" :class="{ high: metricStates[index].value > 85 }" :style="{ width: `${metricStates[index].value}%` }" />
         </div>
       </div>
     </VueDraggable>
@@ -320,19 +320,21 @@ function handleRightMenuSelect(key: string | number) {
 .monitor-actions.visible, .monitor-actions:focus-within { opacity: 1; }
 .monitor-actions button { display: grid; width: 24px; height: 24px; place-items: center; color: var(--x-text2); }
 .monitor-actions button:focus-visible { outline: 2px solid var(--x-primary); outline-offset: 2px; }
-.monitor-items { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); min-height: 116px; overflow: hidden; border-radius: var(--x-r-small); background: var(--x-bg1); }
+.monitor-items { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); min-height: 116px; overflow: hidden; border-radius: var(--x-r-small); background: var(--x-bg1); }
 .monitor-item { position: relative; min-width: 0; padding: 20px; background: transparent; cursor: pointer; }
 .monitor-item + .monitor-item::before { position: absolute; top: 20px; bottom: 20px; left: 0; width: 1px; background: var(--x-sep); content: ''; }
+.monitor-item:nth-child(4n + 1)::before { display: none; }
 .metric-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; color: var(--x-text2); font-size: 13px; }
 .metric-chip { color: var(--x-orange-fg); white-space: nowrap; }
 .metric-chip.error { color: var(--x-red-fg); }
 .metric-value { margin: 14px 0 12px; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.metric-track { height: 3px; overflow: hidden; border-radius: var(--x-r-pill); background: var(--x-sep); }
-.metric-track span { display: block; height: 100%; border-radius: inherit; background: var(--x-text2); transition: width 150ms; }
-.metric-track span.high { background: var(--x-orange-fg); }
+.metric-track { width: 100%; height: 3px; overflow: hidden; border-radius: var(--x-r-pill); background: var(--x-sep); }
+.metric-track span { display: block; height: 100%; border-radius: inherit; background: var(--x-primary); transition: width 150ms; }
+.metric-track span.high { background: var(--x-orange-sys); }
 .monitor-item.sorting { cursor: grab; }
 .save-sort { margin-top: 8px; }
 .sort-error { margin-top: 12px; color: var(--x-red-fg); font-size: 13px; }
-@media (max-width: 767px) { .monitor-items { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }.monitor-item + .monitor-item::before { display: none; } }
+@media (max-width: 1179px) { .monitor-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }.monitor-item:nth-child(4n + 1)::before { display: block; }.monitor-item:nth-child(2n + 1)::before { display: none; } }
+@media (max-width: 767px) { .monitor-item + .monitor-item::before { display: none; } }
 @media (prefers-reduced-motion: reduce) { .monitor-actions { transition: none; } }
 </style>

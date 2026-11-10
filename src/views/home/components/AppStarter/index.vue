@@ -124,11 +124,11 @@ onUnmounted(() => {
       size="small"
     >
       <template #header>
-        <div class="flex items-center select-none">
-          <button type="button" class="text-[22px] cursor-pointer text-text1" :aria-label="t('appLauncher.toggleSidebar')" :aria-expanded="!collapsed" @click="collapsed = !collapsed">
+        <div class="flex items-center gap-2 select-none">
+          <button type="button" class="sidebar-toggle" :aria-label="t('appLauncher.toggleSidebar')" :aria-expanded="!collapsed" @click="collapsed = !collapsed">
             <SvgIcon class=" transition-all duration-500" :icon="collapsed ? 'tabler-layout-sidebar-right-collapse-filled' : 'tabler-layout-sidebar-left-collapse-filled'" />
           </button>
-          <div class="ml-1">
+          <div>
             {{ title === '' ? defaultTitle : title }}
           </div>
         </div>
@@ -179,6 +179,9 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.sidebar-toggle { display: grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text1); font-size: 22px; cursor: pointer; }
+.sidebar-toggle:hover { background: var(--x-hover); }
+.sidebar-toggle:focus-visible { outline: 2px solid var(--x-primary); outline-offset: 2px; }
 .category-tab { display: flex; align-items: center; gap: 8px; width: 100%; position: relative; height: 40px; padding: 0 16px; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text2); font-size: 15px; font-weight: 500; text-align: left; cursor: pointer; }
 .category-tab::before { position: absolute; inset: -2px 0; content: ""; }
 .category-tab.active { background: var(--x-bg1); color: var(--x-text1); }
