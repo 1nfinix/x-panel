@@ -9,6 +9,7 @@ import { usePanelState } from '@/store'
 import { getCpuState, getDiskStateByPath, getMemonyState } from '@/api/system/systemMonitor'
 import { SvgIcon } from '@/components/common'
 import { t } from '@/locales'
+import { useThemeColors } from '@/hooks/useTheme'
 
 interface MonitorGroup extends Panel.ItemIconGroup {
   sortStatus?: boolean
@@ -21,6 +22,7 @@ const props = defineProps<{
   showTitle?: boolean
 }>()
 const panelState = usePanelState()
+const { colors } = useThemeColors()
 
 const dialog = useDialog()
 const ms = useMessage()
@@ -117,10 +119,10 @@ async function getData() {
       monitorDatas.value.push(
         {
           extendParam: {
-            backgroundColor: 'var(--x-bg2)',
-            color: 'var(--x-text1)',
-            progressColor: 'var(--x-primary)',
-            progressRailColor: 'var(--x-sep)',
+            backgroundColor: colors.value.bg2,
+            color: colors.value.text1,
+            progressColor: colors.value.primary,
+            progressRailColor: colors.value.sep,
           },
           monitorType: MonitorType.cpu,
         },

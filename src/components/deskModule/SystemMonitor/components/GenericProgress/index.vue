@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { NProgress } from 'naive-ui'
 import { PanelPanelConfigStyleEnum } from '@/enums'
+import { resolveNaiveColor, useThemeColors } from '@/hooks/useTheme'
 
 interface Prop {
   textColor: string
@@ -14,7 +16,10 @@ interface Prop {
   compact?: boolean
 }
 
-defineProps<Prop>()
+const props = defineProps<Prop>()
+const { colors } = useThemeColors()
+const safeProgressColor = computed(() => resolveNaiveColor(props.progressColor, colors.value, colors.value.primary))
+const safeRailColor = computed(() => resolveNaiveColor(props.progressRailColor, colors.value, colors.value.sep))
 </script>
 
 <template>
@@ -39,8 +44,8 @@ defineProps<Prop>()
       </div>
       <NProgress
         type="line"
-        :color="progressColor"
-        :rail-color="progressRailColor"
+        :color="safeProgressColor"
+        :rail-color="safeRailColor"
         :height="progressHeight"
         :percentage="percentage"
         :show-indicator="false"
@@ -52,8 +57,8 @@ defineProps<Prop>()
   <template v-else>
     <div class="w-full flex justify-center h-full w-full mt-3">
       <NProgress
-        :color="progressColor"
-        :rail-color="progressRailColor"
+        :color="safeProgressColor"
+        :rail-color="safeRailColor"
         type="dashboard"
         :percentage="percentage" :stroke-width="15"
         style="width: 50px;"

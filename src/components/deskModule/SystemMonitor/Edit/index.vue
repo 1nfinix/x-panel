@@ -8,6 +8,7 @@ import { add, saveByIndex } from '../common'
 import GenericProgressStyleEditor from './GenericProgressStyleEditor/index.vue'
 import DiskEditor from './DiskEditor/index.vue'
 import { t } from '@/locales'
+import { resolveNaiveColor, useThemeColors } from '@/hooks/useTheme'
 
 interface Props {
   visible: boolean
@@ -18,32 +19,36 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<Emit>()
 const DiskEditorRef = ref<InstanceType<typeof DiskEditor>>()
+const { colors } = useThemeColors()
 
 // 默认通用的进度扩展参数
-const defaultGenericProgressStyleExtendParam: GenericProgressStyleExtendParam = {
-  progressColor: 'var(--x-text1)',
-  progressRailColor: 'var(--x-sep)',
-  color: 'var(--x-text1)',
-  backgroundColor: 'var(--x-bg2)',
+function defaultGenericProgressStyleExtendParam(): GenericProgressStyleExtendParam {
+  return {
+    progressColor: colors.value.text1,
+    progressRailColor: colors.value.sep,
+    color: colors.value.text1,
+    backgroundColor: colors.value.bg2,
+  }
 }
 
-const defaultDiskExtendParam: DiskExtendParam = {
-  progressColor: 'var(--x-text1)',
-  progressRailColor: 'var(--x-sep)',
-  color: 'var(--x-text1)',
-  backgroundColor: 'var(--x-bg2)',
-  path: '',
+function defaultDiskExtendParam(): DiskExtendParam {
+  return { ...defaultGenericProgressStyleExtendParam(), path: '' }
 }
 
-const defaultMonitorData: MonitorData = {
-  extendParam: defaultGenericProgressStyleExtendParam,
-  monitorType: MonitorType.cpu,
+function normalizeColors<T extends GenericProgressStyleExtendParam>(value: T): T {
+  return {
+    ...value,
+    progressColor: resolveNaiveColor(value.progressColor, colors.value, colors.value.text1),
+    progressRailColor: resolveNaiveColor(value.progressRailColor, colors.value, colors.value.sep),
+    color: resolveNaiveColor(value.color, colors.value, colors.value.text1),
+    backgroundColor: resolveNaiveColor(value.backgroundColor, colors.value, colors.value.bg2),
+  }
 }
 
 const active = ref<string>(MonitorType.cpu)
-const currentMonitorData = ref<MonitorData>(props.monitorData || { ...defaultMonitorData })
-const currentGenericProgressStyleExtendParam = ref<GenericProgressStyleExtendParam>({ ...defaultGenericProgressStyleExtendParam })
-const currentDiskExtendParam = ref<DiskExtendParam>({ ...defaultDiskExtendParam })
+const currentMonitorData = ref<MonitorData>(props.monitorData || { extendParam: defaultGenericProgressStyleExtendParam(), monitorType: MonitorType.cpu })
+const currentGenericProgressStyleExtendParam = ref<GenericProgressStyleExtendParam>(defaultGenericProgressStyleExtendParam())
+const currentDiskExtendParam = ref<DiskExtendParam>(defaultDiskExtendParam())
 
 const submitLoading = ref(false)
 const saveError = ref('')
@@ -62,21 +67,25 @@ const show = computed({
 })
 
 watch(() => props.visible, (value) => {
-  if (value)
+  if (value) {
     saveError.value = ''
-  active.value = props.monitorData?.monitorType || MonitorType.cpu
-  if (props.monitorData?.monitorType === MonitorType.cpu || props.monitorData?.monitorType === MonitorType.memory)
-    currentGenericProgressStyleExtendParam.value = { ...props.monitorData?.extendParam }
-  else if (props.monitorData?.monitorType === MonitorType.disk)
-    currentDiskExtendParam.value = { ...props.monitorData?.extendParam }
-
-  if (!value)
+    active.value = props.monitorData?.monitorType || MonitorType.cpu
+    currentMonitorData.value = props.monitorData ? { ...props.monitorData } : { extendParam: defaultGenericProgressStyleExtendParam(), monitorType: MonitorType.cpu }
+    if (props.monitorData?.monitorType === MonitorType.cpu || props.monitorData?.monitorType === MonitorType.memory)
+      currentGenericProgressStyleExtendParam.value = props.monitorData.extendParam ? normalizeColors(props.monitorData.extendParam as GenericProgressStyleExtendParam) : defaultGenericProgressStyleExtendParam()
+    else if (props.monitorData?.monitorType === MonitorType.disk)
+      currentDiskExtendParam.value = props.monitorData.extendParam ? normalizeColors(props.monitorData.extendParam as DiskExtendParam) : defaultDiskExtendParam()
+    else
+      handleResetExtendParam()
+  }
+  else {
     handleResetExtendParam()
+  }
 })
 
 function handleResetExtendParam() {
-  currentGenericProgressStyleExtendParam.value = { ...defaultGenericProgressStyleExtendParam }
-  currentDiskExtendParam.value = { ...defaultDiskExtendParam }
+  currentGenericProgressStyleExtendParam.value = defaultGenericProgressStyleExtendParam()
+  currentDiskExtendParam.value = defaultDiskExtendParam()
 }
 
 // 保存提交

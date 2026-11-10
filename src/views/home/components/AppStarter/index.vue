@@ -30,7 +30,7 @@ const screenWidth = ref(0)
 const isSmallScreen = ref(false)
 const defaultTitle = t('appLauncher.title')
 const title = ref('')
-const height = ref('500px')
+const height = computed(() => isSmallScreen.value ? 'calc(100dvh - 112px)' : '500px')
 
 const apps = ref<App[]>([
   {
@@ -120,7 +120,7 @@ onUnmounted(() => {
   <div>
     <RoundCardModal
       v-model:show="show"
-      style="max-width: 900px;"
+      style="width: calc(100vw - 32px); max-width: 900px;"
       size="small"
     >
       <template #header>
@@ -133,8 +133,8 @@ onUnmounted(() => {
           </div>
         </div>
       </template>
-      <div class="w-full h-full app-starter-modal-content">
-        <NLayout has-sider class="rounded-card bg-bg0">
+      <div class="w-full app-starter-modal-content" :style="{ height }">
+        <NLayout has-sider class="h-full rounded-card bg-bg0">
           <NLayoutSider
             v-model:collapsed="collapsed"
             collapse-mode="width"
@@ -149,7 +149,7 @@ onUnmounted(() => {
                 :style="{
                   width: isSmallScreen ? '100%' : '220px',
                   minWidth: '200px',
-                  height,
+                  height: '100%',
                 }"
               >
                 <button
@@ -166,7 +166,7 @@ onUnmounted(() => {
               </div>
             </div>
           </NLayoutSider>
-          <NLayoutContent class="bg-bg0" :content-style="{ height }">
+          <NLayoutContent class="bg-bg0" :content-style="{ height: '100%' }">
             <div class="h-full overflow-auto min-w-[300px]" :class="(isSmallScreen && !collapsed) ? 'opacity-0' : 'opacity-100'">
               <AppLoader :component-name="componentName" class="h-full" />
             </div>
