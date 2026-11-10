@@ -177,18 +177,22 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full">
-    <div class="p-2">
-      <NButton type="primary" size="small" class="mr-3" @click="handleAddGroup">
-        {{ $t('common.add') }}
+  <div class="h-full p-2">
+    <div class="panel-actions">
+      <NButton type="primary" @click="handleAddGroup">
+        <template #icon>
+          <SvgIcon icon="lucide-plus" />
+        </template>{{ $t('common.add') }}
       </NButton>
-
-      <NButton v-if="!sortStatus" size="small" @click="handleDragSort">
-        {{ $t('common.sort') }}
+      <NButton v-if="!sortStatus" secondary @click="handleDragSort">
+        <template #icon>
+          <SvgIcon icon="lucide-arrow-down-up" />
+        </template>{{ $t('common.sort') }}
       </NButton>
-
-      <NButton v-else type="primary" size="small" :loading="sortSaving" @click="handleSaveSort">
-        {{ $t('common.saveSort') }}
+      <NButton v-else secondary :loading="sortSaving" @click="handleSaveSort">
+        <template #icon>
+          <SvgIcon icon="lucide-arrow-down-up" />
+        </template>{{ $t('common.saveSort') }}
       </NButton>
     </div>
 
@@ -200,7 +204,7 @@ onMounted(() => {
         {{ t('panelHome.retry') }}
       </NButton>
     </p>
-    <div class="overflow-auto w-full mt-5 rounded-small" style="height:calc(100% - 65px)">
+    <div class="overflow-auto w-full rounded-small">
       <VueDraggable
         v-model="groups"
         item-key="sort" :animation="300"
@@ -218,21 +222,17 @@ onMounted(() => {
                   {{ item.title }}
                 </span>
               </div>
-              <div class="ml-auto">
-                <span>
-                  <NButton secondary size="small" :aria-label="t('apps.itemGroupManage.editGroup')" @click="handleEditGroup(item)">
-                    <template #icon>
-                      <SvgIcon icon="basil:edit-solid" />
-                    </template>
-                  </NButton>
-                </span>
-                <span class="ml-3">
-                  <NButton type="error" size="small" class="ml-3 danger-button" :loading="deletingId === item.id" :aria-label="t('apps.itemGroupManage.deleteGroup')" @click="handleDelete(item)">
-                    <template #icon>
-                      <SvgIcon icon="material-symbols:delete" />
-                    </template>
-                  </NButton>
-                </span>
+              <div class="group-row-actions ml-auto">
+                <NButton quaternary class="group-icon-action" :aria-label="t('apps.itemGroupManage.editGroup')" @click="handleEditGroup(item)">
+                  <template #icon>
+                    <SvgIcon icon="lucide-pencil" />
+                  </template>
+                </NButton>
+                <NButton class="group-icon-action danger-button" :loading="deletingId === item.id" :aria-label="t('apps.itemGroupManage.deleteGroup')" @click="handleDelete(item)">
+                  <template #icon>
+                    <SvgIcon icon="lucide-trash-2" />
+                  </template>
+                </NButton>
               </div>
             </div>
           </NCard>
@@ -278,6 +278,9 @@ onMounted(() => {
 .group-icon-option:first-child { align-content: center; gap: 1px; }
 .group-icon-option.active { background: var(--x-blue-tint); color: var(--x-blue-fg); }
 .form-error { padding: 8px 12px; color: var(--x-red-fg); font-size: 13px; }
+.group-row-actions { display: flex; align-items: center; gap: 8px; }
+.group-icon-action { width: 36px; height: 36px; min-width: 36px; min-height: 36px; border-radius: var(--x-r-small); font-size: 18px; }
+.group-icon-action::before { position: absolute; inset: -4px; content: ""; }
 .danger-button { background: var(--x-red-tint); color: var(--x-red-fg); }
 .group-icon-option:focus-visible { outline: 2px solid var(--x-primary); outline-offset: 2px; }
 </style>

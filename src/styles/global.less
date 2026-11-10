@@ -98,6 +98,14 @@ html { caret-color: var(--x-primary); accent-color: var(--x-primary); font-varia
 .n-drawer-content { border-radius: var(--x-r-card) !important; }
 .n-modal.n-card { background: var(--x-bg0) !important; border-radius: var(--x-r-card) !important; }
 .n-popover, .n-dropdown-menu { border: 0 !important; box-shadow: var(--x-shadow-overlay) !important; }
+.app-starter-modal-content .panel-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.app-starter-modal-content .panel-actions .n-button { height: 44px; border-radius: var(--x-r-pill); }
+.app-starter-modal-content .panel-alert { margin: 0 0 16px; width: 100%; }
+.app-starter-modal-content .panel-actions .svg-icon,
+.app-starter-modal-content .file-actions .svg-icon,
+.app-starter-modal-content .group-row-actions .svg-icon { width: 18px; height: 18px; }
+.app-starter-modal-content .file-action.n-button { min-width: 32px; width: 32px; min-height: 32px; height: 32px; }
+.app-starter-modal-content .group-icon-action.n-button { min-width: 36px; width: 36px; min-height: 36px; height: 36px; }
 .app-starter-modal-content .n-card { background: var(--x-bg1); border-radius: var(--x-r-small) !important; }
 .app-starter-modal-content .bg-bg1 .n-card { background: var(--x-bg2); }
 .app-starter-modal-content .bg-bg1 .n-input,
@@ -144,3 +152,11 @@ html.dark .n-modal .n-base-selection, html.dark .n-dialog .n-base-selection, htm
 }
 
 .n-input, .n-base-selection { border-radius: var(--x-r-small) !important; }
+
+/* Secondary buttons in overlays sit on the modal base or a white card: use the hover tone so the capsule stays visible on either. */
+.n-modal .n-button--secondary, .n-dialog .n-button--secondary, .n-drawer .n-button--secondary {
+  --n-color: var(--x-hover) !important;
+  --n-color-hover: var(--x-ph) !important;
+  --n-color-pressed: var(--x-ph) !important;
+  --n-color-focus: var(--x-hover) !important;
+}

@@ -36,27 +36,27 @@ const apps = ref<App[]>([
   {
     name: t('apps.userInfo.appName'),
     componentName: 'UserInfo',
-    icon: 'material-symbols-person-edit-outline-rounded',
+    icon: 'lucide-user-round-pen',
   },
   {
     name: t('apps.baseSettings.appName'),
     componentName: 'Style',
-    icon: 'ion-color-palette-outline',
+    icon: 'lucide-palette',
   },
   {
     name: t('apps.itemGroupManage.appName'),
     componentName: 'ItemGroupManage',
-    icon: 'material-symbols-ad-group-outline-rounded',
+    icon: 'lucide-folder-closed',
   },
   {
     name: t('apps.uploadsFileManager.appName'),
     componentName: 'UploadFileManager',
-    icon: 'tabler:file-upload',
+    icon: 'lucide-upload',
   },
   {
     name: t('apps.exportImport.appName'),
     componentName: 'ImportExport',
-    icon: 'icon-park-outline-import-and-export',
+    icon: 'lucide-arrow-down-up',
   },
   {
     name: t('apps.about.appName'),
@@ -126,7 +126,7 @@ onUnmounted(() => {
       <template #header>
         <div class="flex items-center gap-2 select-none">
           <button type="button" class="sidebar-toggle" :aria-label="t('appLauncher.toggleSidebar')" :aria-expanded="!collapsed" @click="collapsed = !collapsed">
-            <SvgIcon class=" transition-all duration-500" :icon="collapsed ? 'tabler-layout-sidebar-right-collapse-filled' : 'tabler-layout-sidebar-left-collapse-filled'" />
+            <SvgIcon class=" transition-all duration-500" :icon="collapsed ? 'lucide-panel-left-open' : 'lucide-panel-left-close'" />
           </button>
           <div>
             {{ title === '' ? defaultTitle : title }}
@@ -161,7 +161,7 @@ onUnmounted(() => {
                   :aria-current="componentName === item.componentName ? 'page' : undefined"
                   @click="handleClickApp(item)"
                 >
-                  <SvgIcon class="text-[17px]" :icon="item.icon" />
+                  <SvgIcon class="text-[18px]" :icon="item.icon" />
                   <span>{{ item.name }}</span>
                 </button>
               </div>
@@ -179,7 +179,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.sidebar-toggle { display: grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text1); font-size: 22px; cursor: pointer; }
+.sidebar-toggle { display: grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text1); font-size: 18px; cursor: pointer; }
 .sidebar-toggle:hover { background: var(--x-hover); }
 .sidebar-toggle:focus-visible { outline: 2px solid var(--x-primary); outline-offset: 2px; }
 .category-tab { display: flex; align-items: center; gap: 8px; width: 100%; position: relative; height: 40px; padding: 0 16px; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text2); font-size: 15px; font-weight: 500; text-align: left; cursor: pointer; }

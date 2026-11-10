@@ -691,28 +691,28 @@ function handleAddItem(itemIconGroupId?: number) {
               <div class="floating-actions">
                 <NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.lan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :aria-label="t('panelHome.changeToWanModel')" :title="t('panelHome.changeToWanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.wan)">
                   <template #icon>
-                    <SvgIcon icon="material-symbols:lan-outline-rounded" />
+                    <SvgIcon icon="lucide-network" />
                   </template>
                 </NButton>
                 <NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.wan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :aria-label="t('panelHome.changeToLanModel')" :title="t('panelHome.changeToLanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.lan)">
                   <template #icon>
-                    <SvgIcon icon="mdi:wan" />
+                    <SvgIcon icon="lucide-globe-2" />
                   </template>
                 </NButton>
                 <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="floating-button" :aria-label="t('appLauncher.title')" @click="initialSettingsPanel = 'UserInfo'; settingModalShow = true">
                   <template #icon>
-                    <SvgIcon icon="majesticons-applications" />
+                    <SvgIcon icon="lucide-layout-grid" />
                   </template>
                 </NButton>
                 <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" class="floating-button" :aria-label="t('panelHome.goToLogin')" :title="t('panelHome.goToLogin')" @click="router.push('/login')">
                   <template #icon>
-                    <SvgIcon icon="material-symbols:account-circle" />
+                    <SvgIcon icon="lucide-user-round" />
                   </template>
                 </NButton>
               </div>
             </div>
             <div class="header-actions">
-              <label class="list-filter"><SvgIcon icon="iconamoon:search-fill" aria-hidden="true" /><input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')" @keydown="onFilterKeydown"><span v-if="listFilter.trim()" class="filter-count">{{ t('panelHome.resultsCount', { count: visibleCount }) }}</span><kbd v-else>/</kbd></label>
+              <label class="list-filter"><SvgIcon icon="lucide-search" aria-hidden="true" /><input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')" @keydown="onFilterKeydown"><span v-if="listFilter.trim()" class="filter-count">{{ t('panelHome.resultsCount', { count: visibleCount }) }}</span><kbd v-else>/</kbd></label>
               <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="quiet-button" :type="arrangeMode ? 'primary' : 'default'" @click="toggleArrangeMode">
                 {{ arrangeMode ? t('panelHome.arrangeDone') : t('panelHome.arrange') }}
               </NButton>
@@ -738,7 +738,7 @@ function handleAddItem(itemIconGroupId?: number) {
               </h2>
               <span v-if="saveStatuses[selectedGroupId as number] && !isGroupedView" class="save-status" :class="saveStatuses[selectedGroupId as number]">{{ t(`panelHome.${saveStatuses[selectedGroupId as number]}`) }}</span>
               <button v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN && !isGroupedView" class="group-add raised-button" type="button" :aria-label="t('common.add')" @click="handleAddItem(selectedGroupId as number)">
-                <SvgIcon icon="typcn:plus" />
+                <SvgIcon icon="lucide-plus" />
               </button>
             </div>
             <div v-if="groupsState === 'loading'" class="content-groups" aria-busy="true">
@@ -753,7 +753,7 @@ function handleAddItem(itemIconGroupId?: number) {
               <section v-for="group in visibleGroups" :key="group.id" class="group-section" :style="{ ...groupColorStyle(group), ...(firstLoadMotion ? { animationDelay: `${Math.min(9, visibleGroups.indexOf(group)) * 30}ms` } : {}) }">
                 <div v-if="isGroupedView" class="group-heading">
                   <span class="heading-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="22" /></span><h2>{{ group.title }}</h2><span class="heading-count">{{ group.items?.length ?? 0 }}</span><span v-if="saveStatuses[group.id as number]" class="save-status" :class="saveStatuses[group.id as number]">{{ t(`panelHome.${saveStatuses[group.id as number]}`) }}</span><button v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="group-add raised-button" type="button" :aria-label="t('common.add')" @click="handleAddItem(group.id)">
-                    <SvgIcon icon="typcn:plus" />
+                    <SvgIcon icon="lucide-plus" />
                   </button>
                 </div>
                 <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="150" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" :delay-on-touch-only="true" ghost-class="sortable-ghost" @end="handleEndDrag">
@@ -763,6 +763,12 @@ function handleAddItem(itemIconGroupId?: number) {
                   </button>
                   <div v-if="arrangeMode && !group.items.length" class="drop-target">
                     {{ t('panelHome.dropHere') }}
+                  </div>
+                  <div v-else-if="!group.items.length && !listFilter.trim() && !searchBoxKeyword" class="group-empty">
+                    <span>{{ t('panelHome.noBookmarks') }}</span>
+                    <button v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" type="button" @click="handleAddItem(group.id)">
+                      {{ t('panelHome.addBookmark') }}
+                    </button>
                   </div>
                 </VueDraggable>
                 <button v-if="selectedGroupId === 'all' && !listFilter.trim() && !searchBoxKeyword && !arrangeMode && (group.items?.length ?? 0) > 9" class="view-all raised-button" type="button" @click="selectGroup(group.id as number)">
@@ -791,7 +797,7 @@ function handleAddItem(itemIconGroupId?: number) {
       </button><button v-for="group in dockGroups" :key="group.id" class="dock-button" :class="{ active: selectedGroupId === group.id }" :style="groupColorStyle(group)" type="button" :aria-label="group.title" @click="selectDockGroup(group.id as number)">
         <GroupGlyph :icon="group.icon" :title="group.title" :size="22" /><span v-if="selectedGroupId === group.id">{{ group.title }}</span>
       </button><button class="dock-button more-button" type="button" :aria-label="t('panelHome.moreGroups')" @click="moreDrawerShow = true">
-        <SvgIcon icon="mingcute:more-1-fill" />
+        <SvgIcon icon="lucide-ellipsis" />
       </button>
     </nav>
     <NDrawer v-model:show="moreDrawerShow" placement="bottom" height="min(70vh, 620px)" class="groups-drawer">
@@ -808,7 +814,7 @@ function handleAddItem(itemIconGroupId?: number) {
     <AppStarter v-model:visible="settingModalShow" :initial-panel="initialSettingsPanel" />
     <NBackTop class="rail-back-top" :listen-to="() => scrollContainerRef" :right="16" :bottom="16">
       <div class="back-top-button">
-        <SvgIcon icon="icon-park-outline:to-top" />
+        <SvgIcon icon="lucide-chevron-up" />
       </div>
     </NBackTop>
     <EditItem v-model:visible="editItemInfoShow" :item-info="editItemInfoData" :item-group-id="currentAddItenIconGroupId" @done="handleEditSuccess" />
@@ -867,7 +873,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .list-filter { display: flex; align-items: center; gap: 12px; min-width: 280px; width: 320px; height: 44px; padding: 0 16px; border: 0; border-radius: var(--x-r-pill); background: var(--x-bg1); color: var(--x-text2); }
 .list-filter input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--x-text1); user-select: text; }
 .list-filter input::placeholder { color: var(--x-text2); }
-.list-filter kbd { padding: 2px 8px; border-radius: 7px; background: var(--x-bg2); color: var(--x-text2); font-size: 13px; }
+.list-filter kbd { padding: 2px 8px; border-radius: var(--x-r-glyph); background: var(--x-bg2); color: var(--x-text2); font-size: 13px; }
 .list-filter:focus-within { outline: 2px solid var(--x-primary); box-shadow: 0 0 0 5px var(--x-focus); }
 .filter-count { color: var(--x-text2); font-size: 13px; white-space: nowrap; }
 .quiet-button, .import-button { height: 44px; white-space: nowrap; background: var(--x-bg1); color: var(--x-text1); }
@@ -890,8 +896,11 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .title-glyph, .heading-glyph { display: grid; flex: none; place-items: center; background: var(--group-tint); color: var(--group-fg); }
 .title-glyph { width: 32px; height: 32px; border-radius: var(--x-r-glyph); }
 .title-count { color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
-.content-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 24px; margin-top: 40px; }
+.content-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); align-items: start; gap: 24px; margin-top: 40px; }
 .selected-group-bar + .content-groups { margin-top: 24px; }
+.group-empty { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px; color: var(--x-text2); font-size: 13px; }
+.group-empty button { border: 0; background: transparent; color: var(--x-link); font: inherit; cursor: pointer; }
+.group-empty button:focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; border-radius: var(--x-r-glyph); }
 .group-section { min-width: 0; padding: 20px 12px 12px; border-radius: var(--x-r-card); background: var(--x-bg1); }
 .content-groups.single-group { display: block; }
 .single-group .group-section { padding: 0; border-radius: 0; background: transparent; }

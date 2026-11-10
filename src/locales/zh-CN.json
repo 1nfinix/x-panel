@@ -86,6 +86,7 @@
     },
     "exportImport": {
       "appName": "导出导入",
+      "configBackup": "配置备份",
       "bookmarkTitle": "从浏览器书签导入",
       "bookmarkDescription": "支持 Chrome、Edge、Safari、Firefox 导出的书签 HTML 文件",
       "bookmarkChooseFile": "选择书签文件",
@@ -299,6 +300,8 @@
     "todayWallpaper": "今日壁纸",
     "moreGroups": "更多分组",
     "viewAll": "查看全部 {count} 个",
+    "noBookmarks": "暂无网址",
+    "addBookmark": "添加网址",
     "dropHere": "拖到这里",
     "saving": "保存中",
     "saved": "已保存",

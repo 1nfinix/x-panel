@@ -38,28 +38,31 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="about-panel">
-    <img :src="srcSvglogo" width="100" height="100" alt="X-Panel">
-    <h2>{{ $t('common.appName') }}</h2>
-    <p v-if="versionName" class="version">
-      v{{ versionName }}
-    </p>
-    <p v-else-if="versionLoading" class="version">
-      {{ t('panelHome.loading') }}
-    </p>
-    <p v-if="versionError" class="version-error" role="alert">
-      {{ versionError }} <NButton size="small" @click="loadVersion">
-        {{ t('panelHome.retry') }}
-      </NButton>
-    </p>
-    <p>{{ $t('apps.about.maintainer') }}<a href="https://github.com/1nfinix" target="_blank" rel="noopener noreferrer">1nfinix</a></p>
-    <p>{{ $t('apps.about.repository') }}<a href="https://github.com/1nfinix/x-panel" target="_blank" rel="noopener noreferrer">1nfinix/x-panel</a></p>
-    <p><a href="https://github.com/hslr-s/sun-panel" target="_blank" rel="noopener noreferrer">{{ $t('apps.about.basedOn') }}</a></p>
+  <div class="about-wrap">
+    <div class="about-panel">
+      <img :src="srcSvglogo" width="100" height="100" alt="X-Panel">
+      <h2>{{ $t('common.appName') }}</h2>
+      <p v-if="versionName" class="version">
+        v{{ versionName }}
+      </p>
+      <p v-else-if="versionLoading" class="version">
+        {{ t('panelHome.loading') }}
+      </p>
+      <p v-if="versionError" class="version-error" role="alert">
+        {{ versionError }} <NButton size="small" @click="loadVersion">
+          {{ t('panelHome.retry') }}
+        </NButton>
+      </p>
+      <p>{{ $t('apps.about.maintainer') }}<a href="https://github.com/1nfinix" target="_blank" rel="noopener noreferrer">1nfinix</a></p>
+      <p>{{ $t('apps.about.repository') }}<a href="https://github.com/1nfinix/x-panel" target="_blank" rel="noopener noreferrer">1nfinix/x-panel</a></p>
+      <p><a href="https://github.com/hslr-s/sun-panel" target="_blank" rel="noopener noreferrer">{{ $t('apps.about.basedOn') }}</a></p>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.about-panel { display: flex; flex-direction: column; align-items: center; padding: 32px 16px; color: var(--x-text1); text-align: center; }
+.about-wrap { padding: 8px; }
+.about-panel { border-radius: var(--x-r-small); background: var(--x-bg1); display: flex; flex-direction: column; align-items: center; padding: 32px 16px; color: var(--x-text1); text-align: center; }
 .about-panel h2 { margin: 12px 0 0; font: 600 28px/1.2 var(--x-font); letter-spacing: 0; }
 .about-panel p { margin: 8px 0; }
 .about-panel .version { color: var(--x-text2); }

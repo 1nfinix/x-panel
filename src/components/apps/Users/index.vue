@@ -94,7 +94,7 @@ const createColumns = ({
             default() {
               return h(
                 SvgIcon, {
-                  icon: 'mingcute:more-1-fill',
+                  icon: 'lucide-ellipsis',
                 },
               )
             },
@@ -259,14 +259,19 @@ onMounted(() => {
         {{ t('panelHome.retry') }}
       </NButton>
     </p>
-    <NAlert type="info" :bordered="false">
-      {{ $t('adminSettingUsers.alertText') }}
-    </NAlert>
-    <div class="my-[10px]">
-      <NButton type="primary" size="small" ghost @click="handleAdd">
-        {{ $t('common.add') }}
+    <div class="panel-actions">
+      <NButton type="primary" @click="handleAdd">
+        <template #icon>
+          <SvgIcon icon="lucide-plus" />
+        </template>{{ $t('common.add') }}
       </NButton>
     </div>
+    <NAlert class="panel-alert" type="info" :bordered="false">
+      <template #icon>
+        <SvgIcon icon="lucide-info" />
+      </template>
+      {{ $t('adminSettingUsers.alertText') }}
+    </NAlert>
 
     <NDataTable
       :columns="columns"

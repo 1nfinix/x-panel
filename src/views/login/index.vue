@@ -119,34 +119,36 @@ function handleChangeLanuage(value: Language) {
           {{ panelState.panelConfig.logoText || $t('common.appName') }}
         </strong>
       </div>
-      <NForm :model="form" label-width="100px" @keydown.enter="handleSubmit">
-        <NFormItem :feedback="fieldError.username" :validation-status="fieldError.username ? 'error' : undefined">
-          <NInput v-model:value="form.username" :placeholder="$t('login.usernamePlaceholder')" :input-props="{ 'aria-label': $t('login.usernamePlaceholder') }">
-            <template #prefix>
-              <SvgIcon icon="ph:user-bold" />
-            </template>
-          </NInput>
-        </NFormItem>
+      <NForm class="login-form" :model="form" :show-label="false" @keydown.enter="handleSubmit">
+        <div class="login-fields">
+          <NFormItem :show-feedback="!!fieldError.username" :feedback="fieldError.username" :validation-status="fieldError.username ? 'error' : undefined">
+            <NInput v-model:value="form.username" :placeholder="$t('login.usernamePlaceholder')" :input-props="{ 'aria-label': $t('login.usernamePlaceholder') }">
+              <template #prefix>
+                <SvgIcon icon="ph:user-bold" />
+              </template>
+            </NInput>
+          </NFormItem>
 
-        <NFormItem :feedback="fieldError.password" :validation-status="fieldError.password ? 'error' : undefined">
-          <NInput v-model:value="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')" :input-props="{ 'aria-label': $t('login.passwordPlaceholder') }">
-            <template #prefix>
-              <SvgIcon icon="mdi:password-outline" />
-            </template>
-          </NInput>
-        </NFormItem>
+          <NFormItem :show-feedback="!!fieldError.password" :feedback="fieldError.password" :validation-status="fieldError.password ? 'error' : undefined">
+            <NInput v-model:value="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')" :input-props="{ 'aria-label': $t('login.passwordPlaceholder') }">
+              <template #prefix>
+                <SvgIcon icon="mdi:password-outline" />
+              </template>
+            </NInput>
+          </NFormItem>
 
-        <NFormItem v-if="isShowCaptcha" :feedback="fieldError.vcode" :validation-status="fieldError.vcode ? 'error' : undefined">
-          <div class="captcha-image" :title="t('login.refreshCaptcha')">
-            <Captcha ref="captchaRef" src="/api/captcha/getImage" />
-          </div>
-          <NInput v-model:value="form.vcode" type="text" maxlength="4" :placeholder="t('login.captchaPlaceholder')" :input-props="{ 'aria-label': t('login.captchaPlaceholder') }" />
-        </NFormItem>
-        <NFormItem class="mt-3">
+          <NFormItem v-if="isShowCaptcha" :show-feedback="!!fieldError.vcode" :feedback="fieldError.vcode" :validation-status="fieldError.vcode ? 'error' : undefined">
+            <div class="captcha-image" :title="t('login.refreshCaptcha')">
+              <Captcha ref="captchaRef" src="/api/captcha/getImage" />
+            </div>
+            <NInput v-model:value="form.vcode" type="text" maxlength="4" :placeholder="t('login.captchaPlaceholder')" :input-props="{ 'aria-label': t('login.captchaPlaceholder') }" />
+          </NFormItem>
+        </div>
+        <div class="login-submit">
           <NButton type="primary" block :loading="loading" @click="handleSubmit">
             {{ $t('login.loginButton') }}
           </NButton>
-        </NFormItem>
+        </div>
 
         <!-- <div class="flex justify-end">
           <NButton v-if="isShowRegister" text type="primary" class="flex" @click="$router.push({ path: '/register' })">
@@ -157,7 +159,7 @@ function handleChangeLanuage(value: Language) {
           </NButton>
         </div> -->
 
-        <div class="flex justify-center text-text2 text-[13px]">
+        <div class="login-footer flex justify-center text-text2 text-[13px]">
           Powered By <a href="https://github.com/1nfinix/x-panel" target="_blank" class="ml-1 text-text2">X-Panel</a>
         </div>
       </NForm>
@@ -174,8 +176,13 @@ function handleChangeLanuage(value: Language) {
 .login-card :deep(.n-card__content) { padding: 40px; }
 .login-card :deep(.n-input) { min-height: 44px; border-radius: var(--x-r-small); background: var(--x-bg2); }
 .login-card :deep(.n-button--primary-type) { height: 44px; border-radius: var(--x-r-pill); }
-.login-title { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 28px; }
+.login-title { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 32px; }
 .login-brand { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--x-r-icon); background: var(--x-bg2); }.login-brand :deep(svg) { width: 28px; height: 28px; }
+.login-fields { display: grid; gap: 16px; }
+.login-fields :deep(.n-form-item) { margin: 0; }
+.login-submit { margin-top: 24px; }
+.login-submit .n-button { width: 100%; }
+.login-footer { margin-top: 16px; }
 .login-heading { font-family: var(--x-font); font-size: 22px; color: var(--x-text1); font-weight: 600; letter-spacing: -.02em; }
 .captcha-image { flex: none; width: 160px; height: 48px; margin-right: 12px; cursor: pointer; border-radius: var(--x-r-icon); overflow: hidden; }
 .captcha-image :deep(img) { width: 160px; height: 48px; }
