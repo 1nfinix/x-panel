@@ -1,27 +1,12 @@
-import { darkTheme, lightTheme } from 'naive-ui'
-
 const setupScrollbarStyle = () => {
   const style = document.createElement('style')
-  const styleContent = `
-    ::-webkit-scrollbar {
-      background-color: transparent;
-      width: ${lightTheme.Scrollbar.common?.scrollbarWidth};
-    }
-    ::-webkit-scrollbar-thumb {
-      background-color: ${lightTheme.Scrollbar.common?.scrollbarColor};
-      border-radius: ${lightTheme.Scrollbar.common?.scrollbarBorderRadius};
-    }
-    html.dark ::-webkit-scrollbar {
-      background-color: transparent;
-      width: ${darkTheme.Scrollbar.common?.scrollbarWidth};
-    }
-    html.dark ::-webkit-scrollbar-thumb {
-      background-color: ${darkTheme.Scrollbar.common?.scrollbarColor};
-      border-radius: ${darkTheme.Scrollbar.common?.scrollbarBorderRadius};
-    }
+  style.textContent = `
+    html { scrollbar-width: thin; scrollbar-color: var(--x-ph) transparent; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { border-radius: var(--x-r-pill); background: var(--x-ph); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--x-icon3); }
   `
-
-  style.innerHTML = styleContent
   document.head.appendChild(style)
 }
 

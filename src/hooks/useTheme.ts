@@ -105,7 +105,7 @@ export function useTheme() {
         textColor3: c.text2,
         borderColor: c.sep,
         dividerColor: c.sep,
-        borderRadius: '999px',
+        borderRadius: '12px',
         heightMedium: '44px',
         fontFamily: 'Onest, -apple-system, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif',
         fontSize: '15px',
@@ -145,7 +145,7 @@ export function useTheme() {
       },
       Input: {
         heightMedium: '44px',
-        borderRadius: '999px',
+        borderRadius: '12px',
         color: c.bg1,
         colorFocus: c.bg1,
         border: 'none',
@@ -156,10 +156,10 @@ export function useTheme() {
       Select: {
         peers: {
           // The menu is a panel, not a capsule: keep it on the small-card radius.
-          InternalSelectMenu: { borderRadius: '24px', color: c.bg1, boxShadow: 'none', optionColorPending: c.hover, optionTextColorActive: c.blueFg, optionCheckColor: c.blueFg },
+          InternalSelectMenu: { borderRadius: '12px', color: c.bg1, boxShadow: 'var(--x-shadow-overlay)', optionColorPending: c.hover, optionTextColorActive: c.blueFg, optionCheckColor: c.blueFg },
           InternalSelection: {
             heightMedium: '44px',
-            borderRadius: '999px',
+            borderRadius: '12px',
             color: c.bg1,
             border: 'none',
             borderHover: 'none',
@@ -168,18 +168,18 @@ export function useTheme() {
           },
         },
       },
-      Card: { borderRadius: '32px', borderColor: c.bg1, boxShadow: 'none', color: c.bg1 },
-      Modal: { color: c.modal, boxShadow: 'none' },
-      Dialog: { borderRadius: '24px', border: 'none', color: c.modal },
-      Popover: { borderRadius: '24px', color: c.bg1, boxShadow: 'none' },
-      Dropdown: { borderRadius: '24px', color: c.bg1, optionColorHover: c.bg2, optionColorActive: c.blueTint, optionTextColorActive: c.blueFg },
+      Card: { borderRadius: '20px', borderColor: c.bg1, boxShadow: 'none', color: c.bg1 },
+      Modal: { color: c.modal, boxShadow: 'var(--x-shadow-overlay)' },
+      Dialog: { borderRadius: '20px', border: 'none', color: c.modal, boxShadow: 'var(--x-shadow-overlay)' },
+      Popover: { borderRadius: '12px', color: c.bg1, boxShadow: 'var(--x-shadow-overlay)' },
+      Dropdown: { borderRadius: '12px', color: c.bg1, boxShadow: 'var(--x-shadow-overlay)', optionColorHover: c.bg2, optionColorActive: c.blueTint, optionTextColorActive: c.blueFg },
       Tooltip: { borderRadius: '999px', color: c.inverseBg, textColor: c.inverseFg, boxShadow: 'none' },
       Tag: { borderRadius: '999px' },
       // Panels and multi-line surfaces must not inherit the 999px capsule radius from common.
-      ColorPicker: { borderRadius: '24px' },
-      Alert: { borderRadius: '24px' },
-      DataTable: { borderRadius: '24px' },
-      Upload: { borderRadius: '24px' },
+      ColorPicker: { borderRadius: '12px' },
+      Alert: { borderRadius: '12px' },
+      DataTable: { borderRadius: '12px' },
+      Upload: { borderRadius: '12px' },
       Message: {
         color: c.inverseBg,
         colorInfo: c.inverseBg,

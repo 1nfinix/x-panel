@@ -75,16 +75,16 @@ const data = computed({
 
     <NForm ref="formRef" v-model="data">
       <NFormItem :label="$t('deskModule.systemMonitor.progressColor')">
-        <NColorPicker v-model:value="data.progressColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" />
+        <NColorPicker v-model:value="data.progressColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" :aria-label="$t('deskModule.systemMonitor.progressColor')" />
       </NFormItem>
       <NFormItem :label="$t('deskModule.systemMonitor.progressRailColor')">
-        <NColorPicker v-model:value="data.progressRailColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" />
+        <NColorPicker v-model:value="data.progressRailColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" :aria-label="$t('deskModule.systemMonitor.progressRailColor')" />
       </NFormItem>
       <NFormItem :label="$t('common.textColor')">
-        <NColorPicker v-model:value="data.color" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" />
+        <NColorPicker v-model:value="data.color" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" :aria-label="$t('common.textColor')" />
       </NFormItem>
       <NFormItem :label="$t('common.backgroundColor')">
-        <NColorPicker v-model:value="data.backgroundColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" />
+        <NColorPicker v-model:value="data.backgroundColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" :aria-label="$t('common.backgroundColor')" />
       </NFormItem>
     </NForm>
   </div>

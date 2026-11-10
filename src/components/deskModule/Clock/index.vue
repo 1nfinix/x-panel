@@ -83,12 +83,12 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.clock { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; white-space: nowrap; }
-.clock-time { color: var(--x-text1); font: 600 64px/1.1 var(--x-font); font-variant-numeric: tabular-nums; }
-.clock-calendar { display: flex; gap: 6px; color: var(--x-text2); font-size: 14px; }
+.clock { display: flex; flex-direction: row; align-items: baseline; gap: 16px; white-space: nowrap; }
+.clock-time { color: var(--x-text1); font: 600 44px/1.1 var(--x-font); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.clock-calendar { display: flex; gap: 6px; color: var(--x-text2); font-size: 13px; }
 @media (max-width: 767px) {
   .clock { flex-direction: row; align-items: baseline; gap: 16px; }
-  .clock-time { font-size: 48px; }
+  .clock-time { font-size: 44px; }
   .clock-calendar { font-size: 13px; }
 }
 </style>

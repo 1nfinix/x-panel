@@ -26,6 +26,7 @@ export const t = i18n.global.t
 // 后面有时间调整
 export function setLocale(locale: any) {
   i18n.global.locale = locale
+  document.documentElement.lang = locale
 }
 
 export function setupI18n(app: App) {

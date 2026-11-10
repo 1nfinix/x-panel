@@ -114,11 +114,11 @@ onMounted(async () => {
 
 <template>
   <div class="search-box" @keydown.esc="handleClearSearchTerm">
-    <div class="search-controls">
+    <div class="search-controls" :class="{ 'has-value': !!searchTerm }">
       <NPopover v-model:show="searchSelectListShow" trigger="click" placement="bottom-start" :show-arrow="false" class="engine-popover">
         <template #trigger>
           <button class="engine-button" type="button" :aria-label="state.currentSearchEngine.title" :aria-expanded="searchSelectListShow">
-            <img :src="state.currentSearchEngine.iconSrc" alt=""><span>{{ state.currentSearchEngine.title }}</span><span class="chevron" aria-hidden="true" />
+            <img :src="state.currentSearchEngine.iconSrc" alt=""><span class="chevron" aria-hidden="true" />
           </button>
         </template>
         <div class="engine-menu" role="group" :aria-label="t('deskModule.searchBox.inputPlaceholder')">
@@ -150,22 +150,23 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.search-box { width: 100%; }
-.search-controls { display: flex; align-items: center; gap: 8px; }
-.engine-button, .engine-option { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 0; border-radius: var(--x-r-pill); background: var(--x-bg2); color: var(--x-text1); cursor: pointer; white-space: nowrap; }
-.engine-button { justify-content: center; }
+.search-box { width: 100%; min-width: 0; }
+.search-controls { display: flex; align-items: center; gap: 8px; min-width: 0; height: 52px; padding: 0 8px; border-radius: var(--x-r-pill); background: var(--x-bg1); }
+.search-controls:focus-within { box-shadow: 0 0 0 2px var(--x-primary), 0 0 0 5px var(--x-focus); }
+.engine-button, .engine-option { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--x-r-pill); background: transparent; color: var(--x-text1); cursor: pointer; white-space: nowrap; }
+.engine-button:hover { background: var(--x-hover); }
 .engine-button img, .engine-option img { width: 18px; height: 18px; }
 .chevron { width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); }
-.search-field { display: flex; align-items: center; flex: 1; min-width: 0; height: 44px; padding: 0 16px; border-radius: var(--x-r-pill); background: var(--x-bg2); }
+.search-field { display: flex; align-items: center; flex: 1; min-width: 0; height: 100%; }
 .search-field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--x-text1); font-size: 15px; user-select: text; }
-.search-field:focus-within { box-shadow: 0 0 0 2px var(--x-primary), 0 0 0 5px var(--x-focus); }
+.search-field input::placeholder { color: var(--x-text2); }
 .clear-button { border: 0; background: transparent; color: var(--x-text2); cursor: pointer; }
-.submit-button { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--x-primary); color: var(--x-on-primary); cursor: pointer; }
+.submit-button { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 0; border-radius: var(--x-r-pill); background: transparent; color: var(--x-text2); cursor: pointer; }
+.has-value .submit-button { background: var(--x-primary); color: var(--x-on-primary); }
 .engine-menu { display: flex; flex-direction: column; gap: 8px; min-width: 180px; }
 .engine-option { width: 100%; border-radius: var(--x-r-icon); text-align: left; }
 .engine-option.active { background: var(--x-blue-tint); color: var(--x-blue-fg); }
 .engine-error { margin: 0; color: var(--x-red-fg); font-size: 13px; }
 .engine-status { margin: 0; color: var(--x-text2); font-size: 13px; }
 .engine-button:focus-visible, .engine-option:focus-visible, .submit-button:focus-visible, .clear-button:focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
-@media (max-width: 767px) { .engine-button > span:not(.chevron) { display: none; } }
 </style>

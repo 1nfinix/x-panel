@@ -60,6 +60,7 @@ const filterItems = ref<ItemGroup[]>([])
 const searchBoxKeyword = ref('')
 const listFilter = ref('')
 const arrangeMode = ref(false)
+const arrangeAnnouncement = ref('')
 const listFilterRef = ref<HTMLInputElement | null>(null)
 const rovingItemId = ref<number | null>(null)
 const failedIcons = ref(new Set<number>())
@@ -139,8 +140,12 @@ const dockGroups = computed(() => {
 })
 function displayedItems(group: ItemGroup) {
   if (selectedGroupId.value === 'all' && !listFilter.value.trim() && !searchBoxKeyword.value && !arrangeMode.value)
-    return group.items?.slice(0, 8) ?? []
+    return (group.items?.length ?? 0) > 9 ? group.items?.slice(0, 8) ?? [] : group.items ?? []
   return group.items ?? []
+}
+function moveRowHorizontally(event: KeyboardEvent, direction: number) {
+  if (arrangeMode.value)
+    moveRowFocus(event, direction)
 }
 function openImportSettings() {
   initialSettingsPanel.value = 'ImportExport'
@@ -239,9 +244,32 @@ function selectGroup(id: number | 'all') {
     filterItems.value = items.value
 }
 
-function moveRowFocus(event: KeyboardEvent, direction: number) {
-  if (arrangeMode.value)
+async function moveRowFocus(event: KeyboardEvent, direction: number) {
+  if (arrangeMode.value) {
+    event.preventDefault()
+    const row = event.currentTarget as HTMLButtonElement
+    const itemId = Number(row.dataset.itemId)
+    const group = items.value.find(group => group.items?.some(item => item.id === itemId))
+    if (!group?.items || !group.id || saveStatuses.value[group.id] === 'saving')
+      return
+    const oldIndex = group.items.findIndex(item => item.id === itemId)
+    const newIndex = oldIndex + direction
+    if (newIndex < 0 || newIndex >= group.items.length)
+      return
+    const [item] = group.items.splice(oldIndex, 1)
+    group.items.splice(newIndex, 0, item)
+    rovingItemId.value = itemId
+    arrangeAnnouncement.value = t('panelHome.movedToPosition', { position: newIndex + 1 })
+    await nextTick()
+    row.focus()
+    const saved = await saveGroupOrder(group.id, [group.id])
+    if (!saved) {
+      arrangeAnnouncement.value = t('panelHome.arrangeSaveFailed')
+      await nextTick()
+      document.querySelector<HTMLButtonElement>(`.url-row[data-item-id="${itemId}"]`)?.focus()
+    }
     return
+  }
   const rows = Array.from(document.querySelectorAll<HTMLButtonElement>('.url-row:not(.add-row)'))
   if (!rows.length)
     return
@@ -497,15 +525,12 @@ function toggleArrangeMode() {
   }
 }
 
-async function handleEndDrag(event: DragEndEvent) {
-  if (event.from === event.to && event.oldDraggableIndex === event.newDraggableIndex)
-    return
-
-  const targetId = Number(event.to.dataset.groupId)
+async function saveGroupOrder(targetId: number, rollbackIds: number[]) {
   const target = items.value.find(group => group.id === targetId)
   if (!target?.items)
     return
 
+  clearTimeout(saveStatusTimers.get(targetId))
   saveStatuses.value[targetId] = 'saving'
   try {
     const { code } = await saveSort({
@@ -515,19 +540,28 @@ async function handleEndDrag(event: DragEndEvent) {
     if (code === 0) {
       saveStatuses.value[targetId] = 'saved'
       saveStatusTimers.set(targetId, setTimeout(() => delete saveStatuses.value[targetId], 1500))
-      return
+      return true
     }
   }
   catch {}
 
   saveStatuses.value[targetId] = 'error'
   ms.error(t('panelHome.arrangeSaveFailed'))
-  const sourceId = Number(event.from.dataset.groupId)
-  for (const id of new Set([sourceId, targetId])) {
+  const reloads: Promise<boolean>[] = []
+  for (const id of new Set(rollbackIds)) {
     const index = items.value.findIndex(group => group.id === id)
     if (index !== -1)
-      updateItemIconGroupByNet(index, id)
+      reloads.push(updateItemIconGroupByNet(index, id))
   }
+  await Promise.all(reloads)
+  return false
+}
+
+async function handleEndDrag(event: DragEndEvent) {
+  if (event.from === event.to && event.oldDraggableIndex === event.newDraggableIndex)
+    return
+  const targetId = Number(event.to.dataset.groupId)
+  await saveGroupOrder(targetId, [Number(event.from.dataset.groupId), targetId])
 }
 
 function getDropdownMenuOptions() {
@@ -653,18 +687,42 @@ function handleAddItem(itemIconGroupId?: number) {
             <div class="brand-block" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">
               <h1>{{ panelState.panelConfig.logoText }}</h1><p>{{ currentDate }} · {{ t('panelHome.groupCount', { count: items.length }) }} · {{ t('panelHome.bookmarkCount', { count: totalCount }) }}</p>
             </div>
+            <div class="fixed-element">
+              <div class="floating-actions">
+                <NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.lan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :aria-label="t('panelHome.changeToWanModel')" :title="t('panelHome.changeToWanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.wan)">
+                  <template #icon>
+                    <SvgIcon icon="material-symbols:lan-outline-rounded" />
+                  </template>
+                </NButton>
+                <NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.wan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :aria-label="t('panelHome.changeToLanModel')" :title="t('panelHome.changeToLanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.lan)">
+                  <template #icon>
+                    <SvgIcon icon="mdi:wan" />
+                  </template>
+                </NButton>
+                <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="floating-button" :aria-label="t('appLauncher.title')" @click="initialSettingsPanel = 'UserInfo'; settingModalShow = true">
+                  <template #icon>
+                    <SvgIcon icon="majesticons-applications" />
+                  </template>
+                </NButton>
+                <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" class="floating-button" :aria-label="t('panelHome.goToLogin')" :title="t('panelHome.goToLogin')" @click="router.push('/login')">
+                  <template #icon>
+                    <SvgIcon icon="material-symbols:account-circle" />
+                  </template>
+                </NButton>
+              </div>
+            </div>
             <div class="header-actions">
               <label class="list-filter"><SvgIcon icon="iconamoon:search-fill" aria-hidden="true" /><input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')" @keydown="onFilterKeydown"><span v-if="listFilter.trim()" class="filter-count">{{ t('panelHome.resultsCount', { count: visibleCount }) }}</span><kbd v-else>/</kbd></label>
               <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="quiet-button" :type="arrangeMode ? 'primary' : 'default'" @click="toggleArrangeMode">
                 {{ arrangeMode ? t('panelHome.arrangeDone') : t('panelHome.arrange') }}
               </NButton>
-              <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="import-button" type="primary" @click="openImportSettings">
+              <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="import-button" @click="openImportSettings">
                 {{ t('panelHome.importBookmarks') }}
               </NButton>
             </div>
           </header>
           <div class="content-shell" :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
-            <section v-if="overviewVisible" class="overview-band" :class="{ 'has-clock': panelState.panelConfig.clockShow, 'has-search': panelState.panelConfig.searchBoxShow, 'has-monitor': systemMonitorVisible }">
+            <section v-if="overviewVisible" class="overview-band" :class="{ 'has-clock': panelState.panelConfig.clockShow, 'has-search': panelState.panelConfig.searchBoxShow, 'has-monitor': systemMonitorVisible, 'on-wallpaper': panelState.panelConfig.showWallpaper }">
               <Clock v-if="panelState.panelConfig.clockShow" class="overview-clock" :hide-second="!panelState.panelConfig.clockShowSecond" />
               <SearchBox v-if="panelState.panelConfig.searchBoxShow" class="overview-search" @item-search="itemFrontEndSearch" />
               <SystemMonitor v-if="systemMonitorVisible" class="overview-monitor" :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
@@ -699,15 +757,15 @@ function handleAddItem(itemIconGroupId?: number) {
                   </button>
                 </div>
                 <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="150" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" :delay-on-touch-only="true" ghost-class="sortable-ghost" @end="handleEndDrag">
-                  <button v-for="item in displayedItems(group)" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" :data-item-id="item.id" :tabindex="(rovingItemId ?? firstVisibleItemId) === item.id ? 0 : -1" type="button" :title="item.title" @focus="rovingItemId = item.id as number" @click="handleItemClick(item)" @keydown.down="moveRowFocus($event, 1)" @keydown.up="moveRowFocus($event, -1)" @contextmenu="(e) => handleContextMenu(e, item)">
-                    <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)"><ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" /><span v-else class="row-placeholder"><GroupGlyph icon="lucide-globe" :title="item.title" :size="18" /></span>
-                    <span class="row-copy"><span class="row-name">{{ item.title }}</span><span class="row-domain">{{ displayDomain(item.url) }}</span></span><span class="row-arrow" aria-hidden="true">↗</span>
+                  <button v-for="item in displayedItems(group)" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" :data-item-id="item.id" :tabindex="arrangeMode || (rovingItemId ?? firstVisibleItemId) === item.id ? 0 : -1" type="button" :title="item.title" @focus="rovingItemId = item.id as number" @click="handleItemClick(item)" @keydown.down="moveRowFocus($event, 1)" @keydown.up="moveRowFocus($event, -1)" @keydown.left="moveRowHorizontally($event, -1)" @keydown.right="moveRowHorizontally($event, 1)" @contextmenu="(e) => handleContextMenu(e, item)">
+                    <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)"><ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" /><span v-else class="row-placeholder" aria-hidden="true">{{ item.title ? Array.from(item.title)[0].toLocaleUpperCase() : '?' }}</span>
+                    <span class="row-copy"><span class="row-name">{{ item.title }}</span><span class="row-domain">{{ displayDomain(item.url) }}</span></span><SvgIcon v-if="arrangeMode" class="row-handle" icon="lucide-grip-vertical" aria-hidden="true" /><SvgIcon v-else class="row-arrow" icon="lucide-arrow-up-right" aria-hidden="true" />
                   </button>
                   <div v-if="arrangeMode && !group.items.length" class="drop-target">
                     {{ t('panelHome.dropHere') }}
                   </div>
                 </VueDraggable>
-                <button v-if="selectedGroupId === 'all' && !listFilter.trim() && !searchBoxKeyword && !arrangeMode && (group.items?.length ?? 0) > 8" class="view-all raised-button" type="button" @click="selectGroup(group.id as number)">
+                <button v-if="selectedGroupId === 'all' && !listFilter.trim() && !searchBoxKeyword && !arrangeMode && (group.items?.length ?? 0) > 9" class="view-all raised-button" type="button" @click="selectGroup(group.id as number)">
                   {{ t('panelHome.viewAll', { count: group.items?.length ?? 0 }) }}
                 </button>
               </section>
@@ -738,32 +796,14 @@ function handleAddItem(itemIconGroupId?: number) {
     </nav>
     <NDrawer v-model:show="moreDrawerShow" placement="bottom" height="min(70vh, 620px)" class="groups-drawer">
       <NDrawerContent :title="t('panelHome.groups')" closable>
-        <button v-for="group in items" :key="group.id" class="drawer-group" :style="groupColorStyle(group)" type="button" @click="selectDockGroup(group.id as number)">
+        <button v-for="group in items" :key="group.id" class="drawer-group" :class="{ active: selectedGroupId === group.id }" :style="groupColorStyle(group)" :aria-current="selectedGroupId === group.id ? 'page' : undefined" type="button" @click="selectDockGroup(group.id as number)">
           <span class="heading-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="22" /></span><span>{{ group.title }}</span><span class="drawer-count">{{ group.items?.length ?? 0 }}</span>
         </button>
       </NDrawerContent>
     </NDrawer>
     <NDropdown placement="bottom-start" trigger="manual" :x="dropdownMenuX" :y="dropdownMenuY" :options="getDropdownMenuOptions()" :show="dropdownShow" :on-clickoutside="onClickoutside" @select="handleRightMenuSelect" />
-    <div class="fixed-element">
-      <div class="floating-actions">
-        <NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.lan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :title="t('panelHome.changeToWanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.wan)">
-          <template #icon>
-            <SvgIcon icon="material-symbols:lan-outline-rounded" />
-          </template>
-        </NButton><NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.wan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :title="t('panelHome.changeToLanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.lan)">
-          <template #icon>
-            <SvgIcon icon="mdi:wan" />
-          </template>
-        </NButton><NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="floating-button" :aria-label="t('appLauncher.title')" @click="initialSettingsPanel = 'UserInfo'; settingModalShow = true">
-          <template #icon>
-            <SvgIcon icon="majesticons-applications" />
-          </template>
-        </NButton><NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" class="floating-button" :title="t('panelHome.goToLogin')" @click="router.push('/login')">
-          <template #icon>
-            <SvgIcon icon="material-symbols:account-circle" />
-          </template>
-        </NButton>
-      </div>
+    <div class="sr-only" aria-live="polite">
+      {{ arrangeAnnouncement }}
     </div>
     <AppStarter v-model:visible="settingModalShow" :initial-panel="initialSettingsPanel" />
     <NBackTop class="rail-back-top" :listen-to="() => scrollContainerRef" :right="16" :bottom="16">
@@ -789,12 +829,13 @@ function handleAddItem(itemIconGroupId?: number) {
 <style>
 body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); }
 ::selection { background: var(--x-primary); color: var(--x-on-primary); }
-.rail-tooltip { position: fixed; z-index: 3000; transform: translateY(-50%); padding: 8px 14px; border-radius: 999px; background: var(--x-inverse-bg); color: var(--x-inverse-fg); font: 13px/1.4 var(--x-font); white-space: nowrap; pointer-events: none; }
+.rail-tooltip { position: fixed; z-index: 3000; transform: translateY(-50%); padding: 8px 14px; border-radius: var(--x-r-pill); background: var(--x-inverse-bg); color: var(--x-inverse-fg); font: 13px/1.4 var(--x-font); white-space: nowrap; pointer-events: none; }
 .rail-tooltip-dot { display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; vertical-align: 2px; }
 .rail-tooltip-count { opacity: .65; font-variant-numeric: tabular-nums; }
 .rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: opacity 120ms ease, translate 120ms ease; }
 .rail-tooltip-enter-from, .rail-tooltip-leave-to { opacity: 0; translate: -4px 0; }
-.groups-drawer .n-drawer-content { border-radius: 32px 32px 0 0; background: var(--x-bg0); }
+.groups-drawer.n-drawer, .groups-drawer .n-drawer-content { border-radius: var(--x-r-card) var(--x-r-card) 0 0 !important; background: var(--x-bg0); overflow: hidden; }
+.groups-drawer .n-drawer-header { border-bottom: 0 !important; }
 @media (max-width: 767px) { .rail-tooltip { display: none; } .rail-back-top { bottom: calc(136px + env(safe-area-inset-bottom)) !important; } }
 @media (prefers-reduced-motion: reduce) { .rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: none; } }
 </style>
@@ -805,21 +846,21 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .wallpaper { background-position: center; background-size: cover; }
 .main-scroll { position: relative; width: 100%; height: 100%; overflow: auto; }
 .page-layout { display: flex; align-items: flex-start; gap: 16px; min-height: 100%; padding: 16px; }
-.group-rail { position: sticky; top: 16px; z-index: 10; display: flex; flex: none; flex-direction: column; align-items: center; box-sizing: border-box; width: 88px; height: calc(100vh - 32px); padding: 16px 0; border-radius: var(--x-r-card); background: var(--x-bg1); }
+.group-rail { position: sticky; top: 16px; z-index: 10; display: flex; flex: none; flex-direction: column; align-items: center; box-sizing: border-box; width: 72px; height: calc(100vh - 32px); padding: 16px 0; border-radius: var(--x-r-card); background: var(--x-bg1); }
 .rail-brand, .rail-button { display: grid; flex: none; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--x-r-icon); cursor: pointer; transition: background-color 150ms, color 150ms; }
 .rail-brand { margin-bottom: 16px; background: var(--x-bg2); color: var(--x-text1); }
 .rail-brand :deep(svg) { width: 27px; height: 27px; }
 .rail-scroll { display: flex; flex: 1 1 auto; flex-direction: column; align-items: center; gap: 8px; box-sizing: border-box; width: 100%; min-height: 0; padding: 8px 0 16px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
 .rail-scroll::-webkit-scrollbar { display: none; }
 .rail-divider { flex: none; width: 24px; height: 2px; margin: 12px 0 4px; background: var(--x-sep); }
-.rail-button { background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-primary)); }
-.rail-button.is-all { background: var(--x-blue-tint); color: var(--x-blue-fg); }
-.rail-button:hover { background: var(--x-bg2); }
-.rail-button.active { background: var(--group-fg, var(--x-primary)); color: var(--x-bg0); }
-.rail-button.is-all.active { background: var(--x-primary); color: var(--x-on-primary); }
+.rail-button { background: transparent; color: var(--x-text2); }
+.rail-button.is-all { background: transparent; color: var(--x-text2); }
+.rail-button:hover { background: var(--x-hover); color: var(--x-text1); }
+.rail-button.active { background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-blue-fg)); }
+.rail-button.is-all.active { background: var(--x-blue-tint); color: var(--x-blue-fg); }
 .page-content { flex: 1; min-width: 0; width: 100%; margin: 0 auto; padding-right: 56px; padding-left: 56px; }
 .navigation-shell { display: flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 80px; }
-.brand-block h1 { margin: 0; font-size: 34px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; }
+.brand-block h1 { margin: 0; font-size: 28px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; }
 .brand-block p { margin: 8px 0 0; color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
 .brand-block.on-wallpaper h1, .brand-block.on-wallpaper p { color: #fff; }
 .header-actions { display: flex; align-items: center; gap: 12px; }
@@ -829,60 +870,99 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .list-filter kbd { padding: 2px 8px; border-radius: 7px; background: var(--x-bg2); color: var(--x-text2); font-size: 13px; }
 .list-filter:focus-within { outline: 2px solid var(--x-primary); box-shadow: 0 0 0 5px var(--x-focus); }
 .filter-count { color: var(--x-text2); font-size: 13px; white-space: nowrap; }
-.quiet-button, .import-button { height: 44px; white-space: nowrap; }
-.quiet-button { background: var(--x-bg1); }
+.quiet-button, .import-button { height: 44px; white-space: nowrap; background: var(--x-bg1); color: var(--x-text1); }
+.quiet-button.n-button--primary-type { background: var(--x-primary); color: var(--x-on-primary); }
 .content-shell { padding-top: 48px; }
-.overview-band { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: center; gap: 24px; padding: 32px; border-radius: var(--x-r-card); background: var(--x-bg1); }
+.overview-band { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: center; gap: 24px; background: transparent; }
+.overview-band.on-wallpaper :deep(.clock-time), .overview-band.on-wallpaper :deep(.clock-calendar) { color: var(--x-on-primary); }
 .overview-clock { grid-column: span 4; }
 .overview-search { grid-column: span 8; min-width: 0; }
 .overview-monitor { grid-column: span 12; }
 .overview-band:has(.wallpaper-card) .overview-monitor { grid-column: span 9; }
 .overview-band.has-clock:not(.has-search) .overview-clock, .overview-band.has-search:not(.has-clock) .overview-search { grid-column: span 12; }
 .wallpaper-card { grid-column: span 3; min-width: 0; padding: 16px; border-radius: var(--x-r-small); background: var(--x-bg2); font-size: 13px; }
-.wallpaper-preview { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 10px; border-radius: 14px; background: var(--x-ph); background-position: center; background-size: cover; color: var(--x-text2); text-align: center; }
+.wallpaper-preview { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 10px; border-radius: var(--x-r-small); background: var(--x-ph); background-position: center; background-size: cover; color: var(--x-text2); text-align: center; }
 .wallpaper-preview small { display: block; margin-top: 4px; }
-.selected-group-title { display: flex; align-items: center; gap: 12px; margin: 40px 0 0; font-size: 18px; font-weight: 600; }
+.selected-group-title { display: flex; align-items: center; gap: 8px; margin: 40px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
 .selected-group-bar { display: flex; align-items: center; gap: 12px; margin-top: 40px; }
 .selected-group-bar .selected-group-title { flex: 1; min-width: 0; margin: 0; }
-.selected-group-bar .group-add { background: var(--x-bg2); }
+.selected-group-bar .group-add { background: transparent; }
 .title-glyph, .heading-glyph { display: grid; flex: none; place-items: center; background: var(--group-tint); color: var(--group-fg); }
-.title-glyph { width: 28px; height: 28px; border-radius: 10px; }
+.title-glyph { width: 32px; height: 32px; border-radius: var(--x-r-glyph); }
 .title-count { color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
-.content-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 40px; margin-top: 48px; }
+.content-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 24px; margin-top: 40px; }
 .selected-group-bar + .content-groups { margin-top: 24px; }
-.group-section { min-width: 0; padding: 24px; border-radius: var(--x-r-card); background: var(--x-bg1); }
+.group-section { min-width: 0; padding: 20px 12px 12px; border-radius: var(--x-r-card); background: var(--x-bg1); }
 .content-groups.single-group { display: block; }
 .single-group .group-section { padding: 0; border-radius: 0; background: transparent; }
-.single-group .url-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
-.group-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-.heading-glyph { width: 44px; height: 44px; border-radius: var(--x-r-icon); }
-.group-heading h2 { flex: 1; min-width: 0; margin: 0; overflow: hidden; color: var(--x-text1); font-size: 17px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.heading-count, .save-status { padding: 5px 9px; border-radius: 999px; background: var(--x-bg2); color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.single-group .url-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 8px; }
+.single-group .url-row { height: 56px; border-radius: var(--x-r-small); background: var(--x-bg1); }
+.single-group .url-row:hover, .single-group .url-row:focus-visible { background: var(--x-hover); }
+.group-heading { display: flex; align-items: center; gap: 8px; min-height: 44px; margin: 0 8px 8px; }
+.heading-glyph { width: 32px; height: 32px; border-radius: var(--x-r-glyph); }
+.group-heading h2 { min-width: 0; margin: 0; overflow: hidden; color: var(--x-text1); font-size: 15px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.single-group .group-heading h2 { font-size: 22px; letter-spacing: -.02em; }
+.heading-count, .save-status { color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.save-status { padding: 5px 9px; border-radius: var(--x-r-pill); background: var(--x-bg2); }
 .save-status.saved { color: var(--x-green-fg); }.save-status.error { color: var(--x-red-fg); }
 .raised-button { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--x-bg2); color: var(--x-text1); cursor: pointer; }
 .raised-button:hover { background: var(--x-hover); }
-.group-add { flex: none; width: 44px; padding: 0; font-size: 20px; }
-.url-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 208px), 1fr)); gap: 8px; min-height: 64px; }
-.url-row { display: flex; align-items: center; gap: 12px; min-width: 0; height: 64px; padding: 0 16px; border: 0; border-radius: var(--x-r-small); background: var(--x-bg2); color: var(--x-text1); text-align: left; cursor: pointer; transition: background-color 150ms; }
-.url-row:hover { background: var(--x-hover); }
+.group-add { position: relative; display: grid; flex: none; margin-left: auto; place-items: center; width: 32px; min-height: 32px; height: 32px; padding: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text2); font-size: 17px; }
+.group-add::before { position: absolute; inset: -6px; content: ""; }
+.group-add:hover { background: var(--x-hover); color: var(--x-text1); }
+.url-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 192px), 1fr)); gap: 2px 8px; min-height: 52px; }
+.url-row { display: flex; align-items: center; gap: 12px; min-width: 0; height: 52px; padding: 0 8px; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text1); text-align: left; cursor: pointer; transition: background-color 150ms; }
+.url-row:hover, .url-row:focus-visible { background: var(--x-bg2); }
 .url-row.sorting { cursor: grab; }.url-row.sorting:active { cursor: grabbing; }.url-row.sortable-ghost { opacity: .5; }
-.row-icon, .row-placeholder { flex: none; width: 32px; height: 32px; border-radius: 10px; }
+.row-icon, .row-placeholder { flex: none; width: 28px; height: 28px; border-radius: var(--x-r-glyph); }
 .row-icon { object-fit: contain; padding: 3px; }
-.row-placeholder { display: grid; place-items: center; background: var(--group-tint); color: var(--group-fg); }
+.row-placeholder { display: grid; place-items: center; background: var(--x-ph); color: var(--x-ph-sub); font-size: 13px; font-weight: 600; }
 .row-copy { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
 .row-name, .row-domain { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-name { font-size: 15px; font-weight: 500; }.row-domain { color: var(--x-text2); font-size: 13px; }
-.row-arrow { flex: none; color: var(--x-icon3); transition: color 150ms, transform 150ms; }.url-row:hover .row-arrow { color: var(--x-text1); transform: translate(2px, -2px); }
-.drop-target { display: grid; place-items: center; height: 64px; border-radius: var(--x-r-small); background: var(--x-bg2); color: var(--x-text2); }
-.view-all { margin-top: 20px; }.empty-list { padding: 48px; color: var(--x-text2); text-align: center; }
+.row-arrow, .row-handle { flex: none; width: 17px; height: 17px; color: var(--x-text2); }
+.row-arrow { opacity: 0; transition: opacity 120ms; }
+.url-row:hover .row-arrow, .url-row:focus-visible .row-arrow { opacity: 1; }
+.drop-target { display: grid; place-items: center; height: 52px; border-radius: var(--x-r-glyph); background: var(--x-bg2); color: var(--x-text2); }
+.view-all { display: flex; align-items: center; min-height: 44px; margin: 4px 0 0 8px; padding: 0; background: transparent; color: var(--x-link); font-size: 13px; }
+.view-all:hover { background: transparent; text-decoration: underline; }
+.empty-list { padding: 48px; color: var(--x-text2); text-align: center; }
 .footer { margin: 40px 0 0; color: var(--x-text2); font-size: 13px; }.footer.on-wallpaper, .footer.on-wallpaper :deep(*) { color: #fff; }
 .fixed-element { position: fixed; z-index: 20; right: 16px; bottom: 72px; }.floating-actions { display: flex; flex-direction: column; gap: 8px; }.floating-button, .back-top-button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: var(--x-bg1); color: var(--x-text1); cursor: pointer; }
-.rail-back-top { border-radius: var(--x-r-icon); background: transparent; }.back-top-button { font-size: 20px; }
-.mobile-dock-band, .mobile-dock { display: none; }.drawer-group { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 8px 16px; border: 0; border-radius: var(--x-r-small); background: var(--x-bg1); color: var(--x-text1); text-align: left; }.drawer-group + .drawer-group { margin-top: 8px; }.drawer-count { margin-left: auto; color: var(--x-text2); }
+.rail-back-top { border-radius: var(--x-r-icon); background: transparent; }.back-top-button { font-size: 22px; }
+.mobile-dock-band, .mobile-dock { display: none; }
+.drawer-group { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 8px 16px; border: 0; border-radius: var(--x-r-small); background: transparent; color: var(--x-text1); text-align: left; }
+.drawer-group.active { background: var(--group-tint); color: var(--group-fg); }
+.drawer-group + .drawer-group { margin-top: 8px; }
+.drawer-count { margin-left: auto; color: var(--x-text2); }
 .rail-brand:focus-visible, .rail-button:focus-visible, .dock-button:focus-visible, .drawer-group:focus-visible, .url-row:focus-visible, .raised-button:focus-visible, .floating-button:focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
 @keyframes first-card { from { opacity: .2; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .first-load-motion .group-section { animation: first-card 150ms ease-out both; }.group-fade { animation: first-card 150ms ease-out; }
 @media (max-width: 1179px) { .overview-clock, .overview-search, .overview-monitor, .overview-band:has(.wallpaper-card) .overview-monitor { grid-column: span 12; }.wallpaper-card { grid-column: span 6; } }
-@media (max-width: 767px) { .page-content { padding-right: 0; padding-left: 0; }.page-layout { padding: 16px 16px calc(136px + env(safe-area-inset-bottom)); }.group-rail { display: none; }.navigation-shell { display: block; }.header-actions { flex-wrap: wrap; margin-top: 24px; }.list-filter { order: -1; width: 100%; }.content-shell { padding-top: 32px; }.overview-band { display: flex; flex-direction: column; align-items: stretch; padding: 24px; }.content-groups { grid-template-columns: 1fr; gap: 24px; margin-top: 40px; }.url-list { grid-template-columns: 1fr; }.mobile-dock-band { position: fixed; z-index: 19; right: 0; bottom: 0; left: 0; display: block; height: calc(112px + env(safe-area-inset-bottom)); background: var(--x-bg0); }.mobile-dock { position: fixed; z-index: 21; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); left: 16px; display: flex; align-items: center; justify-content: space-around; gap: 4px; height: 64px; padding: 8px; border-radius: 24px; background: var(--x-bg1); }.dock-button { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; max-width: 46%; height: 44px; padding: 0 10px; border: 0; border-radius: var(--x-r-icon); background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.dock-button.active { flex: 1; background: var(--x-primary); color: var(--x-on-primary); }.dock-button.active span { overflow: hidden; text-overflow: ellipsis; }.more-button { background: var(--x-bg2); color: var(--x-text1); }.fixed-element { bottom: calc(136px + env(safe-area-inset-bottom)); }.brand-block h1 { font-size: 30px; } }
+@media (max-width: 767px) {
+  .page-content { padding-right: 0; padding-left: 0; }
+  .page-layout { padding: 16px 16px calc(136px + env(safe-area-inset-bottom)); }
+  .group-rail { display: none; }
+  .navigation-shell { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 0; }
+  .brand-block { display: contents; }
+  .brand-block h1 { grid-column: 1; grid-row: 1; }
+  .brand-block p { grid-column: 1 / -1; grid-row: 2; }
+  .header-actions { grid-column: 1 / -1; grid-row: 3; width: 100%; flex-wrap: wrap; margin-top: 24px; }
+  .list-filter { order: -1; width: 100%; }
+  .content-shell { padding-top: 32px; }
+  .overview-band { display: flex; flex-direction: column; align-items: stretch; gap: 24px; }
+  .content-groups { grid-template-columns: 1fr; gap: 24px; margin-top: 40px; }
+  .url-list { grid-template-columns: 1fr; }
+  .url-row, .single-group .url-row { height: 56px; }
+  .mobile-dock-band { position: fixed; z-index: 19; right: 0; bottom: 0; left: 0; display: block; height: calc(112px + env(safe-area-inset-bottom)); background: var(--x-bg0); }
+  .mobile-dock { position: fixed; z-index: 21; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); left: 16px; display: flex; align-items: center; justify-content: space-around; gap: 4px; height: 64px; padding: 8px; border-radius: var(--x-r-small); background: var(--x-bg1); }
+  .dock-button { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; max-width: 46%; height: 44px; padding: 0 10px; border: 0; border-radius: var(--x-r-icon); background: transparent; color: var(--x-text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dock-button.active { flex: 1; background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-blue-fg)); }
+  .dock-button.is-all.active { background: var(--x-blue-tint); color: var(--x-blue-fg); }
+  .dock-button.active span { overflow: hidden; text-overflow: ellipsis; }
+  .more-button { background: transparent; color: var(--x-text2); }
+  .fixed-element { grid-column: 2; grid-row: 1; position: static; }
+  .floating-actions { flex-direction: row; }
+}
 @media (prefers-reduced-motion: reduce) { .rail-brand, .rail-button, .url-row, .row-arrow { transition: none; }.first-load-motion .group-section, .group-fade { animation: none; }.url-row:hover .row-arrow { transform: none; } }
 </style>

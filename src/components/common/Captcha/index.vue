@@ -1,6 +1,6 @@
 <script setup lang='ts'>
-import { NImage } from 'naive-ui'
 import { ref } from 'vue'
+import { t } from '@/locales'
 defineProps<{
   src: string
 }>()
@@ -31,10 +31,13 @@ defineExpose({
 
 <template>
   <!-- <div> -->
-  <NImage
-    :src="`${src}?${randCode}`"
-    :preview-disabled="true"
-    @click="handleClick"
-  />
+  <button type="button" :aria-label="t('login.refreshCaptcha')" @keydown.enter.stop @click="handleClick">
+    <img :src="`${src}?${randCode}`" :alt="t('login.captchaPlaceholder')">
+  </button>
   <!-- </div> -->
 </template>
+
+<style scoped>
+button { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: pointer; }
+button:focus-visible { outline: 3px solid var(--x-focus); outline-offset: -3px; }
+</style>

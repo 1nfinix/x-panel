@@ -200,7 +200,7 @@ onMounted(() => {
         {{ t('panelHome.retry') }}
       </NButton>
     </p>
-    <div class="overflow-auto w-full mt-5 bg-bg1 rounded-small" style="height:calc(100% - 65px)">
+    <div class="overflow-auto w-full mt-5 rounded-small" style="height:calc(100% - 65px)">
       <VueDraggable
         v-model="groups"
         item-key="sort" :animation="300"
@@ -220,14 +220,14 @@ onMounted(() => {
               </div>
               <div class="ml-auto">
                 <span>
-                  <NButton secondary size="small" @click="handleEditGroup(item)">
+                  <NButton secondary size="small" :aria-label="t('apps.itemGroupManage.editGroup')" @click="handleEditGroup(item)">
                     <template #icon>
                       <SvgIcon icon="basil:edit-solid" />
                     </template>
                   </NButton>
                 </span>
                 <span class="ml-3">
-                  <NButton type="error" size="small" class="ml-3 danger-button" :loading="deletingId === item.id" @click="handleDelete(item)">
+                  <NButton type="error" size="small" class="ml-3 danger-button" :loading="deletingId === item.id" :aria-label="t('apps.itemGroupManage.deleteGroup')" @click="handleDelete(item)">
                     <template #icon>
                       <SvgIcon icon="material-symbols:delete" />
                     </template>
@@ -243,7 +243,7 @@ onMounted(() => {
     <RoundCardModal v-model:show="editModalArg.show" size="small" type="small" :title="editModalArg.editStatus === 1 ? '添加' : '编辑'" style="width: 400px;">
       <NForm ref="formRef" :model="editModalArg.model" :rules="editModalArg.rules">
         <NFormItem path="title" :label="$t('apps.itemGroupManage.groupName')" :feedback="saveError" :validation-status="saveError ? 'error' : undefined">
-          <NInput v-model:value="editModalArg.model.title" type="text" :maxlength="20" show-count />
+          <NInput v-model:value="editModalArg.model.title" type="text" :maxlength="20" show-count :input-props="{ 'aria-label': $t('apps.itemGroupManage.groupName') }" />
         </NFormItem>
 
         <NFormItem :label="$t('apps.itemGroupManage.icon')">
@@ -271,7 +271,7 @@ onMounted(() => {
 
 <style scoped>
 .group-list-glyph { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--x-r-icon); background: var(--group-tint); color: var(--group-fg); }
-.auto-label { font-size: 9px; line-height: 1; }
+.auto-label { font-size: 12px; line-height: 1; }
 .group-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; width: 100%; }
 .group-icon-option { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: transparent; color: var(--x-text2); cursor: pointer; }
 .group-icon-option:hover { background: var(--x-bg1); color: var(--x-text1); }
