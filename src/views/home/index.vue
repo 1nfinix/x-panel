@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
-import { useMediaQuery } from '@vueuse/core'
 import { NBackTop, NButton, NDrawer, NDrawerContent, NDropdown, NModal, NSkeleton, NSpin, useDialog, useMessage, useNotification } from 'naive-ui'
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { AppStarter, EditItem } from './components'
-import { Clock, SearchBox, SystemMonitor } from '@/components/deskModule'
+import { Clock, SystemMonitor } from '@/components/deskModule'
 import { GroupGlyph, ItemIcon, SvgIcon, XBrand } from '@/components/common'
 import { deletes, edit as editItem, getListByGroupId, saveSort } from '@/api/panel/itemIcon'
 import { getList as getGroupList } from '@/api/panel/itemIconGroup'
@@ -57,8 +56,6 @@ const settingModalShow = ref(false)
 
 const items = ref<ItemGroup[]>([])
 const groupsState = ref<'loading' | 'ready' | 'error'>('loading')
-const filterItems = ref<ItemGroup[]>([])
-const searchBoxKeyword = ref('')
 const listFilter = ref('')
 const arrangeMode = ref(false)
 const arrangeAnnouncement = ref('')
@@ -75,11 +72,10 @@ function iconBackground(item: Panel.ItemInfo) {
 }
 
 const selectedGroupId = ref<number | 'all' | null>('all')
-const isGroupedView = computed(() => selectedGroupId.value === 'all' || !!listFilter.value.trim() || !!searchBoxKeyword.value)
+const isGroupedView = computed(() => selectedGroupId.value === 'all' || !!listFilter.value.trim())
 const visibleGroups = computed(() => {
   const keyword = listFilter.value.trim().toLowerCase()
-  const source = keyword ? items.value : filterItems.value
-  const groups = isGroupedView.value ? source : source.filter(group => group.id === selectedGroupId.value)
+  const groups = isGroupedView.value ? items.value : items.value.filter(group => group.id === selectedGroupId.value)
   if (!keyword)
     return groups
   return groups.map(group => ({ ...group, items: group.items?.filter(item => `${item.title} ${item.url} ${item.lanUrl ?? ''}`.toLowerCase().includes(keyword)) })).filter(group => group.items?.length)
@@ -90,8 +86,7 @@ const firstVisibleItemId = computed(() => visibleGroups.value.find(group => grou
 const systemMonitorVisible = computed(() => panelState.panelConfig.systemMonitorShow
   && ((panelState.panelConfig.systemMonitorPublicVisitModeShow && authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC)
     || authStore.visitMode === VisitMode.VISIT_MODE_LOGIN))
-const isTabletOverview = useMediaQuery('(min-width: 768px) and (max-width: 1179px)')
-const overviewVisible = computed(() => panelState.panelConfig.clockShow || panelState.panelConfig.searchBoxShow || systemMonitorVisible.value || panelState.panelConfig.showWallpaper)
+const overviewVisible = computed(() => panelState.panelConfig.clockShow || systemMonitorVisible.value)
 const railRef = ref<HTMLElement | null>(null)
 const railFocusKey = ref<string>('all')
 const moreDrawerShow = ref(false)
@@ -141,7 +136,7 @@ const dockGroups = computed(() => {
     .sort((a, b) => items.value.indexOf(a) - items.value.indexOf(b))
 })
 function displayedItems(group: ItemGroup) {
-  if (selectedGroupId.value === 'all' && !listFilter.value.trim() && !searchBoxKeyword.value && !arrangeMode.value)
+  if (selectedGroupId.value === 'all' && !listFilter.value.trim() && !arrangeMode.value)
     return (group.items?.length ?? 0) > 9 ? group.items?.slice(0, 8) ?? [] : group.items ?? []
   return group.items ?? []
 }
@@ -242,8 +237,6 @@ function selectGroup(id: number | 'all') {
   selectedGroupId.value = id
   rovingItemId.value = null
   listFilter.value = ''
-  if (!searchBoxKeyword.value)
-    filterItems.value = items.value
 }
 
 async function moveRowFocus(event: KeyboardEvent, direction: number) {
@@ -380,7 +373,6 @@ async function getList() {
     const results = await Promise.all(data.list.map((element, index) => element.id ? updateItemIconGroupByNet(index, element.id) : Promise.resolve(true)))
     if (results.some(result => !result))
       throw new Error('item load failed')
-    filterItems.value = items.value
     groupsState.value = 'ready'
   }
   catch {
@@ -522,7 +514,6 @@ function toggleArrangeMode() {
   arrangeMode.value = !arrangeMode.value
   if (arrangeMode.value) {
     listFilter.value = ''
-    filterItems.value = items.value
     dropdownShow.value = false
   }
 }
@@ -626,30 +617,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onFilterShortcut)
 })
 
-// 前端搜索过滤
-function itemFrontEndSearch(keyword?: string) {
-  keyword = keyword?.trim()
-  searchBoxKeyword.value = keyword ?? ''
-  if (keyword !== '' && panelState.panelConfig.searchBoxSearchIcon) {
-    const filteredData = ref<ItemGroup[]>([])
-    for (let i = 0; i < items.value.length; i++) {
-      const element = items.value[i].items?.filter((item: Panel.ItemInfo) => {
-        return (
-          item.title.toLowerCase().includes(keyword?.toLowerCase() ?? '')
-          || item.url.toLowerCase().includes(keyword?.toLowerCase() ?? '')
-          || item.description?.toLowerCase().includes(keyword?.toLowerCase() ?? '')
-        )
-      })
-      if (element && element.length > 0)
-        filteredData.value.push({ ...items.value[i], items: element })
-    }
-    filterItems.value = filteredData.value
-  }
-  else {
-    filterItems.value = items.value
-  }
-}
-
 function handleEditItem(item: Panel.ItemInfo) {
   editItemInfoData.value = item
   editItemInfoShow.value = true
@@ -723,21 +690,11 @@ function handleAddItem(itemIconGroupId?: number) {
               </NButton>
             </div>
           </header>
-          <div class="content-shell" :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
-            <section v-if="overviewVisible" class="overview-band" :class="{ 'has-clock': panelState.panelConfig.clockShow, 'has-search': panelState.panelConfig.searchBoxShow, 'has-system': systemMonitorVisible || panelState.panelConfig.showWallpaper, 'on-wallpaper': panelState.panelConfig.showWallpaper }">
+          <div class="content-shell" :class="{ 'has-overview': overviewVisible }" :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
+            <section v-if="overviewVisible" class="overview-band" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">
               <Clock v-if="panelState.panelConfig.clockShow" class="overview-clock" :hide-second="!panelState.panelConfig.clockShowSecond" />
-              <div v-if="isTabletOverview && (systemMonitorVisible || panelState.panelConfig.showWallpaper)" class="overview-system">
-                <SystemMonitor v-if="systemMonitorVisible" :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
-                <div v-if="panelState.panelConfig.showWallpaper" class="wallpaper-preview" role="img" :aria-label="`${t('panelHome.todayWallpaper')} 320×180`" :style="wallpaperLoaded ? { backgroundImage: `url(${wallpaperSource})` } : {}">
-                  <span v-if="!wallpaperLoaded" aria-hidden="true">{{ t('panelHome.todayWallpaper') }}<small>320 × 180</small></span>
-                </div>
-              </div>
-              <SearchBox v-if="panelState.panelConfig.searchBoxShow" class="overview-search" @item-search="itemFrontEndSearch" />
-              <div v-if="!isTabletOverview && (systemMonitorVisible || panelState.panelConfig.showWallpaper)" class="overview-system">
-                <SystemMonitor v-if="systemMonitorVisible" :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
-                <div v-if="panelState.panelConfig.showWallpaper" class="wallpaper-preview" role="img" :aria-label="`${t('panelHome.todayWallpaper')} 320×180`" :style="wallpaperLoaded ? { backgroundImage: `url(${wallpaperSource})` } : {}">
-                  <span v-if="!wallpaperLoaded" aria-hidden="true">{{ t('panelHome.todayWallpaper') }}<small>320 × 180</small></span>
-                </div>
+              <div v-if="systemMonitorVisible" class="overview-system">
+                <SystemMonitor :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
               </div>
             </section>
             <div v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-bar" :style="selectedGroupColor">
@@ -772,14 +729,14 @@ function handleAddItem(itemIconGroupId?: number) {
                   <div v-if="arrangeMode && !group.items.length" class="drop-target">
                     {{ t('panelHome.dropHere') }}
                   </div>
-                  <div v-else-if="!group.items.length && !listFilter.trim() && !searchBoxKeyword" class="group-empty">
+                  <div v-else-if="!group.items.length && !listFilter.trim()" class="group-empty">
                     <span>{{ t('panelHome.noBookmarks') }}</span>
                     <button v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" type="button" @click="handleAddItem(group.id)">
                       {{ t('panelHome.addBookmark') }}
                     </button>
                   </div>
                 </VueDraggable>
-                <button v-if="selectedGroupId === 'all' && !listFilter.trim() && !searchBoxKeyword && !arrangeMode && (group.items?.length ?? 0) > 9" class="view-all raised-button" type="button" @click="selectGroup(group.id as number)">
+                <button v-if="selectedGroupId === 'all' && !listFilter.trim() && !arrangeMode && (group.items?.length ?? 0) > 9" class="view-all raised-button" type="button" @click="selectGroup(group.id as number)">
                   {{ t('panelHome.viewAll', { count: group.items?.length ?? 0 }) }}
                 </button>
               </section>
@@ -886,19 +843,13 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .filter-count { color: var(--x-text2); font-size: 13px; white-space: nowrap; }
 .quiet-button, .import-button { height: 44px; white-space: nowrap; background: var(--x-bg1); color: var(--x-text1); }
 .quiet-button.n-button--primary-type { background: var(--x-primary); color: var(--x-on-primary); }
-.content-shell { padding-top: 24px; }
-.overview-band { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 24px; background: transparent; }
+.content-shell.has-overview { padding-top: 24px; }
+.overview-band { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .overview-band.on-wallpaper :deep(.clock-time), .overview-band.on-wallpaper :deep(.clock-calendar) { color: var(--x-on-primary); }
-.overview-band:not(.has-clock) { grid-template-columns: minmax(0, 1fr) auto; }
-.overview-band:not(.has-system) { grid-template-columns: auto minmax(0, 1fr); }
-.overview-band:not(.has-search) { grid-template-columns: auto auto; justify-content: space-between; }
-.overview-band:not(.has-clock):not(.has-search), .overview-band:not(.has-clock):not(.has-system), .overview-band:not(.has-search):not(.has-system) { display: block; }
-.overview-search { min-width: 0; }
 .overview-system { display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 320px; min-height: 52px; padding: 6px 12px; border-radius: var(--x-r-small); background: var(--x-bg1); }
-.wallpaper-preview { display: grid; flex: none; place-items: center; width: 72px; height: 40px; overflow: hidden; border-radius: var(--x-r-glyph); background: var(--x-ph); background-position: center; background-size: cover; color: var(--x-ph-sub); font-size: 9px; line-height: 1.15; text-align: center; }
-.wallpaper-preview small { display: block; margin-top: 2px; }
+.overview-band > :only-child { width: 100%; max-width: none; }
 .selected-group-title { display: flex; align-items: center; gap: 8px; margin: 40px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
-.selected-group-bar { display: flex; align-items: center; gap: 12px; margin-top: 32px; }
+.selected-group-bar { display: flex; align-items: center; gap: 12px; margin-top: 40px; }
 .selected-group-bar .selected-group-title { flex: 1; min-width: 0; margin: 0; }
 .selected-group-bar .group-add { background: transparent; }
 .title-glyph, .heading-glyph { display: grid; flex: none; place-items: center; background: var(--group-tint); color: var(--group-fg); }
@@ -955,14 +906,6 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .rail-brand:focus-visible, .rail-button:focus-visible, .dock-button:focus-visible, .drawer-group:focus-visible, .url-row:focus-visible, .raised-button:focus-visible, .floating-button:focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
 @keyframes first-card { from { opacity: .2; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .first-load-motion .group-section { animation: first-card 150ms ease-out both; }.group-fade { animation: first-card 150ms ease-out; }
-@media (max-width: 1179px) and (min-width: 768px) {
-  .overview-band, .overview-band:not(.has-clock), .overview-band:not(.has-system), .overview-band:not(.has-search) { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-  .overview-band:not(.has-clock):not(.has-search), .overview-band:not(.has-clock):not(.has-system), .overview-band:not(.has-search):not(.has-system) { display: block; }
-  .overview-clock { grid-column: 1; grid-row: 1; }
-  .overview-system { grid-column: 2; grid-row: 1; justify-self: end; max-width: 100%; }
-  .overview-band:not(.has-clock) .overview-system { grid-column: 1 / -1; justify-self: start; }
-  .overview-search { grid-column: 1 / -1; grid-row: 2; }
-}
 @media (max-width: 767px) {
   .page-content { padding-right: 0; padding-left: 0; }
   .page-layout { padding: 16px 16px calc(136px + env(safe-area-inset-bottom)); }
@@ -973,9 +916,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
   .brand-block p { grid-column: 1 / -1; grid-row: 2; }
   .header-actions { grid-column: 1 / -1; grid-row: 3; width: 100%; flex-wrap: wrap; margin-top: 24px; }
   .list-filter { order: -1; width: 100%; }
-  .content-shell { padding-top: 24px; }
-  .overview-band { display: flex; flex-direction: column; align-items: stretch; gap: 24px; }
-  .overview-band:not(.has-clock), .overview-band:not(.has-system), .overview-band:not(.has-search), .overview-band:not(.has-clock):not(.has-search), .overview-band:not(.has-clock):not(.has-system), .overview-band:not(.has-search):not(.has-system) { display: flex; }
+  .overview-band { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .overview-system { width: 100%; max-width: none; }
   .content-groups { grid-template-columns: 1fr; gap: 24px; margin-top: 40px; }
   .url-list { grid-template-columns: 1fr; }
