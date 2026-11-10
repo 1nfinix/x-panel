@@ -13,7 +13,7 @@ interface Prop {
 
 const props = withDefaults(defineProps<Prop>(), {})
 
-const defaultBackground = 'var(--xp-surface-card)'
+const defaultBackground = 'var(--x-bg2)'
 const propClass = ref(props.class)
 </script>
 
@@ -22,7 +22,7 @@ const propClass = ref(props.class)
     <!-- 详情图标 -->
     <div
       v-if="cardTypeStyle === PanelPanelConfigStyleEnum.info"
-      class="item-card-info w-full rounded-xp-lg transition-all duration-200 flex"
+      class="item-card-info w-full rounded-card transition-all duration-200 flex"
       :class="propClass"
       :style="{ backgroundColor: backgroundColor ?? defaultBackground }"
     >
@@ -35,7 +35,7 @@ const propClass = ref(props.class)
       class="item-card-small"
     >
       <div
-        class="item-card-small-icon overflow-hidden rounded-xp-lg sunpanel w-[70px] h-[70px] mx-auto transition-all duration-200"
+        class="item-card-small-icon overflow-hidden rounded-card sunpanel w-[70px] h-[70px] mx-auto transition-all duration-200"
         :class="propClass"
         :style="{ backgroundColor: backgroundColor ?? defaultBackground }"
       >

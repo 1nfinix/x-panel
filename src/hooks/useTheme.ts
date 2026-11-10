@@ -3,121 +3,196 @@ import { darkTheme, useOsTheme } from 'naive-ui'
 import { computed, watch } from 'vue'
 import { useAppStore } from '@/store'
 
-// Keep these values in sync with the CSS custom properties in global.less.
-const palette = {
+// Keep these literal colors in sync with the matching --x-* tokens in src/styles/global.less.
+// Naive UI derives colors with seemly and cannot parse CSS custom properties.
+export const themeColors = {
   light: {
-    canvas: '#faf9f5',
-    surfaceSoft: '#f5f0e8',
-    surfaceCard: '#efe9de',
-    hairline: '#e6dfd8',
-    ink: '#141413',
-    body: '#3d3d3a',
-    muted: '#6c6a64',
-    primary: '#cc785c',
-    primaryActive: '#a9583e',
-    focusRing: 'rgba(204, 120, 92, .15)',
+    bg0: '#FFFFFF',
+    modal: '#FFFFFF',
+    bg1: '#F6F8FA',
+    bg2: '#FFFFFF',
+    hover: '#EEF1F4',
+    ph: '#E5E8EC',
+    text1: '#1D1D1F',
+    text2: '#6E6E73',
+    sep: '#E5E8EC',
+    primary: '#0071E3',
+    primaryHover: '#0062C4',
+    primaryActive: '#00539F',
+    onPrimary: '#FFFFFF',
+    focus: 'rgba(0, 113, 227, .35)',
+    inverseBg: '#1D1D1F',
+    inverseFg: '#FFFFFF',
+    blueTint: '#E6F1FC',
+    blueFg: '#0062C4',
+    greenSys: '#34C759',
+    redSys: '#FF3B30',
   },
   dark: {
-    canvas: '#181715',
-    surfaceSoft: '#1f1e1b',
-    surfaceCard: '#252320',
-    hairline: '#34312c',
-    ink: '#faf9f5',
-    body: '#e3dfd7',
-    muted: '#a09d96',
-    primary: '#cc785c',
-    primaryActive: '#d98d73',
-    focusRing: 'rgba(204, 120, 92, .28)',
+    bg0: '#121214',
+    modal: '#1C1C1E', // dark overlays sit one step above the page
+    bg1: '#1C1C1E',
+    bg2: '#2C2C2E',
+    hover: '#3A3A3C',
+    ph: '#3A3A3C',
+    text1: '#F5F5F7',
+    text2: '#A1A1A6',
+    sep: '#3A3A3C',
+    primary: '#0071E3',
+    primaryHover: '#0062C4',
+    primaryActive: '#00539F',
+    onPrimary: '#FFFFFF',
+    focus: 'rgba(10, 132, 255, .55)',
+    inverseBg: '#F5F5F7',
+    inverseFg: '#1D1D1F',
+    blueTint: '#18314B',
+    blueFg: '#6CB4FF',
+    greenSys: '#30D158',
+    redSys: '#FF453A',
   },
-}
+} as const
 
-const fontBody = 'Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", "Microsoft YaHei", sans-serif'
-
-export function useTheme() {
+export function useThemeColors() {
   const appStore = useAppStore()
   const osTheme = useOsTheme()
   const isDark = computed(() => appStore.theme === 'auto' ? osTheme.value === 'dark' : appStore.theme === 'dark')
-  const theme = computed(() => isDark.value ? darkTheme : undefined)
+  const colors = computed(() => isDark.value ? themeColors.dark : themeColors.light)
+  return { isDark, colors }
+}
 
+export function resolveNaiveColor(value: string | undefined, colors: typeof themeColors.light | typeof themeColors.dark, fallback: string) {
+  if (!value)
+    return fallback
+  const legacyTokens: Record<string, string> = {
+    bg0: colors.bg0,
+    bg1: colors.bg1,
+    bg2: colors.bg2,
+    text1: colors.text1,
+    text2: colors.text2,
+    sep: colors.sep,
+    primary: colors.primary,
+  }
+  const match = /^var\(--x-([a-z0-9-]+)\)$/.exec(value)
+  if (match)
+    return legacyTokens[match[1]] || fallback
+  for (const token of ['bg2', 'text1', 'sep'] as const) {
+    if (value.toLowerCase() === themeColors.light[token].toLowerCase() || value.toLowerCase() === themeColors.dark[token].toLowerCase())
+      return colors[token]
+  }
+  return /^(#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$|rgba?\(|hsla?\()/i.test(value) ? value : fallback
+}
+
+export function useTheme() {
+  const { isDark, colors } = useThemeColors()
+  const theme = computed(() => isDark.value ? darkTheme : undefined)
   const themeOverrides = computed<GlobalThemeOverrides>(() => {
-    const colors = isDark.value ? palette.dark : palette.light
+    const c = colors.value
+    const focusShadow = `0 0 0 2px ${c.primary}, 0 0 0 5px ${c.focus}`
     return {
       common: {
-        primaryColor: colors.primary,
-        primaryColorHover: colors.primaryActive,
-        primaryColorPressed: colors.primaryActive,
-        primaryColorSuppl: colors.primary,
-        bodyColor: colors.canvas,
-        cardColor: colors.canvas,
-        modalColor: colors.canvas,
-        popoverColor: colors.canvas,
-        tableColor: colors.canvas,
-        inputColor: colors.canvas,
-        textColorBase: colors.ink,
-        textColor1: colors.ink,
-        textColor2: colors.body,
-        textColor3: colors.muted,
-        borderColor: colors.hairline,
-        dividerColor: colors.hairline,
-        borderRadius: '8px',
-        borderRadiusSmall: '6px',
-        fontFamily: fontBody,
-        fontSize: '14px',
+        primaryColor: c.primary,
+        primaryColorHover: c.primaryHover,
+        primaryColorPressed: c.primaryActive,
+        primaryColorSuppl: c.primaryHover,
+        bodyColor: c.bg0,
+        cardColor: c.bg1,
+        modalColor: c.modal,
+        popoverColor: c.bg1,
+        inputColor: c.bg1,
+        textColorBase: c.text1,
+        textColor1: c.text1,
+        textColor2: c.text2,
+        textColor3: c.text2,
+        borderColor: c.sep,
+        dividerColor: c.sep,
+        borderRadius: '999px',
+        heightMedium: '44px',
+        fontFamily: 'Onest, -apple-system, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif',
+        fontSize: '15px',
       },
-      Card: { borderRadius: '12px' },
+      Button: {
+        heightMedium: '44px',
+        borderRadiusMedium: '999px',
+        border: 'none',
+        borderHover: 'none',
+        borderPressed: 'none',
+        borderFocus: 'none',
+        borderDisabled: 'none',
+        borderPrimary: 'none',
+        borderHoverPrimary: 'none',
+        borderPressedPrimary: 'none',
+        borderFocusPrimary: 'none',
+        color: c.bg1,
+        colorHover: c.hover,
+        colorPressed: c.ph,
+        colorSecondary: c.bg1,
+        colorSecondaryHover: c.hover,
+        textColor: c.text1,
+        colorPrimary: c.primary,
+        colorHoverPrimary: c.primaryHover,
+        colorPressedPrimary: c.primaryActive,
+        textColorPrimary: c.onPrimary,
+        textColorHoverPrimary: c.onPrimary,
+        textColorPressedPrimary: c.onPrimary,
+      },
       Input: {
-        border: `1px solid ${colors.hairline}`,
-        borderFocus: `1px solid ${colors.primary}`,
-        borderHover: `1px solid ${colors.primary}`,
-        boxShadowFocus: `0 0 0 3px ${colors.focusRing}`,
+        heightMedium: '44px',
+        borderRadius: '999px',
+        color: c.bg1,
+        colorFocus: c.bg1,
+        border: 'none',
+        borderHover: 'none',
+        borderFocus: 'none',
+        boxShadowFocus: focusShadow,
       },
       Select: {
         peers: {
           InternalSelection: {
-            border: `1px solid ${colors.hairline}`,
-            borderHover: `1px solid ${colors.primary}`,
-            borderFocus: `1px solid ${colors.primary}`,
-            boxShadowFocus: `0 0 0 3px ${colors.focusRing}`,
+            heightMedium: '44px',
+            borderRadius: '999px',
+            color: c.bg1,
+            border: 'none',
+            borderHover: 'none',
+            borderFocus: 'none',
+            boxShadowFocus: focusShadow,
           },
         },
       },
-      Alert: {
-        colorInfo: colors.surfaceCard,
-        borderInfo: `1px solid ${colors.hairline}`,
-        iconColorInfo: colors.ink,
-        titleTextColorInfo: colors.ink,
-        contentTextColorInfo: colors.body,
-        colorWarning: colors.surfaceCard,
-        borderWarning: `1px solid ${colors.hairline}`,
-        iconColorWarning: colors.primary,
-        contentTextColorWarning: colors.body,
+      Card: { borderRadius: '32px', borderColor: c.bg1, boxShadow: 'none', color: c.bg1 },
+      Modal: { color: c.modal, boxShadow: 'none' },
+      Dialog: { borderRadius: '24px', border: 'none', color: c.modal },
+      Popover: { borderRadius: '24px', color: c.bg1, boxShadow: 'none' },
+      Dropdown: { borderRadius: '24px', color: c.bg1, optionColorHover: c.bg2, optionColorActive: c.blueTint, optionTextColorActive: c.blueFg },
+      Tooltip: { borderRadius: '999px', color: c.inverseBg, textColor: c.inverseFg, boxShadow: 'none' },
+      Tag: { borderRadius: '999px' },
+      Message: {
+        color: c.inverseBg,
+        colorInfo: c.inverseBg,
+        colorSuccess: c.inverseBg,
+        colorError: c.inverseBg,
+        colorWarning: c.inverseBg,
+        colorLoading: c.inverseBg,
+        textColor: c.inverseFg,
+        textColorInfo: c.inverseFg,
+        textColorSuccess: c.inverseFg,
+        textColorError: c.inverseFg,
+        textColorWarning: c.inverseFg,
+        textColorLoading: c.inverseFg,
+        iconColorSuccess: c.greenSys,
+        iconColorError: c.redSys,
+        borderRadius: '999px',
+        boxShadow: 'none',
       },
-      Button: {
-        fontWeightStrong: '500',
-        textColor: colors.ink,
-        color: colors.canvas,
-        border: `1px solid ${colors.hairline}`,
-        colorHover: colors.canvas,
-        textColorHover: colors.ink,
-        borderHover: `1px solid ${colors.primary}`,
-        colorSecondary: colors.canvas,
-        colorSecondaryHover: colors.surfaceSoft,
-        colorSecondaryPressed: colors.surfaceCard,
-        colorPrimary: colors.primary,
-        colorHoverPrimary: colors.primaryActive,
-        textColorPrimary: '#ffffff',
-        textColorHoverPrimary: '#ffffff',
-        textColorPressedPrimary: '#ffffff',
+      Notification: {
+        color: c.inverseBg,
+        textColor: c.inverseFg,
+        iconColorSuccess: c.greenSys,
+        iconColorError: c.redSys,
+        boxShadow: 'none',
+        borderRadius: '999px',
       },
-      Tag: { borderRadius: '9999px' },
-      Dialog: { borderRadius: '12px' },
-      Modal: { borderRadius: '12px' },
-      Menu: { itemColorActive: colors.surfaceCard, itemTextColorActive: colors.ink },
-      Dropdown: { optionColorActive: colors.surfaceCard, optionTextColorActive: colors.ink },
     }
   })
-
   watch(isDark, value => document.documentElement.classList.toggle('dark', value), { immediate: true })
-
   return { theme, themeOverrides }
 }

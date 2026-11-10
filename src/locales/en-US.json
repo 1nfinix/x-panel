@@ -122,7 +122,9 @@
     "itemGroupManage": {
       "appName": "Group Management",
       "deleteWarnText": "Are you sure you want to delete this group [{name}]? The application icons in this group will be lost after deletion.",
-      "groupName": "Group name"
+      "groupName": "Group name",
+      "icon": "Icon",
+      "auto": "Auto"
     },
     "uploadsFileManager": {
       "alertText": "Here you can manage wallpapers and icons you have uploaded.",
@@ -230,7 +232,10 @@
       "memoryState": "Memory status",
       "progressColor": "Main color",
       "progressRailColor": "Secondary color",
-      "systemState": "System status"
+      "systemState": "System status",
+      "normal": "Normal",
+      "high": "High",
+      "unavailable": "Unavailable"
     }
   },
   "form": {
@@ -278,12 +283,28 @@
     "openWanUrl": "Open WAN URL",
     "all": "All",
     "groups": "Group navigation",
+    "backToTop": "Back to top",
+    "groupAria": "{name}, {count} sites",
     "filterPlaceholder": "Filter sites by name or domain",
     "resultsCount": "{count} results",
     "arrange": "Arrange",
     "arrangeDone": "Done",
     "arrangeSaveFailed": "Failed to save order",
-    "noMatches": "No matching sites"
+    "noMatches": "No matching sites",
+    "importBookmarks": "Import bookmarks",
+    "todayWallpaper": "Today’s wallpaper",
+    "moreGroups": "More groups",
+    "viewAll": "View all {count}",
+    "dropHere": "Drop here",
+    "saving": "Saving",
+    "saved": "Saved",
+    "error": "Save failed",
+    "undo": "Undo",
+    "loadFailed": "Could not load groups",
+    "loading": "Loading",
+    "retry": "Retry",
+    "groupCount": "{count} groups",
+    "bookmarkCount": "{count} bookmarks"
   },
   "settingUserInfo": {
     "confirmLogoutText": "Are you sure you want to logout?",

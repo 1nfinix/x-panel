@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { NAlert, NButton, NButtonGroup, NCard, NEllipsis, NGrid, NGridItem, NImage, NImageGroup, NSpin, useDialog, useMessage } from 'naive-ui'
-import { onMounted, ref } from 'vue'
+import { h, onMounted, ref } from 'vue'
 import { deletes, getList } from '@/api/system/file'
 import { set as savePanelConfig } from '@/api/panel/userConfig'
 import { RoundCardModal, SvgIcon } from '@/components/common'
@@ -18,6 +18,10 @@ const ms = useMessage()
 const dialog = useDialog()
 const panelStore = usePanelState()
 const loading = ref(false)
+const operationError = ref('')
+const listError = ref('')
+const deleteLoadingId = ref<number | null>(null)
+const wallpaperLoadingId = ref<number | null>(null)
 const infoModalState = ref<InfoModalState>({
   show: false,
   title: '',
@@ -26,9 +30,19 @@ const infoModalState = ref<InfoModalState>({
 
 async function getFileList() {
   loading.value = true
-  const { data } = await getList<Common.ListResponse<File.Info[]>>()
-  imageList.value = data.list
-  loading.value = false
+  try {
+    const { code, data } = await getList<Common.ListResponse<File.Info[]>>()
+    if (code !== 0)
+      throw new Error(t('common.failed'))
+    imageList.value = data.list
+    listError.value = ''
+  }
+  catch {
+    listError.value = t('common.failed')
+  }
+  finally {
+    loading.value = false
+  }
 }
 
 async function copyImageUrl(text: string) {
@@ -41,31 +55,34 @@ async function copyImageUrl(text: string) {
 }
 
 function handleDelete(id: number) {
-  dialog.warning({
+  const deleteError = ref('')
+  const confirmDialog = dialog.warning({
     title: t('common.warning'),
-    content: t('apps.uploadsFileManager.deleteWarningText'),
+    content: () => h('div', [h('p', t('apps.uploadsFileManager.deleteWarningText')), deleteError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, deleteError.value) : null]),
     positiveText: t('common.confirm'),
     negativeText: t('common.cancel'),
-    onPositiveClick: () => {
-      deletesImges(id)
+    onPositiveClick: async () => {
+      deleteLoadingId.value = id
+      confirmDialog.loading = true
+      try {
+        const { code, msg } = await deletes([id])
+        if (code !== 0) {
+          deleteError.value = `${t('common.failed')}: ${msg}`
+          return false
+        }
+        await getFileList()
+        ms.success(t('common.success'))
+      }
+      catch {
+        deleteError.value = t('common.failed')
+        return false
+      }
+      finally {
+        deleteLoadingId.value = null
+        confirmDialog.loading = false
+      }
     },
   })
-}
-
-async function deletesImges(id: number) {
-  try {
-    const { code, msg } = await deletes([id])
-    if (code === 0) {
-      getFileList()
-      ms.success(t('common.success'))
-    }
-    else {
-      ms.error(`${t('common.failed')}:${msg}`)
-    }
-  }
-  catch (error) {
-    ms.error(t('common.failed'))
-  }
 }
 
 function handleInfoClick(fileInfo: File.Info) {
@@ -73,9 +90,24 @@ function handleInfoClick(fileInfo: File.Info) {
   infoModalState.value.show = true
 }
 
-function handleSetWallpaper(imgSrc: string) {
+async function handleSetWallpaper(imgSrc: string, id: number) {
+  const previous = panelStore.panelConfig.backgroundImageSrc
+  wallpaperLoadingId.value = id
   panelStore.panelConfig.backgroundImageSrc = imgSrc
-  savePanelConfig({ panel: panelStore.panelConfig })
+  try {
+    const { code, msg } = await savePanelConfig({ panel: panelStore.panelConfig })
+    if (code !== 0)
+      throw new Error(msg)
+    operationError.value = ''
+    ms.success(t('common.saveSuccess'))
+  }
+  catch (error) {
+    panelStore.panelConfig.backgroundImageSrc = previous
+    operationError.value = error instanceof Error ? error.message : t('common.saveFail')
+  }
+  finally {
+    wallpaperLoadingId.value = null
+  }
 }
 
 onMounted(() => {
@@ -84,8 +116,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-surface-soft p-2 h-full">
+  <div class="bg-bg1 p-2 h-full">
     <NSpin v-show="loading" size="small" />
+    <p v-if="operationError" class="operation-error" role="alert">
+      {{ operationError }}
+    </p>
+    <p v-if="listError" class="operation-error" role="alert">
+      {{ listError }} <NButton size="small" @click="getFileList">
+        {{ t('panelHome.retry') }}
+      </NButton>
+    </p>
     <NAlert type="info" :bordered="false">
       {{ $t('apps.uploadsFileManager.alertText') }}
     </NAlert>
@@ -96,7 +136,7 @@ onMounted(() => {
       <NImageGroup v-else>
         <NGrid cols="2 300:2 600:4 900:6 1100:9" :x-gap="5" :y-gap="5">
           <NGridItem v-for=" item, index in imageList" :key="index">
-            <NCard size="small" style="border-radius: var(--xp-radius-sm);" :bordered="true">
+            <NCard size="small" style="border-radius: var(--x-r-small);" :bordered="false">
               <template #cover>
                 <div class="card transparent-grid">
                   <NImage :lazy="true" style="object-fit: contain;height: 100%;" :src="item.src" />
@@ -120,12 +160,12 @@ onMounted(() => {
                         <SvgIcon icon="mdi-information-box-outline" />
                       </template>
                     </NButton>
-                    <NButton size="tiny" tertiary style="cursor: pointer;" :title="$t('apps.uploadsFileManager.setWallpaper')" @click="handleSetWallpaper(item.src)">
+                    <NButton size="tiny" tertiary style="cursor: pointer;" :loading="wallpaperLoadingId === item.id" :title="$t('apps.uploadsFileManager.setWallpaper')" @click="handleSetWallpaper(item.src, item.id as number)">
                       <template #icon>
                         <SvgIcon icon="lucide:wallpaper" />
                       </template>
                     </NButton>
-                    <NButton size="tiny" text type="error" style="cursor: pointer;" :title="$t('common.delete')" @click="handleDelete(item.id as number)">
+                    <NButton size="tiny" type="error" style="cursor: pointer;" :loading="deleteLoadingId === item.id" :title="$t('common.delete')" @click="handleDelete(item.id as number)">
                       <template #icon>
                         <SvgIcon icon="material-symbols-delete" />
                       </template>
@@ -143,7 +183,7 @@ onMounted(() => {
       <div>
         <div>
           <div class="mb-2">
-            <span class="text-muted">
+            <span class="text-text2">
               {{ $t('apps.uploadsFileManager.fileName') }}
             </span>
             <div class="text-[13px]">
@@ -151,7 +191,7 @@ onMounted(() => {
             </div>
           </div>
           <div class="mb-2">
-            <span class="text-muted">
+            <span class="text-text2">
               {{ $t('apps.uploadsFileManager.path') }}
             </span>
             <div class="text-[13px]">
@@ -159,7 +199,7 @@ onMounted(() => {
             </div>
           </div>
           <div class="mb-2">
-            <span class="text-muted">
+            <span class="text-text2">
               {{ $t('apps.uploadsFileManager.uploadTime') }}
             </span>
             <div class="text-[13px]">
@@ -173,6 +213,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.operation-error { margin: 8px 0; color: var(--x-red-fg); font-size: 13px; }
 .card {
   display: flex;
   justify-content: center;
@@ -180,10 +221,5 @@ onMounted(() => {
   height: 80px;
 }
 
-.transparent-grid {
-  background-image: linear-gradient(45deg, var(--xp-surface-card) 25%, transparent 25%, transparent 75%, var(--xp-surface-card) 75%),
-    linear-gradient(45deg, var(--xp-surface-card) 25%, transparent 25%, transparent 75%, var(--xp-surface-card) 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 8px 8px;
-}
+.transparent-grid { background: var(--x-ph); }
 </style>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineEmits, defineProps, ref, watch } from 'vue'
-import { NButton, NModal, NTabPane, NTabs, useMessage } from 'naive-ui'
+import { NButton, NModal, NTabPane, NTabs } from 'naive-ui'
 import { MonitorType } from '../typings'
 import type { DiskExtendParam, GenericProgressStyleExtendParam, MonitorData } from '../typings'
 import { add, saveByIndex } from '../common'
@@ -8,6 +8,7 @@ import { add, saveByIndex } from '../common'
 import GenericProgressStyleEditor from './GenericProgressStyleEditor/index.vue'
 import DiskEditor from './DiskEditor/index.vue'
 import { t } from '@/locales'
+import { resolveNaiveColor, useThemeColors } from '@/hooks/useTheme'
 
 interface Props {
   visible: boolean
@@ -18,35 +19,39 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<Emit>()
 const DiskEditorRef = ref<InstanceType<typeof DiskEditor>>()
+const { colors } = useThemeColors()
 
 // 默认通用的进度扩展参数
-const defaultGenericProgressStyleExtendParam: GenericProgressStyleExtendParam = {
-  progressColor: 'var(--xp-ink)',
-  progressRailColor: 'var(--xp-hairline)',
-  color: 'var(--xp-ink)',
-  backgroundColor: 'var(--xp-surface-card)',
+function defaultGenericProgressStyleExtendParam(): GenericProgressStyleExtendParam {
+  return {
+    progressColor: colors.value.text1,
+    progressRailColor: colors.value.sep,
+    color: colors.value.text1,
+    backgroundColor: colors.value.bg2,
+  }
 }
 
-const defaultDiskExtendParam: DiskExtendParam = {
-  progressColor: 'var(--xp-ink)',
-  progressRailColor: 'var(--xp-hairline)',
-  color: 'var(--xp-ink)',
-  backgroundColor: 'var(--xp-surface-card)',
-  path: '',
+function defaultDiskExtendParam(): DiskExtendParam {
+  return { ...defaultGenericProgressStyleExtendParam(), path: '' }
 }
 
-const defaultMonitorData: MonitorData = {
-  extendParam: defaultGenericProgressStyleExtendParam,
-  monitorType: MonitorType.cpu,
+function normalizeColors<T extends GenericProgressStyleExtendParam>(value: T): T {
+  return {
+    ...value,
+    progressColor: resolveNaiveColor(value.progressColor, colors.value, colors.value.text1),
+    progressRailColor: resolveNaiveColor(value.progressRailColor, colors.value, colors.value.sep),
+    color: resolveNaiveColor(value.color, colors.value, colors.value.text1),
+    backgroundColor: resolveNaiveColor(value.backgroundColor, colors.value, colors.value.bg2),
+  }
 }
 
 const active = ref<string>(MonitorType.cpu)
-const currentMonitorData = ref<MonitorData>(props.monitorData || { ...defaultMonitorData })
-const currentGenericProgressStyleExtendParam = ref<GenericProgressStyleExtendParam>({ ...defaultGenericProgressStyleExtendParam })
-const currentDiskExtendParam = ref<DiskExtendParam>({ ...defaultDiskExtendParam })
+const currentMonitorData = ref<MonitorData>(props.monitorData || { extendParam: defaultGenericProgressStyleExtendParam(), monitorType: MonitorType.cpu })
+const currentGenericProgressStyleExtendParam = ref<GenericProgressStyleExtendParam>(defaultGenericProgressStyleExtendParam())
+const currentDiskExtendParam = ref<DiskExtendParam>(defaultDiskExtendParam())
 
-const ms = useMessage()
 const submitLoading = ref(false)
+const saveError = ref('')
 
 interface Emit {
   (e: 'update:visible', visible: boolean): void
@@ -62,23 +67,31 @@ const show = computed({
 })
 
 watch(() => props.visible, (value) => {
-  active.value = props.monitorData?.monitorType || MonitorType.cpu
-  if (props.monitorData?.monitorType === MonitorType.cpu || props.monitorData?.monitorType === MonitorType.memory)
-    currentGenericProgressStyleExtendParam.value = { ...props.monitorData?.extendParam }
-  else if (props.monitorData?.monitorType === MonitorType.disk)
-    currentDiskExtendParam.value = { ...props.monitorData?.extendParam }
-
-  if (!value)
+  if (value) {
+    saveError.value = ''
+    active.value = props.monitorData?.monitorType || MonitorType.cpu
+    currentMonitorData.value = props.monitorData ? { ...props.monitorData } : { extendParam: defaultGenericProgressStyleExtendParam(), monitorType: MonitorType.cpu }
+    if (props.monitorData?.monitorType === MonitorType.cpu || props.monitorData?.monitorType === MonitorType.memory)
+      currentGenericProgressStyleExtendParam.value = props.monitorData.extendParam ? normalizeColors(props.monitorData.extendParam as GenericProgressStyleExtendParam) : defaultGenericProgressStyleExtendParam()
+    else if (props.monitorData?.monitorType === MonitorType.disk)
+      currentDiskExtendParam.value = props.monitorData.extendParam ? normalizeColors(props.monitorData.extendParam as DiskExtendParam) : defaultDiskExtendParam()
+    else
+      handleResetExtendParam()
+  }
+  else {
     handleResetExtendParam()
+  }
 })
 
 function handleResetExtendParam() {
-  currentGenericProgressStyleExtendParam.value = { ...defaultGenericProgressStyleExtendParam }
-  currentDiskExtendParam.value = { ...defaultDiskExtendParam }
+  currentGenericProgressStyleExtendParam.value = defaultGenericProgressStyleExtendParam()
+  currentDiskExtendParam.value = defaultDiskExtendParam()
 }
 
 // 保存提交
 async function handleSubmit() {
+  if (submitLoading.value)
+    return
   let verificationRes = true
   currentMonitorData.value.monitorType = active.value as MonitorType
   if (currentMonitorData.value.monitorType === MonitorType.cpu || currentMonitorData.value.monitorType === MonitorType.memory) {
@@ -95,31 +108,29 @@ async function handleSubmit() {
   if (!verificationRes)
     return
 
-  if (props.index !== null) {
-    const res = await saveByIndex(props.index, currentMonitorData.value)
+  submitLoading.value = true
+  saveError.value = ''
+  try {
+    const res = props.index !== null
+      ? await saveByIndex(props.index, currentMonitorData.value)
+      : await add(currentMonitorData.value)
     if (res) {
       show.value = false
       emit('done', true)
     }
-    else {
-      ms.error(t('common.saveFail'))
-    }
+    else { saveError.value = t('common.saveFail') }
   }
-  else {
-    const res = await add(currentMonitorData.value)
-    if (res) {
-      show.value = false
-      emit('done', true)
-    }
-    else {
-      ms.error(t('common.saveFail'))
-    }
+  catch {
+    saveError.value = t('common.saveFail')
+  }
+  finally {
+    submitLoading.value = false
   }
 }
 </script>
 
 <template>
-  <NModal v-model:show="show" preset="card" size="small" style="width: 600px;border-radius: var(--xp-radius-lg);" :title="monitorData ? t('common.edit') : t('common.add')">
+  <NModal v-model:show="show" preset="card" size="small" style="width: 600px;border-radius: var(--x-r-card);" :title="monitorData ? t('common.edit') : t('common.add')">
     <!-- 选择监视器 -->
     <!-- <div>
       {{ JSON.stringify(currentGenericProgressStyleExtendParam) }}
@@ -139,6 +150,9 @@ async function handleSubmit() {
     <NButton @click="handleResetExtendParam">
       {{ t('common.reset') }}
     </NButton>
+    <p v-if="saveError" class="save-error" role="alert">
+      {{ saveError }}
+    </p>
     <template #footer>
       <NButton type="primary" :loading="submitLoading" style="float: right;" @click="handleSubmit">
         {{ t('common.confirm') }}
@@ -146,3 +160,7 @@ async function handleSubmit() {
     </template>
   </NModal>
 </template>
+
+<style scoped>
+.save-error { margin-top: 12px; color: var(--x-red-fg); font-size: 13px; }
+</style>

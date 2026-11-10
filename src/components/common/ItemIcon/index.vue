@@ -10,7 +10,7 @@ interface Prop {
 }
 
 const props = withDefaults(defineProps<Prop>(), { size: 70 })
-const defaultBackground = 'var(--xp-surface-card)'
+const defaultBackground = 'var(--x-bg2)'
 const defaultStyle = ref({
   width: `${props.size}px`,
   height: `${props.size}px`,

@@ -3,7 +3,7 @@ import { NButton, NCard, NForm, NFormItem, NInput, NSelect, useMessage } from 'n
 import { onMounted, ref } from 'vue'
 import { login } from '@/api'
 import { useAppStore, useAuthStore, usePanelState } from '@/store'
-import { SvgIcon } from '@/components/common'
+import { SvgIcon, XBrand } from '@/components/common'
 import { router } from '@/router'
 import { t } from '@/locales'
 import { languageOptions } from '@/utils/defaultData'
@@ -11,13 +11,13 @@ import type { Language } from '@/store/modules/app/helper'
 import Captcha from '@/components/common/Captcha/index.vue'
 import { getLoginConfig } from '@/api/openness'
 import { useWallpaper } from '@/hooks/useWallpaper'
-import srcSvglogo from '@/assets/logo.svg'
 
 // const userStore = useUserStore()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 const ms = useMessage()
 const loading = ref(false)
+const fieldError = ref<{ username?: string; password?: string; vcode?: string }>({})
 const languageValue = ref<Language>(appStore.language)
 
 const isShowCaptcha = ref(true)
@@ -46,6 +46,17 @@ onMounted(async () => {
 })
 
 const loginPost = async () => {
+  if (loading.value)
+    return
+  fieldError.value = {}
+  if (!form.value.username) {
+    fieldError.value.username = t('form.required')
+    return
+  }
+  if (!form.value.password) {
+    fieldError.value.password = t('form.required')
+    return
+  }
   loading.value = true
   try {
     const res = await login<Login.LoginResponse>(form.value)
@@ -61,14 +72,18 @@ const loginPost = async () => {
     }
     else {
       loading.value = false
-      ms.error(res.code === 1101 ? t('login.captchaRequired') : res.code === 1102 ? t('login.captchaInvalid') : res.code === 1003 ? t('login.credentialsInvalid') : res.msg)
+      const message = res.code === 1101 ? t('login.captchaRequired') : res.code === 1102 ? t('login.captchaInvalid') : res.code === 1003 ? t('login.credentialsInvalid') : res.msg
+      if (res.code === 1101 || res.code === 1102)
+        fieldError.value.vcode = message
+      else
+        fieldError.value.password = message
       form.value.vcode = ''
       captchaRef.value?.refresh()
     }
   }
   catch (error) {
     loading.value = false
-    ms.error(t('login.networkError'))
+    fieldError.value.password = t('login.networkError')
     form.value.vcode = ''
     captchaRef.value?.refresh()
   }
@@ -87,7 +102,7 @@ function handleChangeLanuage(value: Language) {
 
 <template>
   <div class="login-container">
-    <div v-if="panelState.panelConfig.showWallpaper" class="login-wallpaper" :class="{ loaded: wallpaperLoaded }" :style="{ backgroundImage: wallpaperLoaded ? `linear-gradient(rgba(24,23,21,.72),rgba(24,23,21,.72)),url(${wallpaperSource})` : 'none' }" />
+    <div v-if="panelState.panelConfig.showWallpaper" class="login-wallpaper" :class="{ loaded: wallpaperLoaded }" :style="{ backgroundImage: wallpaperLoaded ? `url(${wallpaperSource})` : 'none' }" /><div v-if="panelState.panelConfig.showWallpaper" class="wallpaper-mask" />
     <NCard class="login-card">
       <div class="mb-5 flex items-center justify-end">
         <div class="mr-2">
@@ -99,13 +114,13 @@ function handleChangeLanuage(value: Language) {
       </div>
 
       <div class="login-title">
-        <img :src="srcSvglogo" width="42" height="42" alt="" aria-hidden="true">
+        <span class="login-brand"><XBrand /></span>
         <strong class="login-heading">
-          {{ $t('common.appName') }}
+          {{ panelState.panelConfig.logoText || $t('common.appName') }}
         </strong>
       </div>
       <NForm :model="form" label-width="100px" @keydown.enter="handleSubmit">
-        <NFormItem>
+        <NFormItem :feedback="fieldError.username" :validation-status="fieldError.username ? 'error' : undefined">
           <NInput v-model:value="form.username" :placeholder="$t('login.usernamePlaceholder')">
             <template #prefix>
               <SvgIcon icon="ph:user-bold" />
@@ -113,7 +128,7 @@ function handleChangeLanuage(value: Language) {
           </NInput>
         </NFormItem>
 
-        <NFormItem>
+        <NFormItem :feedback="fieldError.password" :validation-status="fieldError.password ? 'error' : undefined">
           <NInput v-model:value="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')">
             <template #prefix>
               <SvgIcon icon="mdi:password-outline" />
@@ -121,7 +136,7 @@ function handleChangeLanuage(value: Language) {
           </NInput>
         </NFormItem>
 
-        <NFormItem v-if="isShowCaptcha">
+        <NFormItem v-if="isShowCaptcha" :feedback="fieldError.vcode" :validation-status="fieldError.vcode ? 'error' : undefined">
           <div class="captcha-image" :title="t('login.refreshCaptcha')">
             <Captcha ref="captchaRef" src="/api/captcha/getImage" />
           </div>
@@ -142,8 +157,8 @@ function handleChangeLanuage(value: Language) {
           </NButton>
         </div> -->
 
-        <div class="flex justify-center text-muted-soft text-[13px]">
-          Powered By <a href="https://github.com/1nfinix/x-panel" target="_blank" class="ml-1 text-muted-soft">X-Panel</a>
+        <div class="flex justify-center text-text2 text-[13px]">
+          Powered By <a href="https://github.com/1nfinix/x-panel" target="_blank" class="ml-1 text-text2">X-Panel</a>
         </div>
       </NForm>
     </NCard>
@@ -151,16 +166,18 @@ function handleChangeLanuage(value: Language) {
 </template>
 
 <style scoped>
-.login-container { position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background-color: var(--xp-canvas); }
+.login-container { position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background-color: var(--x-bg0); }
 .login-wallpaper { position: absolute; inset: 0; background-position: center; background-size: cover; opacity: 0; transition: opacity 600ms ease; }
 .login-wallpaper.loaded { opacity: 1; }
-.login-card { position: relative; width: min(100%, 430px); border: 1px solid var(--xp-hairline); border-radius: var(--xp-radius-lg); background: var(--xp-canvas); color: var(--xp-ink); }
-.login-card :deep(.n-card__content) { padding: 32px; }
-.login-card :deep(.n-input) { min-height: 40px; }
-.login-card :deep(.n-button--primary-type) { height: 40px; border-radius: var(--xp-radius-md); }
+.wallpaper-mask { position: absolute; inset: 0; background: rgba(18,18,20,.55); }
+.login-card { position: relative; width: min(100%, 430px); border: 0; border-radius: var(--x-r-card); background: var(--x-bg1); color: var(--x-text1); box-shadow: none; }
+.login-card :deep(.n-card__content) { padding: 40px; }
+.login-card :deep(.n-input) { min-height: 44px; background: var(--x-bg2); }
+.login-card :deep(.n-button--primary-type) { height: 44px; border-radius: var(--x-r-pill); }
 .login-title { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 28px; }
-.login-heading { font-family: var(--xp-font-display); font-size: 30px; color: var(--xp-ink); font-weight: 600; letter-spacing: 0; }
-.captcha-image { flex: none; width: 160px; height: 48px; margin-right: 12px; cursor: pointer; border-radius: var(--xp-radius-sm); overflow: hidden; }
+.login-brand { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--x-r-icon); background: var(--x-bg2); }.login-brand :deep(svg) { width: 28px; height: 28px; }
+.login-heading { font-family: var(--x-font); font-size: 30px; color: var(--x-text1); font-weight: 600; letter-spacing: 0; }
+.captcha-image { flex: none; width: 160px; height: 48px; margin-right: 12px; cursor: pointer; border-radius: var(--x-r-icon); overflow: hidden; }
 .captcha-image :deep(img) { width: 160px; height: 48px; }
 @media (max-width: 390px) { .captcha-image { width: 138px; } .captcha-image :deep(img) { width: 138px; } }
 @media (prefers-reduced-motion: reduce) { .login-wallpaper { transition: none; } }

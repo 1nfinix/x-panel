@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import type { FormInst, FormRules } from 'naive-ui'
-import { NColorPicker, NForm, NFormItem, NSelect } from 'naive-ui'
+import { NButton, NColorPicker, NForm, NFormItem, NSelect } from 'naive-ui'
 import type { DiskExtendParam } from '../../typings'
 import GenericMonitorCard from '../../components/GenericMonitorCard/index.vue'
 import GenericProgress from '../../components/GenericProgress/index.vue'
@@ -31,6 +31,8 @@ const mountPointList = ref<{
   label: string
   value: string
 }[]>([])
+const mountPointLoading = ref(false)
+const mountPointError = ref('')
 
 const extendParam = computed({
   get: () => props.diskExtendParam,
@@ -40,8 +42,12 @@ const extendParam = computed({
 })
 
 async function getMountPointList() {
+  mountPointLoading.value = true
+  mountPointError.value = ''
   try {
-    const { data } = await getDiskMountpoints<SystemMonitor.Mountpoint[]>()
+    const { code, data, msg } = await getDiskMountpoints<SystemMonitor.Mountpoint[]>()
+    if (code !== 0)
+      throw new Error(msg || t('common.failed'))
     mountPointList.value = []
     for (let i = 0; i < data.length; i++) {
       const element = data[i]
@@ -55,7 +61,10 @@ async function getMountPointList() {
     }
   }
   catch (error) {
-
+    mountPointError.value = error instanceof Error ? error.message : t('common.failed')
+  }
+  finally {
+    mountPointLoading.value = false
   }
 }
 
@@ -87,7 +96,7 @@ defineExpose({
 <template>
   <div>
     <!-- <div>{{ diskExtendParam }}</div> -->
-    <div class="flex mb-5 justify-center transparent-grid p-2 rounded-xp-lg border">
+    <div class="flex mb-5 justify-center transparent-grid p-2 rounded-card">
       <div class="w-[200px]">
         <GenericMonitorCard
           icon-text-icon-hide-title
@@ -134,8 +143,13 @@ defineExpose({
 
     <NForm ref="formRef" v-model="extendParam" :model="extendParam" :rules="rules">
       <NFormItem :label="$t('deskModule.systemMonitor.diskMountPoint')" path="path">
-        <NSelect v-model:value="extendParam.path" size="small" :options="mountPointList" />
+        <NSelect v-model:value="extendParam.path" :loading="mountPointLoading" :options="mountPointList" />
       </NFormItem>
+      <p v-if="mountPointError" class="mount-error" role="alert">
+        {{ mountPointError }} <NButton size="small" @click="getMountPointList">
+          {{ t('panelHome.retry') }}
+        </NButton>
+      </p>
       <NFormItem :label="$t('deskModule.systemMonitor.progressColor')">
         <NColorPicker v-model:value="extendParam.progressColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" />
       </NFormItem>
@@ -153,11 +167,6 @@ defineExpose({
 </template>
 
 <style>
-.transparent-grid {
-    background-image: linear-gradient(45deg, var(--xp-canvas) 25%, transparent 25%, transparent 75%, var(--xp-canvas) 75%),
-                      linear-gradient(45deg, var(--xp-canvas) 25%, transparent 25%, transparent 75%, var(--xp-canvas) 75%);
-    background-size: 16px 16px;
-    background-position: 0 0, 8px 8px;
-    background-color: var(--xp-surface-card);
-}
+.transparent-grid { background: var(--x-ph); }
+.mount-error { color: var(--x-red-fg); font-size: 13px; }
 </style>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FormInst, FormRules } from 'naive-ui'
 import { NButton, NCard, NDivider, NForm, NFormItem, NInput, NSelect, useDialog, useMessage } from 'naive-ui'
-import { ref } from 'vue'
+import { h, ref, watch } from 'vue'
 import { useAppStore, useAuthStore, usePanelState, useUserStore } from '@/store'
 import { languageOptions } from '@/utils/defaultData'
 import type { Language, Theme } from '@/store/modules/app/helper'
@@ -22,6 +22,10 @@ const languageValue = ref(appStore.language)
 const themeValue = ref(appStore.theme)
 const nickName = ref(authStore.userInfo?.name || '')
 const isEditNickNameStatus = ref(false)
+const nickSaving = ref(false)
+const nickError = ref('')
+const passwordError = ref('')
+const confirmPasswordError = ref('')
 const formRef = ref<FormInst | null>(null)
 const themeOptions: { label: string; key: string; value: Theme }[] = [
   { label: t('apps.userInfo.themeStyle.dark'), key: 'dark', value: 'dark' },
@@ -63,7 +67,9 @@ const updatePasswordModalFormRules: FormRules = {
 }
 
 async function logoutApi() {
-  await logout()
+  const { code, msg } = await logout()
+  if (code !== 0)
+    throw new Error(msg || t('common.failed'))
   userStore.resetUserInfo()
   authStore.removeToken()
   panelState.removeState()
@@ -73,53 +79,89 @@ async function logoutApi() {
   location.reload()// 强制刷新一下页面
 }
 
-function handleSaveInfo() {
-  updateInfo(nickName.value).then(({ code, msg }) => {
+async function handleSaveInfo() {
+  if (nickSaving.value)
+    return
+  nickSaving.value = true
+  nickError.value = ''
+  try {
+    const { code, msg } = await updateInfo(nickName.value)
     if (code === 0) {
-      updateLocalUserInfo()
+      await updateLocalUserInfo()
       isEditNickNameStatus.value = false
+      ms.success(t('common.saveSuccess'))
     }
-    else {
-      ms.error(`${t('common.editFail')}:${msg}`)
-    }
-  })
+    else { nickError.value = msg || t('common.editFail') }
+  }
+  catch {
+    nickError.value = t('common.editFail')
+  }
+  finally {
+    nickSaving.value = false
+  }
 }
 
-function handleUpdatePassword(e: MouseEvent) {
+async function handleUpdatePassword(e: MouseEvent) {
   e.preventDefault()
-  formRef.value?.validate((errors) => {
-    if (errors) {
-      console.log(errors)
+  try {
+    await formRef.value?.validate()
+  }
+  catch {
+    return
+  }
+  confirmPasswordError.value = ''
+  passwordError.value = ''
+  if (updatePasswordModalState.value.form.password !== updatePasswordModalState.value.form.confirmPassword) {
+    confirmPasswordError.value = t('settingUserInfo.confirmPasswordInconsistentMsg')
+    return
+  }
+  if (updatePasswordModalState.value.loading)
+    return
+  updatePasswordModalState.value.loading = true
+  try {
+    const { code, msg } = await updatePassword(updatePasswordModalState.value.form.oldPassword, updatePasswordModalState.value.form.password)
+    if (code !== 0) {
+      passwordError.value = msg || t('common.saveFail')
       return
     }
-
-    if (updatePasswordModalState.value.form.password !== updatePasswordModalState.value.form.confirmPassword) {
-      ms.error(t('settingUserInfo.confirmPasswordInconsistentMsg'))
-      return
-    }
-    updatePasswordModalState.value.loading = true
-    updatePassword(updatePasswordModalState.value.form.oldPassword, updatePasswordModalState.value.form.password).then(({ code, msg }) => {
-      if (code === 0) {
-        // 成功
-        updatePasswordModalState.value.show = false
-        ms.success(t('common.success'))
-      }
-    }).finally(() => {
-      updatePasswordModalState.value.loading = false
-    }).catch(() => {
-      ms.error(t('common.serverError'))
-    })
-  })
+    updatePasswordModalState.value.show = false
+    ms.success(t('common.success'))
+  }
+  catch {
+    passwordError.value = t('common.serverError')
+  }
+  finally {
+    updatePasswordModalState.value.loading = false
+  }
 }
+
+watch(() => updatePasswordModalState.value.show, (show) => {
+  if (show) {
+    passwordError.value = ''
+    confirmPasswordError.value = ''
+  }
+})
 
 function handleLogout() {
-  dialog.warning({
+  const logoutError = ref('')
+  const confirmDialog = dialog.warning({
     title: t('common.warning'),
-    content: t('settingUserInfo.confirmLogoutText'),
+    content: () => h('div', [h('p', t('settingUserInfo.confirmLogoutText')), logoutError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, logoutError.value) : null]),
     positiveText: t('common.confirm'),
     negativeText: t('common.cancel'),
-    onPositiveClick: () => {
-      logoutApi()
+    onPositiveClick: async () => {
+      confirmDialog.loading = true
+      logoutError.value = ''
+      try {
+        await logoutApi()
+      }
+      catch (error) {
+        logoutError.value = error instanceof Error ? error.message : t('common.failed')
+        return false
+      }
+      finally {
+        confirmDialog.loading = false
+      }
     },
   })
 }
@@ -138,17 +180,17 @@ function handleChangeTheme(value: Theme) {
 </script>
 
 <template>
-  <div class="bg-surface-soft p-2 h-full">
+  <div class="bg-bg1 p-2 h-full">
     <NCard size="small">
       <div>
-        <div class="text-ink font-medium">
+        <div class="text-text1 font-medium">
           {{ $t('common.username') }}
         </div>
         {{ authStore.userInfo?.username }}
       </div>
 
       <div class="mt-3">
-        <div class="text-ink font-medium">
+        <div class="text-text1 font-medium">
           {{ $t('common.nikeName') }}
         </div>
 
@@ -164,14 +206,17 @@ function handleChangeTheme(value: Theme) {
           <div class="max-w-[150px]">
             <NInput v-model:value="nickName" type="text" :placeholder="$t('common.inputPlaceholder')" />
           </div>
-          <NButton size="small" secondary @click="handleSaveInfo">
+          <NButton size="small" secondary :loading="nickSaving" @click="handleSaveInfo">
             {{ $t('common.save') }}
           </NButton>
         </div>
+        <p v-if="nickError" class="field-error" role="alert">
+          {{ nickError }}
+        </p>
       </div>
 
       <div class="mt-3">
-        <div class="text-ink font-medium">
+        <div class="text-text1 font-medium">
           {{ $t('common.language') }}
         </div>
         <div class="max-w-[200px]">
@@ -180,7 +225,7 @@ function handleChangeTheme(value: Theme) {
       </div>
 
       <div class="mt-3">
-        <div class="text-ink font-medium">
+        <div class="text-text1 font-medium">
           {{ $t('apps.userInfo.theme') }}
         </div>
         <div class="max-w-[200px]">
@@ -207,7 +252,7 @@ function handleChangeTheme(value: Theme) {
 
     <RoundCardModal v-model:show="updatePasswordModalState.show" size="small" preset="card" style="width: 400px" :title="$t('settingUserInfo.updatePassword')">
       <NForm ref="formRef" :model="updatePasswordModalState.form" :rules="updatePasswordModalFormRules">
-        <NFormItem path="oldPassword" :label="$t('settingUserInfo.oldPassword')">
+        <NFormItem path="oldPassword" :label="$t('settingUserInfo.oldPassword')" :feedback="passwordError" :validation-status="passwordError ? 'error' : undefined">
           <NInput v-model:value="updatePasswordModalState.form.oldPassword" :maxlength="20" type="password" :placeholder="$t('settingUserInfo.oldPassword')" />
         </NFormItem>
 
@@ -215,7 +260,7 @@ function handleChangeTheme(value: Theme) {
           <NInput v-model:value="updatePasswordModalState.form.password" :maxlength="20" type="password" :placeholder="$t('settingUserInfo.newPassword')" />
         </NFormItem>
 
-        <NFormItem path="confirmPassword" :label="$t('settingUserInfo.confirmPassword')">
+        <NFormItem path="confirmPassword" :label="$t('settingUserInfo.confirmPassword')" :feedback="confirmPasswordError" :validation-status="confirmPasswordError ? 'error' : undefined">
           <NInput v-model:value="updatePasswordModalState.form.confirmPassword" :maxlength="20" type="password" :placeholder="$t('settingUserInfo.confirmPassword')" />
         </NFormItem>
       </NForm>
@@ -230,3 +275,7 @@ function handleChangeTheme(value: Theme) {
     </RoundCardModal>
   </div>
 </template>
+
+<style scoped>
+.field-error { margin-top: 8px; color: var(--x-red-fg); font-size: 13px; }
+</style>

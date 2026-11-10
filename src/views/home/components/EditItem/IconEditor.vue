@@ -116,7 +116,7 @@ const handleUploadFinish = ({
     <div class=" h-[100px]">
       <div class="flex">
         <div>
-          <div class="border rounded-xp-lg bg-surface-soft overflow-hidden rounded-xp-lg transparent-grid">
+          <div class="bg-bg1 overflow-hidden rounded-small transparent-grid">
             <ItemIcon :item-icon="itemIconInfo" />
           </div>
         </div>
@@ -158,7 +158,7 @@ const handleUploadFinish = ({
       </div>
 
       <div class="flex items-center mt-3">
-        <div class="w-auto text-muted mr-3">
+        <div class="w-auto text-text2 mr-3">
           {{ $t('common.backgroundColor') }}
         </div>
         <div class="w-[150px] flex items-center mr-3">
@@ -171,7 +171,7 @@ const handleUploadFinish = ({
             @update-value="handleChange"
           />
         </div>
-        <div v-if="itemIconInfo.backgroundColor !== initData.backgroundColor" class="w-auto text-muted mr-3 cursor-pointer">
+        <div v-if="itemIconInfo.backgroundColor !== initData.backgroundColor" class="w-auto text-text2 mr-3 cursor-pointer">
           <NButton text type="primary" @click="handleResetBackgroundColor">
             {{ $t('common.reset') }}
           </NButton>
@@ -182,10 +182,5 @@ const handleUploadFinish = ({
 </template>
 
 <style scoped>
-.transparent-grid {
-    background-image: linear-gradient(45deg, var(--xp-canvas) 25%, transparent 25%, transparent 75%, var(--xp-canvas) 75%),
-                      linear-gradient(45deg, var(--xp-canvas) 25%, transparent 25%, transparent 75%, var(--xp-canvas) 75%);
-    background-size: 16px 16px;
-    background-position: 0 0, 8px 8px;
-}
+.transparent-grid { background: var(--x-ph); }
 </style>

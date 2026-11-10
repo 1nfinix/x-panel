@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { h, onMounted, ref } from 'vue'
 import type { FormInst, FormRules } from 'naive-ui'
 import { NButton, NCard, NForm, NFormItem, NInput, useDialog, useMessage } from 'naive-ui'
 import { VueDraggable } from 'vue-draggable-plus'
 import { deletes, edit, getList, saveSort } from '@/api/panel/itemIconGroup'
-import { RoundCardModal, SvgIcon } from '@/components/common'
+import { GroupGlyph, RoundCardModal, SvgIcon } from '@/components/common'
+import { groupIcons, isValidGroupIcon } from '@/components/common/GroupGlyph/icons'
 import { t } from '@/locales'
 
 interface EditModalArg {
@@ -18,10 +19,16 @@ const formRef = ref<FormInst | null>(null)
 const ms = useMessage()
 const dialog = useDialog()
 const sortStatus = ref(false)
+const sortSaving = ref(false)
+const saving = ref(false)
+const saveError = ref('')
+const deletingId = ref<number | null>(null)
+const listLoading = ref(false)
+const listError = ref('')
 
 const defaultMNodal = {
   title: '',
-  icon: 'material-symbols:ad-group-outline-rounded',
+  icon: '',
   sort: 9999,
 }
 
@@ -43,12 +50,16 @@ const editModalArg = ref<EditModalArg>({
 const groups = ref<Panel.ItemIconGroup[]>([])
 
 function handleAddGroup() {
-  editModalArg.value.show = !editModalArg.value.show
+  saveError.value = ''
+  editModalArg.value.model = { ...defaultMNodal }
+  editModalArg.value.editStatus = 1
+  editModalArg.value.show = true
 }
 
 function handleEditGroup(groupInfo: Panel.ItemIconGroup) {
+  saveError.value = ''
   editModalArg.value.show = true
-  editModalArg.value.model = groupInfo
+  editModalArg.value.model = { ...groupInfo }
   editModalArg.value.editStatus = 2
 }
 
@@ -56,7 +67,7 @@ function handleDragSort() {
   sortStatus.value = true
 }
 
-function handleSaveSort() {
+async function handleSaveSort() {
   const saveItems: Common.SortItemRequest[] = []
   for (let i = 0; i < groups.value.length; i++) {
     const element = groups.value[i]
@@ -65,31 +76,53 @@ function handleSaveSort() {
       sort: i + 1,
     })
   }
-  saveSort(saveItems).then(({ code, msg }) => {
+  sortSaving.value = true
+  try {
+    const { code, msg } = await saveSort(saveItems)
     if (code === 0) {
       ms.success(t('common.saveSuccess'))
       sortStatus.value = false
     }
     else {
-      ms.error(`${t('common.saveFail')}:${msg}`)
+      saveError.value = `${t('common.saveFail')}: ${msg}`
     }
-  })
+  }
+  catch {
+    saveError.value = t('common.saveFail')
+  }
+  finally {
+    sortSaving.value = false
+  }
 }
 
 function handleDelete(groupInfo: Panel.ItemIconGroup) {
-  dialog.warning({
+  const deleteError = ref('')
+  const confirmDialog = dialog.warning({
     title: t('common.warning'),
-    content: t('apps.itemGroupManage.deleteWarnText', { name: groupInfo.title }),
+    content: () => h('div', [h('p', t('apps.itemGroupManage.deleteWarnText', { name: groupInfo.title })), deleteError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, deleteError.value) : null]),
     positiveText: t('common.confirm'),
     negativeText: t('common.cancel'),
-    onPositiveClick: () => {
+    onPositiveClick: async () => {
       if (groupInfo.id) {
-        deletes([groupInfo.id]).then(({ code, msg }) => {
-          if (code !== 0)
-            ms.error(t('common.deleteFail'))
-          else
-            refreshList()
-        })
+        deletingId.value = groupInfo.id
+        confirmDialog.loading = true
+        deleteError.value = ''
+        try {
+          const { code, msg } = await deletes([groupInfo.id])
+          if (code !== 0) {
+            deleteError.value = msg || t('common.deleteFail')
+            return false
+          }
+          await refreshList()
+        }
+        catch {
+          deleteError.value = t('common.deleteFail')
+          return false
+        }
+        finally {
+          deletingId.value = null
+          confirmDialog.loading = false
+        }
       }
     },
 
@@ -97,25 +130,45 @@ function handleDelete(groupInfo: Panel.ItemIconGroup) {
 }
 
 function handleSaveGroup() {
-  formRef.value?.validate((errors) => {
+  formRef.value?.validate(async (errors) => {
     if (!errors) {
-      edit(editModalArg.value.model).then(({ code, msg }) => {
-        if (code !== 0)
-          ms.error(msg)
-
+      saving.value = true
+      saveError.value = ''
+      try {
+        const { code, msg } = await edit(editModalArg.value.model)
+        if (code !== 0) {
+          saveError.value = msg || t('common.saveFail')
+          return
+        }
         refreshList()
         editModalArg.value.show = false
         editModalArg.value.model = { ...defaultMNodal }
-      })
+      }
+      catch {
+        saveError.value = t('common.saveFail')
+      }
+      finally {
+        saving.value = false
+      }
     }
-    else { console.log(errors) }
   })
 }
 
-function refreshList() {
-  getList<Common.ListResponse<Panel.ItemIconGroup[]>>().then(({ code, data }) => {
+async function refreshList() {
+  listLoading.value = true
+  listError.value = ''
+  try {
+    const { code, data, msg } = await getList<Common.ListResponse<Panel.ItemIconGroup[]>>()
+    if (code !== 0)
+      throw new Error(msg || t('common.failed'))
     groups.value = data.list
-  })
+  }
+  catch (error) {
+    listError.value = error instanceof Error ? error.message : t('common.failed')
+  }
+  finally {
+    listLoading.value = false
+  }
 }
 
 onMounted(() => {
@@ -134,12 +187,20 @@ onMounted(() => {
         {{ $t('common.sort') }}
       </NButton>
 
-      <NButton v-else type="primary" size="small" @click="handleSaveSort">
+      <NButton v-else type="primary" size="small" :loading="sortSaving" @click="handleSaveSort">
         {{ $t('common.saveSort') }}
       </NButton>
     </div>
 
-    <div class=" overflow-auto w-full mt-5  bg-surface-soft rounded-xp-lg" style="height:calc(100% - 65px)">
+    <p v-if="saveError && !editModalArg.show" class="form-error">
+      {{ saveError }}
+    </p>
+    <p v-if="listError" class="form-error" role="alert">
+      {{ listError }} <NButton size="small" :loading="listLoading" @click="refreshList">
+        {{ t('panelHome.retry') }}
+      </NButton>
+    </p>
+    <div class="overflow-auto w-full mt-5 bg-bg1 rounded-small" style="height:calc(100% - 65px)">
       <VueDraggable
         v-model="groups"
         item-key="sort" :animation="300"
@@ -147,12 +208,11 @@ onMounted(() => {
         :disabled="!sortStatus"
       >
         <div v-for="(item, index) in groups" :key="index" class="w-full">
-          <NCard size="small" class="mb-3 rounded-xp-lg">
+          <NCard size="small" class="mb-3 rounded-small">
             <div class="flex" :class="sortStatus ? 'cursor-move' : ''">
               <div class="flex items-center">
-                <span class="mr-3">
-                  <SvgIcon class="text-[20px]" icon="material-symbols:ad-group-outline-rounded" />
-                  <!-- <SvgIcon class="text-[20px]" :icon="item.icon" /> -->
+                <span class="group-list-glyph mr-3" :style="{ '--group-tint': `var(--x-${['blue', 'indigo', 'purple', 'pink', 'orange', 'mint', 'brown', 'teal', 'green', 'red'][index % 10]}-tint)`, '--group-fg': `var(--x-${['blue', 'indigo', 'purple', 'pink', 'orange', 'mint', 'brown', 'teal', 'green', 'red'][index % 10]}-fg)` }">
+                  <GroupGlyph :icon="item.icon" :title="item.title" :size="18" />
                 </span>
                 <span>
                   {{ item.title }}
@@ -167,7 +227,7 @@ onMounted(() => {
                   </NButton>
                 </span>
                 <span class="ml-3">
-                  <NButton text type="error" size="small" class="ml-3" @click="handleDelete(item)">
+                  <NButton type="error" size="small" class="ml-3 danger-button" :loading="deletingId === item.id" @click="handleDelete(item)">
                     <template #icon>
                       <SvgIcon icon="material-symbols:delete" />
                     </template>
@@ -182,19 +242,42 @@ onMounted(() => {
 
     <RoundCardModal v-model:show="editModalArg.show" size="small" type="small" :title="editModalArg.editStatus === 1 ? '添加' : '编辑'" style="width: 400px;">
       <NForm ref="formRef" :model="editModalArg.model" :rules="editModalArg.rules">
-        <NFormItem path="title" :label="$t('apps.itemGroupManage.groupName')">
+        <NFormItem path="title" :label="$t('apps.itemGroupManage.groupName')" :feedback="saveError" :validation-status="saveError ? 'error' : undefined">
           <NInput v-model:value="editModalArg.model.title" type="text" :maxlength="20" show-count />
         </NFormItem>
 
-        <!-- <NFormItem path="name" label="昵称">
-          <NInput v-model:value="editModalArg.model" type="text" placeholder="请输入昵称" />
-        </NFormItem> -->
+        <NFormItem :label="$t('apps.itemGroupManage.icon')">
+          <div class="group-icon-grid" role="group" :aria-label="$t('apps.itemGroupManage.icon')">
+            <button class="group-icon-option" :class="{ active: !isValidGroupIcon(editModalArg.model.icon) }" type="button" :title="t('apps.itemGroupManage.auto')" :aria-label="t('apps.itemGroupManage.auto')" :aria-pressed="!isValidGroupIcon(editModalArg.model.icon)" @click="editModalArg.model.icon = ''">
+              <GroupGlyph :title="editModalArg.model.title" :size="16" /><span class="auto-label">{{ t('apps.itemGroupManage.auto') }}</span>
+            </button>
+            <button v-for="icon in groupIcons" :key="icon" class="group-icon-option" :class="{ active: editModalArg.model.icon === icon }" type="button" :title="icon.replace('lucide-', '')" :aria-label="icon.replace('lucide-', '')" :aria-pressed="editModalArg.model.icon === icon" @click="editModalArg.model.icon = icon">
+              <GroupGlyph :icon="icon" :title="editModalArg.model.title" />
+            </button>
+          </div>
+        </NFormItem>
       </NForm>
+      <p v-if="saveError" class="form-error" role="alert">
+        {{ saveError }}
+      </p>
       <template #footer>
-        <NButton type="primary" size="small" class="float-right" @click="handleSaveGroup">
+        <NButton type="primary" size="small" class="float-right" :loading="saving" @click="handleSaveGroup">
           {{ $t('common.confirm') }}
         </NButton>
       </template>
     </RoundCardModal>
   </div>
 </template>
+
+<style scoped>
+.group-list-glyph { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--x-r-icon); background: var(--group-tint); color: var(--group-fg); }
+.auto-label { font-size: 9px; line-height: 1; }
+.group-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; width: 100%; }
+.group-icon-option { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: transparent; color: var(--x-text2); cursor: pointer; }
+.group-icon-option:hover { background: var(--x-bg1); color: var(--x-text1); }
+.group-icon-option:first-child { align-content: center; gap: 1px; }
+.group-icon-option.active { background: var(--x-blue-tint); color: var(--x-blue-fg); }
+.form-error { padding: 8px 12px; color: var(--x-red-fg); font-size: 13px; }
+.danger-button { background: var(--x-red-tint); color: var(--x-red-fg); }
+.group-icon-option:focus-visible { outline: 2px solid var(--x-primary); outline-offset: 2px; }
+</style>

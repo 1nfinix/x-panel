@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { NButton } from 'naive-ui'
 import { get } from '@/api/system/about'
 import srcSvglogo from '@/assets/logo.svg'
+import { t } from '@/locales'
 
 interface Version {
   versionName: string
@@ -9,12 +11,29 @@ interface Version {
 }
 
 const versionName = ref('')
+const versionLoading = ref(false)
+const versionError = ref('')
 
-onMounted(() => {
-  get<Version>().then((res) => {
+async function loadVersion() {
+  versionLoading.value = true
+  versionError.value = ''
+  try {
+    const res = await get<Version>()
     if (res.code === 0)
       versionName.value = res.data.versionName
-  })
+    else
+      throw new Error(res.msg || t('common.failed'))
+  }
+  catch (error) {
+    versionError.value = error instanceof Error ? error.message : t('common.failed')
+  }
+  finally {
+    versionLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadVersion()
 })
 </script>
 
@@ -25,6 +44,14 @@ onMounted(() => {
     <p v-if="versionName" class="version">
       v{{ versionName }}
     </p>
+    <p v-else-if="versionLoading" class="version">
+      {{ t('panelHome.loading') }}
+    </p>
+    <p v-if="versionError" class="version-error" role="alert">
+      {{ versionError }} <NButton size="small" @click="loadVersion">
+        {{ t('panelHome.retry') }}
+      </NButton>
+    </p>
     <p>{{ $t('apps.about.maintainer') }}<a href="https://github.com/1nfinix" target="_blank" rel="noopener noreferrer">1nfinix</a></p>
     <p>{{ $t('apps.about.repository') }}<a href="https://github.com/1nfinix/x-panel" target="_blank" rel="noopener noreferrer">1nfinix/x-panel</a></p>
     <p><a href="https://github.com/hslr-s/sun-panel" target="_blank" rel="noopener noreferrer">{{ $t('apps.about.basedOn') }}</a></p>
@@ -32,10 +59,11 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.about-panel { display: flex; flex-direction: column; align-items: center; padding: 32px 16px; color: var(--xp-ink); text-align: center; }
-.about-panel h2 { margin: 12px 0 0; font: 600 28px/1.2 var(--xp-font-display); letter-spacing: 0; }
+.about-panel { display: flex; flex-direction: column; align-items: center; padding: 32px 16px; color: var(--x-text1); text-align: center; }
+.about-panel h2 { margin: 12px 0 0; font: 600 28px/1.2 var(--x-font); letter-spacing: 0; }
 .about-panel p { margin: 8px 0; }
-.about-panel .version { color: var(--xp-muted); }
-.about-panel a { color: var(--xp-primary); text-underline-offset: 3px; }
-.about-panel a:focus-visible { outline: 2px solid var(--xp-primary); outline-offset: 3px; }
+.about-panel .version { color: var(--x-text2); }
+.about-panel .version-error { color: var(--x-red-fg); }
+.about-panel a { color: var(--x-primary); text-underline-offset: 3px; }
+.about-panel a:focus-visible { outline: 2px solid var(--x-primary); outline-offset: 3px; }
 </style>

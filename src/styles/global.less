@@ -1,61 +1,117 @@
-html,
-body,
-#app {
-	height: 100%;
+html, body, #app { height: 100%; }
+body { padding-bottom: env(safe-area-inset-bottom); background: var(--x-bg0); color: var(--x-text1); font-family: var(--x-font); }
+/* X导航 Design Tokens — single source for every artboard. Light is the default; [data-theme="dark"] overrides. */
+:root, [data-theme="light"] {
+  --x-bg0: #FFFFFF;          /* L0 page */
+  --x-bg1: #F6F8FA;          /* L1 card (radius 32) */
+  --x-bg2: #FFFFFF;          /* L2 small card / control on L1 (radius 24 / pill) */
+  --x-hover: #EEF1F4;        /* hover on L2 */
+  --x-ph: #E5E8EC;           /* placeholder fill */
+  --x-ph-text: #3A3A3C;
+  --x-ph-sub: #5B5B60;
+  --x-text1: #1D1D1F;
+  --x-text2: #6E6E73;        /* 5.07 on bg0, 4.76 on bg1 */
+  --x-icon3: #8E8E93;        /* decorative icons, 3.26 on bg2 */
+  --x-sep: #E5E8EC;
+  --x-disabled-bg: #E5E8EC;
+  --x-disabled-fg: #8E8E93;
+  --x-primary: #0071E3;      /* Apple Blue (web); white text 4.70 */
+  --x-primary-hover: #0062C4;
+  --x-primary-active: #00539F;
+  --x-on-primary: #FFFFFF;
+  --x-link: #0062C4;
+  --x-focus: rgba(0, 113, 227, .35);
+  --x-inverse-bg: #1D1D1F;
+  --x-inverse-fg: #FFFFFF;
+  --x-inverse-sub: #A1A1A6;
+  --x-inverse-btn: #3A3A3C;
+  --x-danger-hover: #F9D5D9;
+
+  --x-blue-fg: #0062C4;   --x-blue-tint: #E6F1FC;   --x-blue-sys: #007AFF;
+  --x-green-fg: #1B7330;  --x-green-tint: #E8F4EB;  --x-green-sys: #34C759;
+  --x-orange-fg: #B83000; --x-orange-tint: #FBEBE5; --x-orange-sys: #FF9500;
+  --x-red-fg: #C40012;    --x-red-tint: #FCE6E8;    --x-red-sys: #FF3B30;
+  --x-indigo-fg: #3634A3; --x-indigo-tint: #ECECF8; --x-indigo-sys: #5856D6;
+  --x-purple-fg: #8944AB; --x-purple-tint: #F4ECF7; --x-purple-sys: #AF52DE;
+  --x-pink-fg: #C4103F;   --x-pink-tint: #FCE8EE;   --x-pink-sys: #FF2D55;
+  --x-teal-fg: #0070A0;   --x-teal-tint: #E5F1F6;   --x-teal-sys: #30B0C7;
+  --x-mint-fg: #0C7A74;   --x-mint-tint: #E4F3F2;   --x-mint-sys: #00C7BE;
+  --x-brown-fg: #7F6545;  --x-brown-tint: #F3EFEA;  --x-brown-sys: #A2845E;
+
+  --x-r-card: 32px;
+  --x-r-small: 24px;
+  --x-r-pill: 999px;
+  --x-r-icon: 14px;          /* icon tiles: rail, nav, group glyph */
+  --x-r-glyph: 10px;         /* 32px site glyph */
+  --x-s1: 8px; --x-s2: 16px; --x-s3: 24px; --x-s4: 32px; --x-s5: 40px; --x-s6: 48px; --x-s7: 56px;
+  --x-control: 44px;
+  --x-font: Onest, -apple-system, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  --x-ease: cubic-bezier(.2, .8, .2, 1);
 }
 
-body {
-	padding-bottom: constant(safe-area-inset-bottom);
-	padding-bottom: env(safe-area-inset-bottom);
+html.dark, [data-theme="dark"] {
+  --x-bg0: #121214;
+  --x-bg1: #1C1C1E;
+  --x-bg2: #2C2C2E;
+  --x-hover: #3A3A3C;
+  --x-ph: #3A3A3C;
+  --x-ph-text: #EBEBF0;
+  --x-ph-sub: #AEAEB2;
+  --x-text1: #F5F5F7;
+  --x-text2: #A1A1A6;        /* 6.61 on bg1, 5.42 on bg2 */
+  --x-icon3: #8E8E93;
+  --x-sep: #3A3A3C;
+  --x-disabled-bg: #3A3A3C;
+  --x-disabled-fg: #8E8E93;
+  --x-primary: #0071E3;
+  --x-primary-hover: #0062C4;
+  --x-primary-active: #00539F;
+  --x-on-primary: #FFFFFF;
+  --x-link: #6CB4FF;
+  --x-focus: rgba(10, 132, 255, .55);
+  --x-inverse-bg: #F5F5F7;
+  --x-inverse-fg: #1D1D1F;
+  --x-inverse-sub: #6E6E73;
+  --x-inverse-btn: #E5E5EA;
+  --x-danger-hover: #552B2A;
+
+  --x-blue-fg: #6CB4FF;   --x-blue-tint: #18314B;   --x-blue-sys: #0A84FF;
+  --x-green-fg: #4CD964;  --x-green-tint: #20402A;  --x-green-sys: #30D158;
+  --x-orange-fg: #FFB340; --x-orange-tint: #49361A; --x-orange-sys: #FF9F0A;
+  --x-red-fg: #FF8A84;    --x-red-tint: #492424;    --x-red-sys: #FF453A;
+  --x-indigo-fg: #A5A3FF; --x-indigo-tint: #292946; --x-indigo-sys: #5E5CE6;
+  --x-purple-fg: #DA8FFF; --x-purple-tint: #3D2848; --x-purple-sys: #BF5AF2;
+  --x-pink-fg: #FF8FA6;   --x-pink-tint: #49212B;   --x-pink-sys: #FF375F;
+  --x-teal-fg: #70D7EA;   --x-teal-tint: #233E45;   --x-teal-sys: #40C8E0;
+  --x-mint-fg: #7EEBE6;   --x-mint-tint: #2A4445;   --x-mint-sys: #63E6E2;
+  --x-brown-fg: #CBAE88;  --x-brown-tint: #39332D;  --x-brown-sys: #AC8E68;
 }
 
-/* Keep these values in sync with useTheme.ts for Naive UI. */
-:root {
-  --xp-canvas: #faf9f5;
-  --xp-surface-soft: #f5f0e8;
-  --xp-surface-card: #efe9de;
-  --xp-surface-strong: #e8e0d2;
-  --xp-hairline: #e6dfd8;
-  --xp-ink: #141413;
-  --xp-body: #3d3d3a;
-  --xp-muted: #6c6a64;
-  --xp-muted-soft: #8e8b82;
-  --xp-primary: #cc785c;
-  --xp-primary-active: #a9583e;
-  --xp-on-primary: #ffffff;
-  --xp-error: #c64545;
-  --xp-success: #5db872;
-  --xp-focus-ring: rgba(204, 120, 92, .15);
-  --xp-radius-sm: 6px;
-  --xp-radius-md: 8px;
-  --xp-radius-lg: 12px;
-  --xp-radius-pill: 9999px;
-  --xp-font-display: "Noto Serif SC Variable", "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
-  --xp-font-body: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", "Microsoft YaHei", sans-serif;
-  --xp-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --xp-wallpaper-ink: #faf9f5;
-}
 
-html.dark {
-  --xp-canvas: #181715;
-  --xp-surface-soft: #1f1e1b;
-  --xp-surface-card: #252320;
-  --xp-surface-strong: #2e2b27;
-  --xp-hairline: #34312c;
-  --xp-ink: #faf9f5;
-  --xp-body: #e3dfd7;
-  --xp-muted: #a09d96;
-  --xp-muted-soft: #8e8b82;
-  --xp-primary: #cc785c;
-  --xp-primary-active: #d98d73;
-  --xp-on-primary: #ffffff;
-  --xp-error: #e06c6c;
-  --xp-success: #5db872;
-  --xp-focus-ring: rgba(204, 120, 92, .28);
-}
+:where(button, a):focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
+.n-card { border: 0 !important; box-shadow: none !important; }
+.n-modal { border: 0 !important; box-shadow: none !important; }
+.n-modal.n-card { background: var(--x-bg0) !important; border-radius: var(--x-r-card) !important; }
+.n-popover, .n-dropdown-menu { border: 0 !important; box-shadow: none !important; }
+.app-starter-modal-content .n-card { background: var(--x-bg1); }
+.app-starter-modal-content .bg-bg1 .n-card { background: var(--x-bg2); }
+.app-starter-modal-content .bg-bg1 .n-input,
+.app-starter-modal-content .bg-bg1 .n-base-selection { background: var(--x-bg2); }
+.app-starter-modal-content .n-button,
+.app-starter-modal-content .n-input,
+.app-starter-modal-content .n-base-selection { min-height: var(--x-control); }
+.app-starter-modal-content .bg-bg1 .n-button:not(.n-button--primary-type):not(.n-button--error-type) { background: var(--x-bg2); }
+.n-button--error-type { background: var(--x-red-tint) !important; color: var(--x-red-fg) !important; border: 0 !important; }
+.n-button--error-type:hover { background: var(--x-danger-hover) !important; }
+.n-button--error-type:active { background: var(--x-red-fg) !important; color: var(--x-bg0) !important; }
 
-body {
-  background: var(--xp-canvas);
-  color: var(--xp-ink);
-  font-family: var(--xp-font-body);
+/* Dark overlays are elevated one step, so every layer inside shifts up and stays distinct from its parent. */
+html.dark .n-modal, html.dark .n-dialog, html.dark .n-drawer {
+  --x-bg0: #1C1C1E;
+  --x-bg1: #2C2C2E;
+  --x-bg2: #3A3A3C;
+  --x-hover: #48484A;
+  --x-ph: #48484A;
+  --x-sep: #48484A;
 }
+html.dark .n-modal-mask { background-color: rgba(0, 0, 0, .6); }

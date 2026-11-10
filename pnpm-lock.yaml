@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
-  '@fontsource-variable/noto-serif-sc':
+  '@fontsource-variable/onest':
     specifier: 5.3.1
     version: 5.3.1
   '@vueuse/core':
@@ -1848,8 +1848,8 @@ packages:
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dev: true
 
-  /@fontsource-variable/noto-serif-sc@5.3.1:
-    resolution: {integrity: sha512-aIHcBaL13QctVaJFeT6wqfgO9Rq/cNtD5g2ob4ze59fYPYwacGthnIrHBe83kDpMEB/k6VGtGc6fS99RImcoSQ==}
+  /@fontsource-variable/onest@5.3.1:
+    resolution: {integrity: sha512-xaaw6G4HDB2/RczsWLD/2bnib4ykmQlTlBUN3GOEOiyErilZukQWVJG95h9zwAy0i8KY+QzDa+COPfqhI72Acw==}
     dev: false
 
   /@humanwhocodes/config-array@0.11.8:

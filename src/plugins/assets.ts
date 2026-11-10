@@ -1,6 +1,6 @@
 import '@/styles/lib/tailwind.css'
 import '@/styles/global.less'
-import '@fontsource-variable/noto-serif-sc'
+import '@fontsource-variable/onest'
 
 /** Tailwind's Preflight Style Override */
 function naiveStyleOverride() {

@@ -17,6 +17,29 @@ const keyWord = ref<string>()
 const editUserUserInfo = ref<User.Info>()
 const dialog = useDialog()
 const publicVisitUserId = ref<number | null>(null)
+const operationError = ref('')
+const listError = ref('')
+const publicModeSaving = ref(false)
+
+async function changePublicVisitUser(id: number | null) {
+  if (publicModeSaving.value)
+    return
+  publicModeSaving.value = true
+  operationError.value = ''
+  try {
+    const { code, msg } = await setPublicVisitUser(id)
+    if (code !== 0)
+      throw new Error(msg || t('common.saveFail'))
+    publicVisitUserId.value = id
+    message.success(t('common.saveSuccess'))
+  }
+  catch (error) {
+    operationError.value = error instanceof Error ? error.message : t('common.saveFail')
+  }
+  finally {
+    publicModeSaving.value = false
+  }
+}
 
 const createColumns = ({
   update,
@@ -85,32 +108,39 @@ const createColumns = ({
                 update(row)
                 break
               case 'publicMode':
-                // 取消
-                if (publicVisitUserId.value && publicVisitUserId.value === row.id) {
-                  setPublicVisitUser(null).then(({ code }) => {
-                    if (code === 0)
-                      publicVisitUserId.value = null
-                  })
-                }
-                else {
-                // 设置
-                  setPublicVisitUser(row.id as number).then(({ code }) => {
-                    if (code === 0)
-                      publicVisitUserId.value = row.id as number
-                  })
-                }
+                changePublicVisitUser(publicVisitUserId.value === row.id ? null : row.id as number)
                 break
               case 'delete':
-                dialog.warning({
+              {
+                const deleteError = ref('')
+                const confirmDialog = dialog.warning({
                   title: t('common.warning'),
-                  content: t('adminSettingUsers.deletePromptContent', { name: row.name, username: row.username }),
+                  content: () => h('div', [h('p', t('adminSettingUsers.deletePromptContent', { name: row.name, username: row.username })), deleteError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, deleteError.value) : null]),
                   positiveText: t('common.confirm'),
                   negativeText: t('common.cancel'),
-                  onPositiveClick: () => {
-                    deletes([row.id as number])
+                  onPositiveClick: async () => {
+                    confirmDialog.loading = true
+                    deleteError.value = ''
+                    try {
+                      const { code, msg } = await usersDeletes([row.id as number])
+                      if (code !== 0) {
+                        deleteError.value = msg || t('common.deleteFail')
+                        return false
+                      }
+                      message.success(t('common.deleteSuccess'))
+                      await getList(null)
+                    }
+                    catch {
+                      deleteError.value = t('common.deleteFail')
+                      return false
+                    }
+                    finally {
+                      confirmDialog.loading = false
+                    }
                   },
                 })
                 break
+              }
 
               default:
                 break
@@ -189,18 +219,19 @@ async function getList(page: number | null) {
   if (keyWord.value !== '')
     req.keyWord = keyWord.value
 
-  const { data } = await usersGetList<Common.ListResponse<User.Info[]>>(req)
-  pagination.itemCount = data.count
-  if (data.list)
-    userList.value = data.list
-  tableIsLoading.value = false
-}
-
-async function deletes(ids: number[]) {
-  const { code } = await usersDeletes(ids)
-  if (code === 0) {
-    message.success(t('common.deleteSuccess'))
-    getList(null)
+  try {
+    const { code, data, msg } = await usersGetList<Common.ListResponse<User.Info[]>>(req)
+    if (code !== 0)
+      throw new Error(msg || t('common.failed'))
+    pagination.itemCount = data.count
+    userList.value = data.list ?? []
+    listError.value = ''
+  }
+  catch (error) {
+    listError.value = error instanceof Error ? error.message : t('common.failed')
+  }
+  finally {
+    tableIsLoading.value = false
   }
 }
 
@@ -218,7 +249,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="overflow-auto pt-2">
+  <div class="users-panel overflow-auto pt-2">
+    <p v-if="operationError" class="operation-error" role="alert">
+      {{ operationError }}
+    </p>
+    <p v-if="listError" class="operation-error" role="alert">
+      {{ listError }} <NButton size="small" @click="getList(null)">
+        {{ t('panelHome.retry') }}
+      </NButton>
+    </p>
     <NAlert type="info" :bordered="false">
       {{ $t('adminSettingUsers.alertText') }}
     </NAlert>
@@ -241,3 +280,8 @@ onMounted(() => {
     <EditUser v-model:visible="editUserDialogShow" :user-info="editUserUserInfo" @done="handelDone" />
   </div>
 </template>
+
+<style scoped>
+.users-panel { padding: 16px; border-radius: var(--x-r-small); background: var(--x-bg1); }
+.operation-error { margin-bottom: 12px; color: var(--x-red-fg); font-size: 13px; }
+</style>

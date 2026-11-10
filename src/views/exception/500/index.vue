@@ -14,10 +14,10 @@ function goHome() {
   <div class="flex h-full dark:bg-neutral-800">
     <div class="px-4 m-auto space-y-4 text-center max-[400px]">
       <header class="space-y-2">
-        <h2 class="text-2xl font-bold text-center text-ink">
+        <h2 class="text-2xl font-bold text-center text-text1">
           500
         </h2>
-        <p class="text-base text-center text-muted dark:text-muted">
+        <p class="text-base text-center text-text2 dark:text-text2">
           <!-- Server error -->
           服务器错误
         </p>
