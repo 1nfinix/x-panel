@@ -214,8 +214,9 @@ onMounted(() => {
 <style scoped>
 .operation-error { margin: 8px 0; color: var(--x-red-fg); font-size: 13px; }
 .upload-grid-wrap { margin-top: 16px; }
-.file-thumbnail { display: grid; place-items: center; height: 96px; overflow: hidden; border-radius: var(--x-r-small); background: var(--x-bg2); }
-.file-thumbnail :deep(.n-image), .file-thumbnail :deep(img) { display: block; max-width: 100%; width: 100%; height: 100%; object-fit: contain; }
+.file-thumbnail { display: block; height: 96px; overflow: hidden; border-radius: var(--x-r-small); background: var(--x-bg2); }
+.file-thumbnail :deep(.n-image) { display: block; width: 100%; height: 100% !important; }
+.file-thumbnail :deep(img) { display: block; width: 100% !important; height: 100% !important; object-fit: contain !important; }
 .file-name { min-width: 0; overflow: hidden; color: var(--x-text1); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .file-actions { display: flex; justify-content: flex-start; gap: 4px; margin-top: 12px; }
 .file-action { width: 32px; min-width: 32px; height: 32px; min-height: 32px; padding: 0; border-radius: var(--x-r-glyph); font-size: 18px; }

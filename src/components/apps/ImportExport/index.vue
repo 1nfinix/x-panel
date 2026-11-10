@@ -609,5 +609,6 @@ async function handleStartImport() {
 .import-export-card h2 { margin: 0 0 8px; color: var(--x-text1); font-size: 17px; font-weight: 600; }
 .card-description { margin: 0 0 16px; color: var(--x-text2); font-size: 13px; }
 .card-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.card-actions :deep(.n-upload) { display: inline-flex; width: auto; }
 .converter-link { display: inline-block; margin-top: 16px; color: var(--x-link); font-size: 13px; }
 </style>

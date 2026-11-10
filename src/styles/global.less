@@ -152,3 +152,11 @@ html.dark .n-modal .n-base-selection, html.dark .n-dialog .n-base-selection, htm
 }
 
 .n-input, .n-base-selection { border-radius: var(--x-r-small) !important; }
+
+/* Secondary buttons in overlays sit on the modal base or a white card: use the hover tone so the capsule stays visible on either. */
+.n-modal .n-button--secondary, .n-dialog .n-button--secondary, .n-drawer .n-button--secondary {
+  --n-color: var(--x-hover) !important;
+  --n-color-hover: var(--x-ph) !important;
+  --n-color-pressed: var(--x-ph) !important;
+  --n-color-focus: var(--x-hover) !important;
+}

@@ -119,7 +119,7 @@ function handleChangeLanuage(value: Language) {
           {{ panelState.panelConfig.logoText || $t('common.appName') }}
         </strong>
       </div>
-      <NForm class="login-form" :model="form" label-width="100px" @keydown.enter="handleSubmit">
+      <NForm class="login-form" :model="form" :show-label="false" @keydown.enter="handleSubmit">
         <div class="login-fields">
           <NFormItem :show-feedback="!!fieldError.username" :feedback="fieldError.username" :validation-status="fieldError.username ? 'error' : undefined">
             <NInput v-model:value="form.username" :placeholder="$t('login.usernamePlaceholder')" :input-props="{ 'aria-label': $t('login.usernamePlaceholder') }">
