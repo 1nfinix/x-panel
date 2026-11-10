@@ -5,30 +5,22 @@ import { computed, defineProps } from 'vue'
 import { ItemIcon } from '@/components/common'
 import { useAuthStore } from '@/store'
 import { apiRespErrMsg } from '@/utils/request/apiMessage'
+import { groupTints } from '@/utils/groupColors'
 
 const props = defineProps<{
   itemIcon: Panel.ItemIcon | null
+  defaultBackground?: string
 }>()
 const emit = defineEmits<{
   (e: 'update:itemIcon', visible: Panel.ItemIcon): void // 定义修改父组件（prop内）的值的事件
 }>()
 const authStore = useAuthStore()
 
-// 默认图标背景色
-const defautSwatchesBackground = [
-  '#00000000',
-  '#000000',
-  '#ffffff',
-  '#5db872',
-  '#5db8a6',
-  '#e8a55a',
-  '#c64545',
-  '#cc785c',
-]
+const defautSwatchesBackground = ['#00000000', '#000000', '#ffffff', ...groupTints]
 
 const initData: Panel.ItemIcon = {
   itemType: 2,
-  backgroundColor: '#efe9de',
+  backgroundColor: props.defaultBackground || groupTints[0],
 }
 
 const itemIconInfo = computed({
@@ -36,7 +28,7 @@ const itemIconInfo = computed({
     const v = {
       ...initData,
       ...props.itemIcon,
-      backgroundColor: props.itemIcon?.backgroundColor || initData.backgroundColor,
+      backgroundColor: props.itemIcon?.backgroundColor || (props.defaultBackground || groupTints[0]),
     }
     return v
   },
@@ -56,7 +48,7 @@ function handleChange() {
 }
 
 function handleResetBackgroundColor() {
-  itemIconInfo.value.backgroundColor = initData.backgroundColor
+  itemIconInfo.value.backgroundColor = (props.defaultBackground || groupTints[0])
   handleChange()
 }
 
@@ -172,7 +164,7 @@ const handleUploadFinish = ({
             @update-value="handleChange"
           />
         </div>
-        <div v-if="itemIconInfo.backgroundColor !== initData.backgroundColor" class="w-auto text-text2 mr-3 cursor-pointer">
+        <div v-if="itemIconInfo.backgroundColor !== (props.defaultBackground || groupTints[0])" class="w-auto text-text2 mr-3 cursor-pointer">
           <NButton text type="primary" @click="handleResetBackgroundColor">
             {{ $t('common.reset') }}
           </NButton>

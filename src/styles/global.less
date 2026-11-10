@@ -91,7 +91,7 @@ html.dark, [data-theme="dark"] {
 
 
 html { caret-color: var(--x-primary); accent-color: var(--x-primary); font-variant-numeric: tabular-nums; }
-:where(button, a):focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
+:where(button, a):focus-visible, .n-button:focus-visible, .n-card-header__close:focus-visible, .n-dialog__close:focus-visible, .n-drawer-header__close:focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
 .n-card { border: 0 !important; box-shadow: none !important; }
 .n-modal { border: 0 !important; box-shadow: var(--x-shadow-overlay) !important; }
 .n-dialog, .n-drawer { box-shadow: var(--x-shadow-overlay) !important; border-radius: var(--x-r-card) !important; }
