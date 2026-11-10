@@ -13,8 +13,8 @@ function setupPlugins(env: ImportMetaEnv): PluginOption[] {
       manifest: {
         name: 'X-Panel',
         short_name: 'X-Panel',
-        theme_color: '#faf9f5',
-        background_color: '#faf9f5',
+        theme_color: '#F1F3F6',
+        background_color: '#F1F3F6',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
