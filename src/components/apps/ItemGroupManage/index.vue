@@ -220,14 +220,14 @@ onMounted(() => {
               </div>
               <div class="ml-auto">
                 <span>
-                  <NButton secondary size="small" @click="handleEditGroup(item)">
+                  <NButton secondary size="small" :aria-label="t('apps.itemGroupManage.editGroup')" @click="handleEditGroup(item)">
                     <template #icon>
                       <SvgIcon icon="basil:edit-solid" />
                     </template>
                   </NButton>
                 </span>
                 <span class="ml-3">
-                  <NButton type="error" size="small" class="ml-3 danger-button" :loading="deletingId === item.id" @click="handleDelete(item)">
+                  <NButton type="error" size="small" class="ml-3 danger-button" :loading="deletingId === item.id" :aria-label="t('apps.itemGroupManage.deleteGroup')" @click="handleDelete(item)">
                     <template #icon>
                       <SvgIcon icon="material-symbols:delete" />
                     </template>
@@ -243,7 +243,7 @@ onMounted(() => {
     <RoundCardModal v-model:show="editModalArg.show" size="small" type="small" :title="editModalArg.editStatus === 1 ? '添加' : '编辑'" style="width: 400px;">
       <NForm ref="formRef" :model="editModalArg.model" :rules="editModalArg.rules">
         <NFormItem path="title" :label="$t('apps.itemGroupManage.groupName')" :feedback="saveError" :validation-status="saveError ? 'error' : undefined">
-          <NInput v-model:value="editModalArg.model.title" type="text" :maxlength="20" show-count />
+          <NInput v-model:value="editModalArg.model.title" type="text" :maxlength="20" show-count :input-props="{ 'aria-label': $t('apps.itemGroupManage.groupName') }" />
         </NFormItem>
 
         <NFormItem :label="$t('apps.itemGroupManage.icon')">

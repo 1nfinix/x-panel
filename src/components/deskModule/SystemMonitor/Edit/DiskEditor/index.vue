@@ -143,7 +143,7 @@ defineExpose({
 
     <NForm ref="formRef" v-model="extendParam" :model="extendParam" :rules="rules">
       <NFormItem :label="$t('deskModule.systemMonitor.diskMountPoint')" path="path">
-        <NSelect v-model:value="extendParam.path" :loading="mountPointLoading" :options="mountPointList" />
+        <NSelect v-model:value="extendParam.path" :loading="mountPointLoading" :options="mountPointList" :aria-label="$t('deskModule.systemMonitor.diskMountPoint')" />
       </NFormItem>
       <p v-if="mountPointError" class="mount-error" role="alert">
         {{ mountPointError }} <NButton size="small" @click="getMountPointList">
@@ -151,16 +151,16 @@ defineExpose({
         </NButton>
       </p>
       <NFormItem :label="$t('deskModule.systemMonitor.progressColor')">
-        <NColorPicker v-model:value="extendParam.progressColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" />
+        <NColorPicker v-model:value="extendParam.progressColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" :aria-label="$t('deskModule.systemMonitor.progressColor')" />
       </NFormItem>
       <NFormItem :label="$t('deskModule.systemMonitor.progressRailColor')">
-        <NColorPicker v-model:value="extendParam.progressRailColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" />
+        <NColorPicker v-model:value="extendParam.progressRailColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" :aria-label="$t('deskModule.systemMonitor.progressRailColor')" />
       </NFormItem>
       <NFormItem :label="$t('common.textColor')">
-        <NColorPicker v-model:value="extendParam.color" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" />
+        <NColorPicker v-model:value="extendParam.color" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" :aria-label="$t('common.textColor')" />
       </NFormItem>
       <NFormItem :label="$t('common.backgroundColor')">
-        <NColorPicker v-model:value="extendParam.backgroundColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" />
+        <NColorPicker v-model:value="extendParam.backgroundColor" :swatches="defautSwatchesBackground" :modes="['hex']" size="small" :aria-label="$t('common.backgroundColor')" />
       </NFormItem>
     </NForm>
   </div>

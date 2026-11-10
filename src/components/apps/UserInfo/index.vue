@@ -204,7 +204,7 @@ function handleChangeTheme(value: Theme) {
 
         <div v-else class="flex items-center">
           <div class="max-w-[150px]">
-            <NInput v-model:value="nickName" type="text" :placeholder="$t('common.inputPlaceholder')" />
+            <NInput v-model:value="nickName" type="text" :placeholder="$t('common.inputPlaceholder')" :input-props="{ 'aria-label': $t('common.nikeName') }" />
           </div>
           <NButton size="small" secondary :loading="nickSaving" @click="handleSaveInfo">
             {{ $t('common.save') }}
@@ -220,7 +220,7 @@ function handleChangeTheme(value: Theme) {
           {{ $t('common.language') }}
         </div>
         <div class="max-w-[200px]">
-          <NSelect v-model:value="languageValue" :options="languageOptions" @update-value="handleChangeLanuage" />
+          <NSelect v-model:value="languageValue" :options="languageOptions" :aria-label="$t('common.language')" @update-value="handleChangeLanuage" />
         </div>
       </div>
 
@@ -229,7 +229,7 @@ function handleChangeTheme(value: Theme) {
           {{ $t('apps.userInfo.theme') }}
         </div>
         <div class="max-w-[200px]">
-          <NSelect v-model:value="themeValue" :options="themeOptions" @update-value="handleChangeTheme" />
+          <NSelect v-model:value="themeValue" :options="themeOptions" :aria-label="$t('apps.userInfo.theme')" @update-value="handleChangeTheme" />
         </div>
       </div>
 
@@ -253,15 +253,15 @@ function handleChangeTheme(value: Theme) {
     <RoundCardModal v-model:show="updatePasswordModalState.show" size="small" preset="card" style="width: 400px" :title="$t('settingUserInfo.updatePassword')">
       <NForm ref="formRef" :model="updatePasswordModalState.form" :rules="updatePasswordModalFormRules">
         <NFormItem path="oldPassword" :label="$t('settingUserInfo.oldPassword')" :feedback="passwordError" :validation-status="passwordError ? 'error' : undefined">
-          <NInput v-model:value="updatePasswordModalState.form.oldPassword" :maxlength="20" type="password" :placeholder="$t('settingUserInfo.oldPassword')" />
+          <NInput v-model:value="updatePasswordModalState.form.oldPassword" :maxlength="20" type="password" :placeholder="$t('settingUserInfo.oldPassword')" :input-props="{ 'aria-label': $t('settingUserInfo.oldPassword') }" />
         </NFormItem>
 
         <NFormItem path="password" :label="$t('settingUserInfo.newPassword')">
-          <NInput v-model:value="updatePasswordModalState.form.password" :maxlength="20" type="password" :placeholder="$t('settingUserInfo.newPassword')" />
+          <NInput v-model:value="updatePasswordModalState.form.password" :maxlength="20" type="password" :placeholder="$t('settingUserInfo.newPassword')" :input-props="{ 'aria-label': $t('settingUserInfo.newPassword') }" />
         </NFormItem>
 
         <NFormItem path="confirmPassword" :label="$t('settingUserInfo.confirmPassword')" :feedback="confirmPasswordError" :validation-status="confirmPasswordError ? 'error' : undefined">
-          <NInput v-model:value="updatePasswordModalState.form.confirmPassword" :maxlength="20" type="password" :placeholder="$t('settingUserInfo.confirmPassword')" />
+          <NInput v-model:value="updatePasswordModalState.form.confirmPassword" :maxlength="20" type="password" :placeholder="$t('settingUserInfo.confirmPassword')" :input-props="{ 'aria-label': $t('settingUserInfo.confirmPassword') }" />
         </NFormItem>
       </NForm>
 

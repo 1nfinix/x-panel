@@ -109,7 +109,7 @@ function handleChangeLanuage(value: Language) {
           <SvgIcon icon="ion-language" style="width: 20px;height: 20px;" />
         </div>
         <div class="min-w-[100px]">
-          <NSelect v-model:value="languageValue" size="small" :options="languageOptions" @update-value="handleChangeLanuage" />
+          <NSelect v-model:value="languageValue" size="small" :options="languageOptions" :aria-label="t('common.language')" @update-value="handleChangeLanuage" />
         </div>
       </div>
 
@@ -121,7 +121,7 @@ function handleChangeLanuage(value: Language) {
       </div>
       <NForm :model="form" label-width="100px" @keydown.enter="handleSubmit">
         <NFormItem :feedback="fieldError.username" :validation-status="fieldError.username ? 'error' : undefined">
-          <NInput v-model:value="form.username" :placeholder="$t('login.usernamePlaceholder')">
+          <NInput v-model:value="form.username" :placeholder="$t('login.usernamePlaceholder')" :input-props="{ 'aria-label': $t('login.usernamePlaceholder') }">
             <template #prefix>
               <SvgIcon icon="ph:user-bold" />
             </template>
@@ -129,7 +129,7 @@ function handleChangeLanuage(value: Language) {
         </NFormItem>
 
         <NFormItem :feedback="fieldError.password" :validation-status="fieldError.password ? 'error' : undefined">
-          <NInput v-model:value="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')">
+          <NInput v-model:value="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')" :input-props="{ 'aria-label': $t('login.passwordPlaceholder') }">
             <template #prefix>
               <SvgIcon icon="mdi:password-outline" />
             </template>
@@ -140,7 +140,7 @@ function handleChangeLanuage(value: Language) {
           <div class="captcha-image" :title="t('login.refreshCaptcha')">
             <Captcha ref="captchaRef" src="/api/captcha/getImage" />
           </div>
-          <NInput v-model:value="form.vcode" type="text" maxlength="4" :placeholder="t('login.captchaPlaceholder')" />
+          <NInput v-model:value="form.vcode" type="text" maxlength="4" :placeholder="t('login.captchaPlaceholder')" :input-props="{ 'aria-label': t('login.captchaPlaceholder') }" />
         </NFormItem>
         <NFormItem class="mt-3">
           <NButton type="primary" block :loading="loading" @click="handleSubmit">

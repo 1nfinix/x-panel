@@ -445,7 +445,7 @@ async function handleStartImport() {
           {{ $t('apps.exportImport.bookmarkSelectAll') }}
         </NCheckbox>
         <div v-for="group in bookmarkPreview" :key="group.title" class="flex items-start gap-3 py-2 border-b border-sep">
-          <NCheckbox v-model:checked="group.selected" :disabled="bookmarkImporting || !group.items.length" />
+          <NCheckbox v-model:checked="group.selected" :aria-label="group.title" :disabled="bookmarkImporting || !group.items.length" />
           <div class="min-w-0">
             <div class="font-medium">
               {{ group.title }}
@@ -527,7 +527,7 @@ async function handleStartImport() {
       </NButton>
 
       <NInput
-        v-model:value="jsonData"
+        v-model:value="jsonData" :input-props="{ 'aria-label': $t('apps.exportImport.import') }"
         type="textarea"
         placeholder="基本的 Textarea"
       />

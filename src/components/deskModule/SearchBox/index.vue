@@ -158,6 +158,7 @@ onMounted(async () => {
 .chevron { width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); }
 .search-field { display: flex; align-items: center; flex: 1; min-width: 0; height: 44px; padding: 0 16px; border-radius: var(--x-r-pill); background: var(--x-bg2); }
 .search-field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--x-text1); font-size: 15px; user-select: text; }
+.search-field input::placeholder { color: var(--x-text2); }
 .search-field:focus-within { box-shadow: 0 0 0 2px var(--x-primary), 0 0 0 5px var(--x-focus); }
 .clear-button { border: 0; background: transparent; color: var(--x-text2); cursor: pointer; }
 .submit-button { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--x-primary); color: var(--x-on-primary); cursor: pointer; }

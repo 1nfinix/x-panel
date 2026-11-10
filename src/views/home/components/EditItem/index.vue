@@ -200,12 +200,12 @@ function getGroupListOptions() {
         <NGrid cols="2" :x-gap="10" item-responsive>
           <NGridItem span="2 500:1">
             <NFormItem path="itemIconGroupId" :label="t('iconItem.iconGroup')">
-              <NSelect v-model:value="model.itemIconGroupId" :options="itemIconGroupOptions" />
+              <NSelect v-model:value="model.itemIconGroupId" :options="itemIconGroupOptions" :aria-label="t('iconItem.iconGroup')" />
             </NFormItem>
           </NGridItem>
           <NGridItem span="2 500:1">
             <NFormItem path="title" :label="$t('common.title')">
-              <NInput v-model:value="model.title" type="text" show-count :maxlength="20" />
+              <NInput v-model:value="model.title" type="text" show-count :maxlength="20" :input-props="{ 'aria-label': $t('common.title') }" />
             </NFormItem>
           </NGridItem>
         </NGrid>
@@ -216,7 +216,7 @@ function getGroupListOptions() {
         <NFormItem path="url" :label="$t('iconItem.url')" :feedback="saveError" :validation-status="saveError ? 'error' : undefined">
           <!-- <NSelect :style="{ width: '100px' }" :options="urlProtocolOptions" /> -->
           <NInputGroup>
-            <NInput v-model:value="model.url" type="text" :maxlength="1000" placeholder="http(s)://" @blur="autoFetchIcon" />
+            <NInput v-model:value="model.url" type="text" :maxlength="1000" placeholder="http(s)://" :input-props="{ 'aria-label': $t('iconItem.url') }" @blur="autoFetchIcon" />
             <NButton :disabled="!model.url" :loading="getIconLoading[0]" @click="getIconByUrl(model.url, 0)">
               {{ $t('iconItem.getIcon') }}
             </NButton>
@@ -224,17 +224,17 @@ function getGroupListOptions() {
         </NFormItem>
         <NFormItem path="lanUrl" :label="$t('iconItem.lanUrl')">
           <NInputGroup>
-            <NInput v-model:value="model.lanUrl" type="text" :maxlength="1000" :placeholder="$t('iconItem.lanUrlInputPlaceholder')" />
+            <NInput v-model:value="model.lanUrl" type="text" :maxlength="1000" :placeholder="$t('iconItem.lanUrlInputPlaceholder')" :input-props="{ 'aria-label': $t('iconItem.lanUrl') }" />
             <NButton :disabled="!model.lanUrl" :loading="getIconLoading[1]" @click="getIconByUrl(model.lanUrl || '', 1)">
               {{ $t('iconItem.getIcon') }}
             </NButton>
           </NInputGroup>
         </NFormItem>
         <NFormItem path="description" :label="$t('common.description')">
-          <NInput v-model:value="model.description" type="text" show-count :maxlength="100" />
+          <NInput v-model:value="model.description" type="text" show-count :maxlength="100" :input-props="{ 'aria-label': $t('common.description') }" />
         </NFormItem>
         <NFormItem path="openMethod" :label="$t('iconItem.openMethod')">
-          <NSelect v-model:value="model.openMethod" :options="options" />
+          <NSelect v-model:value="model.openMethod" :options="options" :aria-label="$t('iconItem.openMethod')" />
         </NFormItem>
       </NForm>
     </div>

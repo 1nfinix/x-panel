@@ -85,9 +85,10 @@ const createColumns = ({
         const btn = h(
           NButton,
           {
-            strong: true,
-            tertiary: true,
-            size: 'small',
+            'strong': true,
+            'tertiary': true,
+            'size': 'small',
+            'aria-label': `${t('common.action')}: ${row.username}`,
           },
           {
             default() {

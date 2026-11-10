@@ -124,10 +124,10 @@ onUnmounted(() => {
       size="small"
     >
       <template #header>
-        <div class="flex items-center select-none" @click="collapsed = !collapsed">
-          <div class="text-[22px] cursor-pointer text-text1">
+        <div class="flex items-center select-none">
+          <button type="button" class="text-[22px] cursor-pointer text-text1" :aria-label="t('appLauncher.toggleSidebar')" :aria-expanded="!collapsed" @click="collapsed = !collapsed">
             <SvgIcon class=" transition-all duration-500" :icon="collapsed ? 'tabler-layout-sidebar-right-collapse-filled' : 'tabler-layout-sidebar-left-collapse-filled'" />
-          </div>
+          </button>
           <div class="ml-1">
             {{ title === '' ? defaultTitle : title }}
           </div>
@@ -158,6 +158,7 @@ onUnmounted(() => {
                   class="category-tab mb-1"
                   :class="{ active: componentName === item.componentName }"
                   type="button"
+                  :aria-current="componentName === item.componentName ? 'page' : undefined"
                   @click="handleClickApp(item)"
                 >
                   <SvgIcon class="text-[18px]" :icon="item.icon" />

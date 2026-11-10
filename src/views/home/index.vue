@@ -60,6 +60,7 @@ const filterItems = ref<ItemGroup[]>([])
 const searchBoxKeyword = ref('')
 const listFilter = ref('')
 const arrangeMode = ref(false)
+const arrangeAnnouncement = ref('')
 const listFilterRef = ref<HTMLInputElement | null>(null)
 const rovingItemId = ref<number | null>(null)
 const failedIcons = ref(new Set<number>())
@@ -239,9 +240,32 @@ function selectGroup(id: number | 'all') {
     filterItems.value = items.value
 }
 
-function moveRowFocus(event: KeyboardEvent, direction: number) {
-  if (arrangeMode.value)
+async function moveRowFocus(event: KeyboardEvent, direction: number) {
+  if (arrangeMode.value) {
+    event.preventDefault()
+    const row = event.currentTarget as HTMLButtonElement
+    const itemId = Number(row.dataset.itemId)
+    const group = items.value.find(group => group.items?.some(item => item.id === itemId))
+    if (!group?.items || !group.id || saveStatuses.value[group.id] === 'saving')
+      return
+    const oldIndex = group.items.findIndex(item => item.id === itemId)
+    const newIndex = oldIndex + direction
+    if (newIndex < 0 || newIndex >= group.items.length)
+      return
+    const [item] = group.items.splice(oldIndex, 1)
+    group.items.splice(newIndex, 0, item)
+    rovingItemId.value = itemId
+    arrangeAnnouncement.value = t('panelHome.movedToPosition', { position: newIndex + 1 })
+    await nextTick()
+    row.focus()
+    const saved = await saveGroupOrder(group.id, [group.id])
+    if (!saved) {
+      arrangeAnnouncement.value = t('panelHome.arrangeSaveFailed')
+      await nextTick()
+      document.querySelector<HTMLButtonElement>(`.url-row[data-item-id="${itemId}"]`)?.focus()
+    }
     return
+  }
   const rows = Array.from(document.querySelectorAll<HTMLButtonElement>('.url-row:not(.add-row)'))
   if (!rows.length)
     return
@@ -497,15 +521,12 @@ function toggleArrangeMode() {
   }
 }
 
-async function handleEndDrag(event: DragEndEvent) {
-  if (event.from === event.to && event.oldDraggableIndex === event.newDraggableIndex)
-    return
-
-  const targetId = Number(event.to.dataset.groupId)
+async function saveGroupOrder(targetId: number, rollbackIds: number[]) {
   const target = items.value.find(group => group.id === targetId)
   if (!target?.items)
     return
 
+  clearTimeout(saveStatusTimers.get(targetId))
   saveStatuses.value[targetId] = 'saving'
   try {
     const { code } = await saveSort({
@@ -515,19 +536,28 @@ async function handleEndDrag(event: DragEndEvent) {
     if (code === 0) {
       saveStatuses.value[targetId] = 'saved'
       saveStatusTimers.set(targetId, setTimeout(() => delete saveStatuses.value[targetId], 1500))
-      return
+      return true
     }
   }
   catch {}
 
   saveStatuses.value[targetId] = 'error'
   ms.error(t('panelHome.arrangeSaveFailed'))
-  const sourceId = Number(event.from.dataset.groupId)
-  for (const id of new Set([sourceId, targetId])) {
+  const reloads: Promise<boolean>[] = []
+  for (const id of new Set(rollbackIds)) {
     const index = items.value.findIndex(group => group.id === id)
     if (index !== -1)
-      updateItemIconGroupByNet(index, id)
+      reloads.push(updateItemIconGroupByNet(index, id))
   }
+  await Promise.all(reloads)
+  return false
+}
+
+async function handleEndDrag(event: DragEndEvent) {
+  if (event.from === event.to && event.oldDraggableIndex === event.newDraggableIndex)
+    return
+  const targetId = Number(event.to.dataset.groupId)
+  await saveGroupOrder(targetId, [Number(event.from.dataset.groupId), targetId])
 }
 
 function getDropdownMenuOptions() {
@@ -653,6 +683,30 @@ function handleAddItem(itemIconGroupId?: number) {
             <div class="brand-block" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">
               <h1>{{ panelState.panelConfig.logoText }}</h1><p>{{ currentDate }} · {{ t('panelHome.groupCount', { count: items.length }) }} · {{ t('panelHome.bookmarkCount', { count: totalCount }) }}</p>
             </div>
+            <div class="fixed-element">
+              <div class="floating-actions">
+                <NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.lan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :aria-label="t('panelHome.changeToWanModel')" :title="t('panelHome.changeToWanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.wan)">
+                  <template #icon>
+                    <SvgIcon icon="material-symbols:lan-outline-rounded" />
+                  </template>
+                </NButton>
+                <NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.wan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :aria-label="t('panelHome.changeToLanModel')" :title="t('panelHome.changeToLanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.lan)">
+                  <template #icon>
+                    <SvgIcon icon="mdi:wan" />
+                  </template>
+                </NButton>
+                <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="floating-button" :aria-label="t('appLauncher.title')" @click="initialSettingsPanel = 'UserInfo'; settingModalShow = true">
+                  <template #icon>
+                    <SvgIcon icon="majesticons-applications" />
+                  </template>
+                </NButton>
+                <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" class="floating-button" :aria-label="t('panelHome.goToLogin')" :title="t('panelHome.goToLogin')" @click="router.push('/login')">
+                  <template #icon>
+                    <SvgIcon icon="material-symbols:account-circle" />
+                  </template>
+                </NButton>
+              </div>
+            </div>
             <div class="header-actions">
               <label class="list-filter"><SvgIcon icon="iconamoon:search-fill" aria-hidden="true" /><input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')" @keydown="onFilterKeydown"><span v-if="listFilter.trim()" class="filter-count">{{ t('panelHome.resultsCount', { count: visibleCount }) }}</span><kbd v-else>/</kbd></label>
               <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="quiet-button" :type="arrangeMode ? 'primary' : 'default'" @click="toggleArrangeMode">
@@ -699,7 +753,7 @@ function handleAddItem(itemIconGroupId?: number) {
                   </button>
                 </div>
                 <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="150" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" :delay-on-touch-only="true" ghost-class="sortable-ghost" @end="handleEndDrag">
-                  <button v-for="item in displayedItems(group)" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" :data-item-id="item.id" :tabindex="(rovingItemId ?? firstVisibleItemId) === item.id ? 0 : -1" type="button" :title="item.title" @focus="rovingItemId = item.id as number" @click="handleItemClick(item)" @keydown.down="moveRowFocus($event, 1)" @keydown.up="moveRowFocus($event, -1)" @contextmenu="(e) => handleContextMenu(e, item)">
+                  <button v-for="item in displayedItems(group)" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" :data-item-id="item.id" :tabindex="arrangeMode || (rovingItemId ?? firstVisibleItemId) === item.id ? 0 : -1" type="button" :title="item.title" @focus="rovingItemId = item.id as number" @click="handleItemClick(item)" @keydown.down="moveRowFocus($event, 1)" @keydown.up="moveRowFocus($event, -1)" @keydown.left="arrangeMode && moveRowFocus($event, -1)" @keydown.right="arrangeMode && moveRowFocus($event, 1)" @contextmenu="(e) => handleContextMenu(e, item)">
                     <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)"><ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" /><span v-else class="row-placeholder"><GroupGlyph icon="lucide-globe" :title="item.title" :size="18" /></span>
                     <span class="row-copy"><span class="row-name">{{ item.title }}</span><span class="row-domain">{{ displayDomain(item.url) }}</span></span><span class="row-arrow" aria-hidden="true">↗</span>
                   </button>
@@ -744,26 +798,8 @@ function handleAddItem(itemIconGroupId?: number) {
       </NDrawerContent>
     </NDrawer>
     <NDropdown placement="bottom-start" trigger="manual" :x="dropdownMenuX" :y="dropdownMenuY" :options="getDropdownMenuOptions()" :show="dropdownShow" :on-clickoutside="onClickoutside" @select="handleRightMenuSelect" />
-    <div class="fixed-element">
-      <div class="floating-actions">
-        <NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.lan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :title="t('panelHome.changeToWanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.wan)">
-          <template #icon>
-            <SvgIcon icon="material-symbols:lan-outline-rounded" />
-          </template>
-        </NButton><NButton v-if="panelState.networkMode === PanelStateNetworkModeEnum.wan && panelState.panelConfig.netModeChangeButtonShow" class="floating-button" :title="t('panelHome.changeToLanModel')" @click="handleChangeNetwork(PanelStateNetworkModeEnum.lan)">
-          <template #icon>
-            <SvgIcon icon="mdi:wan" />
-          </template>
-        </NButton><NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="floating-button" :aria-label="t('appLauncher.title')" @click="initialSettingsPanel = 'UserInfo'; settingModalShow = true">
-          <template #icon>
-            <SvgIcon icon="majesticons-applications" />
-          </template>
-        </NButton><NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" class="floating-button" :title="t('panelHome.goToLogin')" @click="router.push('/login')">
-          <template #icon>
-            <SvgIcon icon="material-symbols:account-circle" />
-          </template>
-        </NButton>
-      </div>
+    <div class="sr-only" aria-live="polite">
+      {{ arrangeAnnouncement }}
     </div>
     <AppStarter v-model:visible="settingModalShow" :initial-panel="initialSettingsPanel" />
     <NBackTop class="rail-back-top" :listen-to="() => scrollContainerRef" :right="16" :bottom="16">
@@ -883,6 +919,6 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 @keyframes first-card { from { opacity: .2; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .first-load-motion .group-section { animation: first-card 150ms ease-out both; }.group-fade { animation: first-card 150ms ease-out; }
 @media (max-width: 1179px) { .overview-clock, .overview-search, .overview-monitor, .overview-band:has(.wallpaper-card) .overview-monitor { grid-column: span 12; }.wallpaper-card { grid-column: span 6; } }
-@media (max-width: 767px) { .page-content { padding-right: 0; padding-left: 0; }.page-layout { padding: 16px 16px calc(136px + env(safe-area-inset-bottom)); }.group-rail { display: none; }.navigation-shell { display: block; }.header-actions { flex-wrap: wrap; margin-top: 24px; }.list-filter { order: -1; width: 100%; }.content-shell { padding-top: 32px; }.overview-band { display: flex; flex-direction: column; align-items: stretch; padding: 24px; }.content-groups { grid-template-columns: 1fr; gap: 24px; margin-top: 40px; }.url-list { grid-template-columns: 1fr; }.mobile-dock-band { position: fixed; z-index: 19; right: 0; bottom: 0; left: 0; display: block; height: calc(112px + env(safe-area-inset-bottom)); background: var(--x-bg0); }.mobile-dock { position: fixed; z-index: 21; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); left: 16px; display: flex; align-items: center; justify-content: space-around; gap: 4px; height: 64px; padding: 8px; border-radius: 24px; background: var(--x-bg1); }.dock-button { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; max-width: 46%; height: 44px; padding: 0 10px; border: 0; border-radius: var(--x-r-icon); background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.dock-button.active { flex: 1; background: var(--x-primary); color: var(--x-on-primary); }.dock-button.active span { overflow: hidden; text-overflow: ellipsis; }.more-button { background: var(--x-bg2); color: var(--x-text1); }.fixed-element { bottom: calc(136px + env(safe-area-inset-bottom)); }.brand-block h1 { font-size: 30px; } }
+@media (max-width: 767px) { .page-content { padding-right: 0; padding-left: 0; }.page-layout { padding: 16px 16px calc(136px + env(safe-area-inset-bottom)); }.group-rail { display: none; }.navigation-shell { display: flex; flex-wrap: wrap; }.brand-block { flex: 1; min-width: 0; }.header-actions { width: 100%; flex-wrap: wrap; margin-top: 24px; }.list-filter { order: -1; width: 100%; }.content-shell { padding-top: 32px; }.overview-band { display: flex; flex-direction: column; align-items: stretch; padding: 24px; }.content-groups { grid-template-columns: 1fr; gap: 24px; margin-top: 40px; }.url-list { grid-template-columns: 1fr; }.mobile-dock-band { position: fixed; z-index: 19; right: 0; bottom: 0; left: 0; display: block; height: calc(112px + env(safe-area-inset-bottom)); background: var(--x-bg0); }.mobile-dock { position: fixed; z-index: 21; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); left: 16px; display: flex; align-items: center; justify-content: space-around; gap: 4px; height: 64px; padding: 8px; border-radius: 24px; background: var(--x-bg1); }.dock-button { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; max-width: 46%; height: 44px; padding: 0 10px; border: 0; border-radius: var(--x-r-icon); background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.dock-button.active { flex: 1; background: var(--x-primary); color: var(--x-on-primary); }.dock-button.active span { overflow: hidden; text-overflow: ellipsis; }.more-button { background: var(--x-bg2); color: var(--x-text1); }.fixed-element { position: static; flex: none; }.floating-actions { flex-direction: row; }.brand-block h1 { font-size: 30px; } }
 @media (prefers-reduced-motion: reduce) { .rail-brand, .rail-button, .url-row, .row-arrow { transition: none; }.first-load-motion .group-section, .group-fade { animation: none; }.url-row:hover .row-arrow { transform: none; } }
 </style>

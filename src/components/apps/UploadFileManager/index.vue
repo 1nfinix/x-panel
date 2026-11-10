@@ -150,22 +150,22 @@ onMounted(() => {
                 </span>
                 <div class="flex justify-center mt-3">
                   <NButtonGroup>
-                    <NButton size="tiny" tertiary style="cursor: pointer;" :title="$t('apps.uploadsFileManager.copyLink')" @click="copyImageUrl(item.src)">
+                    <NButton size="tiny" tertiary style="cursor: pointer;" :title="$t('apps.uploadsFileManager.copyLink')" :aria-label="$t('apps.uploadsFileManager.copyLink')" @click="copyImageUrl(item.src)">
                       <template #icon>
                         <SvgIcon icon="ion-copy" />
                       </template>
                     </NButton>
-                    <NButton size="tiny" tertiary style="cursor: pointer;" :title="timeFormat(item.createTime)" @click="handleInfoClick(item)">
+                    <NButton size="tiny" tertiary style="cursor: pointer;" :title="timeFormat(item.createTime)" :aria-label="$t('apps.uploadsFileManager.infoTitle')" @click="handleInfoClick(item)">
                       <template #icon>
                         <SvgIcon icon="mdi-information-box-outline" />
                       </template>
                     </NButton>
-                    <NButton size="tiny" tertiary style="cursor: pointer;" :loading="wallpaperLoadingId === item.id" :title="$t('apps.uploadsFileManager.setWallpaper')" @click="handleSetWallpaper(item.src, item.id as number)">
+                    <NButton size="tiny" tertiary style="cursor: pointer;" :loading="wallpaperLoadingId === item.id" :title="$t('apps.uploadsFileManager.setWallpaper')" :aria-label="$t('apps.uploadsFileManager.setWallpaper')" @click="handleSetWallpaper(item.src, item.id as number)">
                       <template #icon>
                         <SvgIcon icon="lucide:wallpaper" />
                       </template>
                     </NButton>
-                    <NButton size="tiny" type="error" style="cursor: pointer;" :loading="deleteLoadingId === item.id" :title="$t('common.delete')" @click="handleDelete(item.id as number)">
+                    <NButton size="tiny" type="error" style="cursor: pointer;" :loading="deleteLoadingId === item.id" :title="$t('common.delete')" :aria-label="$t('common.delete')" @click="handleDelete(item.id as number)">
                       <template #icon>
                         <SvgIcon icon="material-symbols-delete" />
                       </template>

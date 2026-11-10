@@ -124,7 +124,7 @@ const handleUploadFinish = ({
         <div class="ml-5">
           <!-- <NImage :src="model.icon" preview-disabled /> -->
           <div v-if="itemIconInfo.itemType === 1">
-            <NInput v-model:value="itemIconInfo.text" class="mb-1" size="small" type="text" @input="handleChange" />
+            <NInput v-model:value="itemIconInfo.text" class="mb-1" size="small" type="text" :input-props="{ 'aria-label': $t('common.icon') }" @input="handleChange" />
           </div>
 
           <div v-if="itemIconInfo.itemType === 3">
@@ -139,7 +139,7 @@ const handleUploadFinish = ({
 
           <!-- 图片 -->
           <div v-if="itemIconInfo.itemType === 2">
-            <NInput v-model:value="itemIconInfo.src" class="mb-1 w-full" size="small" type="text" :placeholder="$t('iconItem.inputIconUrlOrUpload')" @input="handleChange" />
+            <NInput v-model:value="itemIconInfo.src" class="mb-1 w-full" size="small" type="text" :placeholder="$t('iconItem.inputIconUrlOrUpload')" :input-props="{ 'aria-label': $t('iconItem.inputIconUrlOrUpload') }" @input="handleChange" />
             <NUpload
               action="/api/file/uploadImg"
               :show-file-list="false"
@@ -167,6 +167,7 @@ const handleUploadFinish = ({
             size="small"
             :modes="['hex']"
             :swatches="defautSwatchesBackground"
+            :aria-label="$t('common.backgroundColor')"
             @complete="handleChange"
             @update-value="handleChange"
           />

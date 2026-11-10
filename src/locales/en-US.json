@@ -34,7 +34,8 @@
     "1400": "Parameter format error"
   },
   "appLauncher": {
-    "title": "System Applications"
+    "title": "System Applications",
+    "toggleSidebar": "Expand or collapse settings categories"
   },
   "apps": {
     "about": {
@@ -80,7 +81,8 @@
       "findCandidates": "Find missing icons",
       "fillConfirm": "Fill icons for the selected sites?",
       "fillSuccess": "Succeeded",
-      "fillFailed": "Failed"
+      "fillFailed": "Failed",
+      "maxWidthUnit": "Width unit"
     },
     "exportImport": {
       "appName": "Export/Import",
@@ -124,7 +126,9 @@
       "deleteWarnText": "Are you sure you want to delete this group [{name}]? The application icons in this group will be lost after deletion.",
       "groupName": "Group name",
       "icon": "Icon",
-      "auto": "Auto"
+      "auto": "Auto",
+      "editGroup": "Edit group",
+      "deleteGroup": "Delete group"
     },
     "uploadsFileManager": {
       "alertText": "Here you can manage wallpapers and icons you have uploaded.",
@@ -304,7 +308,8 @@
     "loading": "Loading",
     "retry": "Retry",
     "groupCount": "{count} groups",
-    "bookmarkCount": "{count} bookmarks"
+    "bookmarkCount": "{count} bookmarks",
+    "movedToPosition": "Moved to position {position}"
   },
   "settingUserInfo": {
     "confirmLogoutText": "Are you sure you want to logout?",
