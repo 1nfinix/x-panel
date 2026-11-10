@@ -14,6 +14,7 @@
     "add-version": "node ./add-frontend-version.js",
     "preview": "vite preview",
     "build-only": "vite build",
+    "check:tokens": "node scripts/check-theme-tokens.mjs",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

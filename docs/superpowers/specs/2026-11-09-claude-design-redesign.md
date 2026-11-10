@@ -2,27 +2,27 @@
 
 ## 来源与边界
 
-本规范以已定稿的 `xnav.css`、`Main.dc.html`、`Mobile.dc.html`、`Tokens.dc.html` 为设计依据。`src/styles/global.less` 中的 `--x-*` 是运行时变量唯一来源，Naive UI 和 Tailwind 均引用同一套变量。浅色为默认主题；`html.dark` 与 `[data-theme="dark"]` 使用同一组暗色值。保留现有产品行为和 `panelConfig` 数据结构。
+本规范以已定稿的 `xnav.css`、`Main.dc.html`、`Mobile.dc.html`、`Tokens.dc.html` 为设计依据。`src/styles/global.less` 中的 `--x-*` 是运行时变量唯一来源，Naive UI 和 Tailwind 均引用同一套变量。浅色为默认主题；`html.dark` 与 `[data-theme="dark"]` 使用同一组暗色值。保留现有产品行为和 `panelConfig` 数据结构。2026-11-10 soft-tones 调整后，以下运行时变量值与定稿 `xnav.css` 不同。
 
 用户在 2026-11-09 明确批准本项目采用 32px 卡片圆角，作为外脑 `DESIGN.md` 的“圆角 ≤8px”硬约束的项目例外。页面不使用渐变、霓虹、发光、玻璃拟态、emoji 图标，也不以单边框装饰圆角卡片。
 
 ## 变量表
 
-以下数值逐值来自定稿 `xnav.css`；空白暗色列表示该尺寸或字体继承浅色值。
+以下数值按当前 `global.less` 更新；空白暗色列表示该尺寸或字体继承浅色值。
 
 | 变量 | 浅色 | 深色 |
 | --- | --- | --- |
-| `--x-bg0` | `#FFFFFF` | `#121214` |
-| `--x-bg1` | `#F6F8FA` | `#1C1C1E` |
-| `--x-bg2` | `#FFFFFF` | `#2C2C2E` |
-| `--x-hover` | `#EEF1F4` | `#3A3A3C` |
-| `--x-ph` | `#E5E8EC` | `#3A3A3C` |
+| `--x-bg0` | `#F1F3F6` | `#1B1C1F` |
+| `--x-bg1` | `#F9FAFB` | `#242529` |
+| `--x-bg2` | `#FFFFFF` | `#2F3035` |
+| `--x-hover` | `#EBEEF2` | `#3A3B41` |
+| `--x-ph` | `#E3E7EC` | `#3A3B41` |
 | `--x-ph-text` | `#3A3A3C` | `#EBEBF0` |
 | `--x-ph-sub` | `#5B5B60` | `#AEAEB2` |
 | `--x-text1` | `#1D1D1F` | `#F5F5F7` |
-| `--x-text2` | `#6E6E73` | `#A1A1A6` |
+| `--x-text2` | `#636368` | `#ADADB2` |
 | `--x-icon3` | `#8E8E93` | `#8E8E93` |
-| `--x-sep` | `#E5E8EC` | `#3A3A3C` |
+| `--x-sep` | `#E3E7EC` | `#3A3B41` |
 | `--x-disabled-bg` | `#E5E8EC` | `#3A3A3C` |
 | `--x-disabled-fg` | `#8E8E93` | `#8E8E93` |
 | `--x-primary` | `#0071E3` | `#0071E3` |
