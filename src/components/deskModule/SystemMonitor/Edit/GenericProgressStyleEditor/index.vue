@@ -28,7 +28,7 @@ const data = computed({
   <div>
     <!-- <div>{{ genericProgressStyleExtendParam }}</div>
     <div>{{ data }}</div> -->
-    <div class="flex mb-5 justify-center transparent-grid p-2 rounded-card border">
+    <div class="flex mb-5 justify-center transparent-grid p-2 rounded-card">
       <div class="w-[200px]">
         <GenericMonitorCard
           icon-text-icon-hide-title

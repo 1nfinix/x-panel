@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type { UploadFileInfo } from 'naive-ui'
-import { NButton, NCard, NColorPicker, NGrid, NGridItem, NInput, NInputGroup, NPopconfirm, NSelect, NSlider, NSwitch, NUpload, NUploadDragger, useMessage } from 'naive-ui'
+import { NButton, NCard, NColorPicker, NGrid, NGridItem, NInput, NInputGroup, NPopconfirm, NSelect, NSlider, NSwitch, NUpload, NUploadDragger } from 'naive-ui'
 import { useAuthStore, usePanelState } from '@/store'
 import { set as setUserConfig } from '@/api/panel/userConfig'
 import { faviconCandidates } from '@/api/panel/itemIcon'
@@ -12,23 +12,35 @@ import { useFaviconFill } from '@/hooks/useFaviconFill'
 
 const authStore = useAuthStore()
 const panelState = usePanelState()
-const ms = useMessage()
 const showWallpaperInput = ref(false)
 interface FaviconCandidate { id: number; title: string; url: string; icon: Panel.ItemIcon }
 const candidates = ref<FaviconCandidate[]>([])
 const selectedIds = ref<number[]>([])
+const candidateLoading = ref(false)
+const candidateError = ref('')
+const saveState = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
+const saveError = ref('')
+let savedTimer: ReturnType<typeof setTimeout>
 const { running: fillRunning, done: fillDone, success: fillSuccess, failures, reset: resetFill, run: runFaviconFill } = useFaviconFill()
 const fillFailures = computed(() => failures.value.map(failure => `${candidates.value.find(item => item.id === failure.id)?.title || failure.id}: ${failure.reason}`))
 
 async function loadCandidates() {
-  const response = await faviconCandidates<Common.ListResponse<FaviconCandidate[]>>()
-  if (response.code !== 0) {
-    ms.error(response.msg)
-    return
+  candidateLoading.value = true
+  candidateError.value = ''
+  try {
+    const response = await faviconCandidates<Common.ListResponse<FaviconCandidate[]>>()
+    if (response.code !== 0)
+      throw new Error(response.msg || t('common.failed'))
+    candidates.value = response.data.list
+    selectedIds.value = candidates.value.map(item => item.id)
+    resetFill()
   }
-  candidates.value = response.data.list
-  selectedIds.value = candidates.value.map(item => item.id)
-  resetFill()
+  catch (error) {
+    candidateError.value = error instanceof Error ? error.message : t('common.failed')
+  }
+  finally {
+    candidateLoading.value = false
+  }
 }
 
 async function runFill() {
@@ -87,19 +99,27 @@ function handleUploadBackgroundFinish({
   return file
 }
 
-function uploadCloud() {
-  setUserConfig({ panel: panelState.panelConfig }).then((res) => {
-    if (res.code === 0)
-      ms.success(t('apps.baseSettings.configSaved'))
-    else
-      ms.error(t('apps.baseSettings.configFailed', { message: res.msg }))
-  })
+async function uploadCloud() {
+  clearTimeout(savedTimer)
+  saveState.value = 'saving'
+  saveError.value = ''
+  try {
+    const res = await setUserConfig({ panel: panelState.panelConfig })
+    if (res.code !== 0)
+      throw new Error(t('apps.baseSettings.configFailed', { message: res.msg }))
+    saveState.value = 'saved'
+    savedTimer = setTimeout(() => saveState.value = 'idle', 1500)
+  }
+  catch (error) {
+    saveError.value = error instanceof Error ? error.message : t('common.saveFail')
+    saveState.value = 'error'
+  }
 }
 
 function resetPanelConfig() {
   panelState.resetPanelConfig()
-  uploadCloud()
 }
+onBeforeUnmount(() => clearTimeout(savedTimer))
 </script>
 
 <template>
@@ -277,9 +297,14 @@ function resetPanelConfig() {
       <div class="text-text1 text-[16px] font-medium mb-3">
         {{ $t('apps.baseSettings.fillFavicons') }}
       </div>
-      <NButton :disabled="fillRunning" @click="loadCandidates">
+      <NButton :disabled="fillRunning" :loading="candidateLoading" @click="loadCandidates">
         {{ $t('apps.baseSettings.findCandidates') }}
       </NButton>
+      <p v-if="candidateError" class="setting-error" role="alert">
+        {{ candidateError }} <NButton size="small" @click="loadCandidates">
+          {{ t('panelHome.retry') }}
+        </NButton>
+      </p>
       <div v-for="item in candidates" :key="item.id" class="flex gap-3 items-center mt-2">
         <input v-model="selectedIds" type="checkbox" :value="item.id" :disabled="fillRunning">
         <ItemIcon v-if="item.icon.itemType === 1 || item.icon.src" :item-icon="item.icon" :size="28" />
@@ -371,9 +396,20 @@ function resetPanelConfig() {
         {{ $t('apps.baseSettings.resetWarnText') }}
       </NPopconfirm>
 
-      <NButton size="small" secondary class="ml-3" @click="uploadCloud">
+      <NButton size="small" secondary class="ml-3" :loading="saveState === 'saving'" @click="uploadCloud">
         {{ $t('common.save') }}
       </NButton>
+      <span v-if="saveState === 'saved'" class="setting-status" role="status">{{ t('panelHome.saved') }}</span>
+      <p v-if="saveState === 'error'" class="setting-error" role="alert">
+        {{ saveError }} <NButton size="small" @click="uploadCloud">
+          {{ t('panelHome.retry') }}
+        </NButton>
+      </p>
     </NCard>
   </div>
 </template>
+
+<style scoped>
+.setting-status { margin-left: 12px; color: var(--x-green-fg); font-size: 13px; }
+.setting-error { margin-top: 12px; color: var(--x-red-fg); font-size: 13px; }
+</style>

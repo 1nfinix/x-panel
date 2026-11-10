@@ -291,7 +291,6 @@
     "arrangeDone": "Done",
     "arrangeSaveFailed": "Failed to save order",
     "noMatches": "No matching sites",
-    "bookmarks": "bookmarks",
     "importBookmarks": "Import bookmarks",
     "todayWallpaper": "Today’s wallpaper",
     "moreGroups": "More groups",
@@ -302,7 +301,10 @@
     "error": "Save failed",
     "undo": "Undo",
     "loadFailed": "Could not load groups",
-    "retry": "Retry"
+    "loading": "Loading",
+    "retry": "Retry",
+    "groupCount": "{count} groups",
+    "bookmarkCount": "{count} bookmarks"
   },
   "settingUserInfo": {
     "confirmLogoutText": "Are you sure you want to logout?",

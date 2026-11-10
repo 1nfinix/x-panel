@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineEmits, defineProps, ref, watch } from 'vue'
-import { NButton, NModal, NTabPane, NTabs, useMessage } from 'naive-ui'
+import { NButton, NModal, NTabPane, NTabs } from 'naive-ui'
 import { MonitorType } from '../typings'
 import type { DiskExtendParam, GenericProgressStyleExtendParam, MonitorData } from '../typings'
 import { add, saveByIndex } from '../common'
@@ -45,8 +45,8 @@ const currentMonitorData = ref<MonitorData>(props.monitorData || { ...defaultMon
 const currentGenericProgressStyleExtendParam = ref<GenericProgressStyleExtendParam>({ ...defaultGenericProgressStyleExtendParam })
 const currentDiskExtendParam = ref<DiskExtendParam>({ ...defaultDiskExtendParam })
 
-const ms = useMessage()
 const submitLoading = ref(false)
+const saveError = ref('')
 
 interface Emit {
   (e: 'update:visible', visible: boolean): void
@@ -62,6 +62,8 @@ const show = computed({
 })
 
 watch(() => props.visible, (value) => {
+  if (value)
+    saveError.value = ''
   active.value = props.monitorData?.monitorType || MonitorType.cpu
   if (props.monitorData?.monitorType === MonitorType.cpu || props.monitorData?.monitorType === MonitorType.memory)
     currentGenericProgressStyleExtendParam.value = { ...props.monitorData?.extendParam }
@@ -79,6 +81,8 @@ function handleResetExtendParam() {
 
 // 保存提交
 async function handleSubmit() {
+  if (submitLoading.value)
+    return
   let verificationRes = true
   currentMonitorData.value.monitorType = active.value as MonitorType
   if (currentMonitorData.value.monitorType === MonitorType.cpu || currentMonitorData.value.monitorType === MonitorType.memory) {
@@ -95,25 +99,23 @@ async function handleSubmit() {
   if (!verificationRes)
     return
 
-  if (props.index !== null) {
-    const res = await saveByIndex(props.index, currentMonitorData.value)
+  submitLoading.value = true
+  saveError.value = ''
+  try {
+    const res = props.index !== null
+      ? await saveByIndex(props.index, currentMonitorData.value)
+      : await add(currentMonitorData.value)
     if (res) {
       show.value = false
       emit('done', true)
     }
-    else {
-      ms.error(t('common.saveFail'))
-    }
+    else { saveError.value = t('common.saveFail') }
   }
-  else {
-    const res = await add(currentMonitorData.value)
-    if (res) {
-      show.value = false
-      emit('done', true)
-    }
-    else {
-      ms.error(t('common.saveFail'))
-    }
+  catch {
+    saveError.value = t('common.saveFail')
+  }
+  finally {
+    submitLoading.value = false
   }
 }
 </script>
@@ -139,6 +141,9 @@ async function handleSubmit() {
     <NButton @click="handleResetExtendParam">
       {{ t('common.reset') }}
     </NButton>
+    <p v-if="saveError" class="save-error" role="alert">
+      {{ saveError }}
+    </p>
     <template #footer>
       <NButton type="primary" :loading="submitLoading" style="float: right;" @click="handleSubmit">
         {{ t('common.confirm') }}
@@ -146,3 +151,7 @@ async function handleSubmit() {
     </template>
   </NModal>
 </template>
+
+<style scoped>
+.save-error { margin-top: 12px; color: var(--x-red-fg); font-size: 13px; }
+</style>

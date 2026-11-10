@@ -10,6 +10,8 @@ export async function saveAll(value: MonitorData[]) {
 
 export async function getAll(): Promise< MonitorData[]> {
   const res = await moduleConfig.getValueByNameFromCloud<{ list: MonitorData[] }>(modelName)
+  if (res.code !== 0)
+    throw new Error(res.msg || 'Failed to load system monitors')
   if (res.code === 0 && res.data && res.data.list)
     return res.data.list
   return []
@@ -26,7 +28,7 @@ export async function add(value: MonitorData): Promise<boolean> {
     newData.push(value)
     const res = await saveAll(newData)
     if (res.code !== 0)
-      console.log('save failed', res)
+      success = false
   }
   catch (error) {
     console.error(error)
@@ -49,7 +51,7 @@ export async function saveByIndex(index: number | undefined, value: MonitorData)
     newData[index] = value
     const res = await saveAll(newData)
     if (res.code !== 0)
-      console.log('save failed', res)
+      success = false
   }
   catch (error) {
     console.error(error)
@@ -77,7 +79,9 @@ export async function deleteByIndex(index: number): Promise<boolean> {
     const data = await getAll()
     if (data[index])
       data.splice(index, 1)
-    await saveAll(data)
+    const res = await saveAll(data)
+    if (res.code !== 0)
+      success = false
   }
   catch (error) {
     success = false

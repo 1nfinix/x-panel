@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { h, onMounted, ref } from 'vue'
 import type { FormInst, FormRules } from 'naive-ui'
 import { NButton, NCard, NForm, NFormItem, NInput, useDialog, useMessage } from 'naive-ui'
 import { VueDraggable } from 'vue-draggable-plus'
@@ -23,6 +23,8 @@ const sortSaving = ref(false)
 const saving = ref(false)
 const saveError = ref('')
 const deletingId = ref<number | null>(null)
+const listLoading = ref(false)
+const listError = ref('')
 
 const defaultMNodal = {
   title: '',
@@ -94,26 +96,32 @@ async function handleSaveSort() {
 }
 
 function handleDelete(groupInfo: Panel.ItemIconGroup) {
-  dialog.warning({
+  const deleteError = ref('')
+  const confirmDialog = dialog.warning({
     title: t('common.warning'),
-    content: t('apps.itemGroupManage.deleteWarnText', { name: groupInfo.title }),
+    content: () => h('div', [h('p', t('apps.itemGroupManage.deleteWarnText', { name: groupInfo.title })), deleteError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, deleteError.value) : null]),
     positiveText: t('common.confirm'),
     negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       if (groupInfo.id) {
         deletingId.value = groupInfo.id
+        confirmDialog.loading = true
+        deleteError.value = ''
         try {
           const { code, msg } = await deletes([groupInfo.id])
-          if (code !== 0)
-            saveError.value = msg || t('common.deleteFail')
-          else
-            refreshList()
+          if (code !== 0) {
+            deleteError.value = msg || t('common.deleteFail')
+            return false
+          }
+          await refreshList()
         }
         catch {
-          saveError.value = t('common.deleteFail')
+          deleteError.value = t('common.deleteFail')
+          return false
         }
         finally {
           deletingId.value = null
+          confirmDialog.loading = false
         }
       }
     },
@@ -143,14 +151,24 @@ function handleSaveGroup() {
         saving.value = false
       }
     }
-    else { console.log(errors) }
   })
 }
 
-function refreshList() {
-  getList<Common.ListResponse<Panel.ItemIconGroup[]>>().then(({ data }) => {
+async function refreshList() {
+  listLoading.value = true
+  listError.value = ''
+  try {
+    const { code, data, msg } = await getList<Common.ListResponse<Panel.ItemIconGroup[]>>()
+    if (code !== 0)
+      throw new Error(msg || t('common.failed'))
     groups.value = data.list
-  })
+  }
+  catch (error) {
+    listError.value = error instanceof Error ? error.message : t('common.failed')
+  }
+  finally {
+    listLoading.value = false
+  }
 }
 
 onMounted(() => {
@@ -176,6 +194,11 @@ onMounted(() => {
 
     <p v-if="saveError && !editModalArg.show" class="form-error">
       {{ saveError }}
+    </p>
+    <p v-if="listError" class="form-error" role="alert">
+      {{ listError }} <NButton size="small" :loading="listLoading" @click="refreshList">
+        {{ t('panelHome.retry') }}
+      </NButton>
     </p>
     <div class="overflow-auto w-full mt-5 bg-bg1 rounded-small" style="height:calc(100% - 65px)">
       <VueDraggable
@@ -249,8 +272,8 @@ onMounted(() => {
 <style scoped>
 .group-list-glyph { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--x-r-icon); background: var(--group-tint); color: var(--group-fg); }
 .auto-label { font-size: 9px; line-height: 1; }
-.group-icon-grid { display: grid; grid-template-columns: repeat(8, 36px); gap: 6px; max-width: 100%; }
-.group-icon-option { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--x-text2); cursor: pointer; }
+.group-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; width: 100%; }
+.group-icon-option { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: transparent; color: var(--x-text2); cursor: pointer; }
 .group-icon-option:hover { background: var(--x-bg1); color: var(--x-text1); }
 .group-icon-option:first-child { align-content: center; gap: 1px; }
 .group-icon-option.active { background: var(--x-blue-tint); color: var(--x-blue-fg); }

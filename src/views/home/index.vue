@@ -638,11 +638,11 @@ function handleAddItem(itemIconGroupId?: number) {
           <button class="rail-brand" type="button" :aria-label="t('panelHome.backToTop')" @click="scrollToTop" @mouseenter="showRailTooltip('brand', $event)" @focus="showRailTooltip('brand', $event)">
             <XBrand />
           </button>
+          <button class="rail-button is-all" :class="{ active: selectedGroupId === 'all' }" type="button" data-rail-key="all" :tabindex="railFocusKey === 'all' ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: t('panelHome.all'), count: totalCount })" :aria-current="selectedGroupId === 'all' ? 'page' : undefined" @click="selectGroup('all')" @focus="railFocusKey = 'all'; showRailTooltip('all', $event)" @mouseenter="showRailTooltip('all', $event)">
+            <GroupGlyph icon="lucide-layout-grid" :title="t('panelHome.all')" :size="22" />
+          </button>
+          <span class="rail-divider" aria-hidden="true" />
           <div class="rail-scroll" @scroll="positionTooltip">
-            <button class="rail-button is-all" :class="{ active: selectedGroupId === 'all' }" type="button" data-rail-key="all" :tabindex="railFocusKey === 'all' ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: t('panelHome.all'), count: totalCount })" :aria-current="selectedGroupId === 'all' ? 'page' : undefined" @click="selectGroup('all')" @focus="railFocusKey = 'all'; showRailTooltip('all', $event)" @mouseenter="showRailTooltip('all', $event)">
-              <GroupGlyph icon="lucide-layout-grid" :title="t('panelHome.all')" :size="22" />
-            </button>
-            <span class="rail-divider" aria-hidden="true" />
             <button v-for="group in items" :key="group.id" class="rail-button" :style="groupColorStyle(group)" :class="{ active: selectedGroupId === group.id }" type="button" :data-rail-key="String(group.id)" :tabindex="railFocusKey === String(group.id) ? 0 : -1" :aria-label="t('panelHome.groupAria', { name: group.title, count: group.items?.length ?? 0 })" :aria-current="selectedGroupId === group.id ? 'page' : undefined" @click="selectGroup(group.id as number)" @focus="railFocusKey = String(group.id); showRailTooltip(String(group.id), $event)" @mouseenter="showRailTooltip(String(group.id), $event)">
               <GroupGlyph :icon="group.icon" :title="group.title" :size="22" />
             </button>
@@ -651,7 +651,7 @@ function handleAddItem(itemIconGroupId?: number) {
         <main class="page-content" :style="{ maxWidth: (panelState.panelConfig.maxWidth ?? '1200') + panelState.panelConfig.maxWidthUnit, paddingTop: `calc(24px + ${panelState.panelConfig.marginTop}%)`, paddingBottom: `calc(40px + ${panelState.panelConfig.marginBottom}%)` }">
           <header class="navigation-shell" :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
             <div class="brand-block" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">
-              <h1>{{ panelState.panelConfig.logoText }}</h1><p>{{ currentDate }} · {{ items.length }} {{ t('panelHome.groups') }} · {{ totalCount }} {{ t('panelHome.bookmarks') }}</p>
+              <h1>{{ panelState.panelConfig.logoText }}</h1><p>{{ currentDate }} · {{ t('panelHome.groupCount', { count: items.length }) }} · {{ t('panelHome.bookmarkCount', { count: totalCount }) }}</p>
             </div>
             <div class="header-actions">
               <label class="list-filter"><SvgIcon icon="iconamoon:search-fill" aria-hidden="true" /><input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')" @keydown="onFilterKeydown"><span v-if="listFilter.trim()" class="filter-count">{{ t('panelHome.resultsCount', { count: visibleCount }) }}</span><kbd v-else>/</kbd></label>
@@ -799,13 +799,13 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .wallpaper { background-position: center; background-size: cover; }
 .main-scroll { position: relative; width: 100%; height: 100%; overflow: auto; }
 .page-layout { display: flex; align-items: flex-start; gap: 16px; min-height: 100%; padding: 16px; }
-.group-rail { position: sticky; top: 16px; z-index: 10; display: flex; flex: none; flex-direction: column; align-items: center; width: 88px; min-height: min(720px, calc(100vh - 32px)); max-height: calc(100vh - 32px); padding: 16px 0; border-radius: var(--x-r-card); background: var(--x-bg1); }
+.group-rail { position: sticky; top: 16px; z-index: 10; display: flex; flex: none; flex-direction: column; align-items: center; box-sizing: border-box; width: 88px; height: calc(100vh - 32px); padding: 16px 0; border-radius: var(--x-r-card); background: var(--x-bg1); }
 .rail-brand, .rail-button { display: grid; flex: none; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--x-r-icon); cursor: pointer; transition: background-color 150ms, color 150ms; }
 .rail-brand { margin-bottom: 16px; background: var(--x-bg2); color: var(--x-text1); }
 .rail-brand :deep(svg) { width: 27px; height: 27px; }
-.rail-scroll { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.rail-scroll { display: flex; flex: 1 1 auto; flex-direction: column; align-items: center; gap: 8px; box-sizing: border-box; width: 100%; min-height: 0; padding: 8px 0 16px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
 .rail-scroll::-webkit-scrollbar { display: none; }
-.rail-divider { width: 24px; height: 2px; margin: 4px 0; background: var(--x-sep); }
+.rail-divider { flex: none; width: 24px; height: 2px; margin: 12px 0 4px; background: var(--x-sep); }
 .rail-button { background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-primary)); }
 .rail-button.is-all { background: var(--x-blue-tint); color: var(--x-blue-fg); }
 .rail-button:hover { background: var(--x-bg2); }

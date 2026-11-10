@@ -29,6 +29,7 @@ const bookmarkPreview = ref<BookmarkPreviewGroup[]>([])
 const bookmarkSkippedInvalid = ref(0)
 const bookmarkLoading = ref(false)
 const bookmarkImporting = ref(false)
+const bookmarkError = ref('')
 const pendingFaviconIds = ref<number[]>([])
 const bookmarkFill = useFaviconFill()
 const bookmarkSelected = computed(() => bookmarkPreview.value.filter(group => group.selected && group.items.length))
@@ -46,6 +47,7 @@ async function handleBookmarkFileChange(options: { file: UploadFileInfo }) {
     return
 
   bookmarkLoading.value = true
+  bookmarkError.value = ''
   bookmarkPreview.value = []
   pendingFaviconIds.value = []
   bookmarkFill.reset()
@@ -88,7 +90,7 @@ async function handleBookmarkFileChange(options: { file: UploadFileInfo }) {
     })
   }
   catch (error) {
-    ms.error(`${step}: ${error instanceof Error ? error.message : t('common.unknownError')}`)
+    bookmarkError.value = `${step}: ${error instanceof Error ? error.message : t('common.unknownError')}`
   }
   finally {
     bookmarkLoading.value = false
@@ -100,6 +102,7 @@ async function handleBookmarkImport() {
     return
 
   bookmarkImporting.value = true
+  bookmarkError.value = ''
   let importedCount = 0
   let step = ''
   try {
@@ -140,10 +143,10 @@ async function handleBookmarkImport() {
     ms.info(t('apps.exportImport.bookmarkRefreshHint'))
   }
   catch (error) {
-    ms.error(t('apps.exportImport.bookmarkImportFailed', {
+    bookmarkError.value = t('apps.exportImport.bookmarkImportFailed', {
       step: `${step}: ${error instanceof Error ? error.message : t('common.unknownError')}`,
       count: importedCount,
-    }))
+    })
   }
   finally {
     bookmarkImporting.value = false
@@ -156,7 +159,10 @@ const importRoundModalShow = ref(false)
 const exportRoundModalShow = ref(false)
 const loading = ref(false)
 const uploadLoading = ref(false)
+const ioError = ref('')
 const version = ref('') // 当前软件版本
+const versionLoading = ref(false)
+const versionError = ref('')
 const debug = ref(false)
 
 const importObj = ref<ImportJsonResult | null> (null)
@@ -214,6 +220,9 @@ async function importIcons(): Promise<string | null> {
             }
           }
         }
+        else {
+          return t('common.failed')
+        }
       }
       else {
         return createGroupResponse.msg
@@ -235,7 +244,7 @@ async function exportIcons(): Promise<IconGroup[]> {
   const iconGroups: IconGroup[] = []
 
   // 获取组数据
-  const { code, data } = await getGroupList<Common.ListResponse<ItemGroup[]>>()
+  const { code, data, msg } = await getGroupList<Common.ListResponse<ItemGroup[]>>()
 
   if (code === 0) {
     // 使用 Promise.all 等待所有异步操作完成
@@ -248,18 +257,18 @@ async function exportIcons(): Promise<IconGroup[]> {
 
       const res = await getListByGroupId<Common.ListResponse<Panel.ItemInfo[]>>(element.id)
 
-      if (res.code === 0) {
-        for (const iconElement of res.data.list) {
-          group.children.push({
-            icon: iconElement.icon,
-            sort: iconElement.sort || 99999,
-            title: iconElement.title,
-            url: iconElement.url,
-            lanUrl: iconElement.lanUrl || '',
-            description: iconElement.description || '',
-            openMethod: iconElement.openMethod || 1,
-          })
-        }
+      if (res.code !== 0)
+        throw new Error(res.msg || t('common.failed'))
+      for (const iconElement of res.data.list) {
+        group.children.push({
+          icon: iconElement.icon,
+          sort: iconElement.sort || 99999,
+          title: iconElement.title,
+          url: iconElement.url,
+          lanUrl: iconElement.lanUrl || '',
+          description: iconElement.description || '',
+          openMethod: iconElement.openMethod || 1,
+        })
       }
 
       iconGroups.push(group)
@@ -267,45 +276,63 @@ async function exportIcons(): Promise<IconGroup[]> {
 
     return iconGroups
   }
-  else {
-    return []
-  }
+  throw new Error(msg || t('common.failed'))
 }
 
-onMounted(() => {
+async function loadVersion() {
+  versionLoading.value = true
+  versionError.value = ''
   interface Version {
     versionName: string
     versionCode: number
   }
 
-  getAbout<Version>().then((res) => {
+  try {
+    const res = await getAbout<Version>()
     if (res.code === 0)
       version.value = res.data.versionName
-  })
+    else
+      throw new Error(res.msg || t('common.failed'))
+  }
+  catch (error) {
+    versionError.value = error instanceof Error ? error.message : t('common.failed')
+  }
+  finally {
+    versionLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadVersion()
 })
 
 function handleFileChange(options: { file: UploadFileInfo; fileList: Array<UploadFileInfo> }) {
+  if (!options.file.file)
+    return
   uploadLoading.value = true
-  console.log(options.file.file)
-  if (options.file.file) {
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (reader.result) {
-        jsonData.value = reader.result as string
-        importCheck()
-      }
-      else {
-        ms.error(`${t('common.failed')}: ${t('common.repeatLater')}`)
-      }
-      uploadLoading.value = false
+  ioError.value = ''
+  const reader = new FileReader()
+  reader.onload = () => {
+    if (reader.result) {
+      jsonData.value = reader.result as string
+      importCheck()
     }
-    reader.readAsText(options.file.file)
+    else {
+      ioError.value = `${t('common.failed')}: ${t('common.repeatLater')}`
+    }
+    uploadLoading.value = false
   }
+  reader.onerror = () => {
+    ioError.value = `${t('common.failed')}: ${t('common.repeatLater')}`
+    uploadLoading.value = false
+  }
+  reader.readAsText(options.file.file)
 }
 
 // 验证导入文件
 function importCheck() {
   importWarning.value = []
+  ioError.value = ''
   if (jsonData.value) {
     try {
       importObj.value = importJsonString(jsonData.value)
@@ -322,65 +349,75 @@ function importCheck() {
         // （暂时不做）此处可以判断，当前的配置文件是否存在的导入项目（不存在隐藏importItems里面的值）操作变量：importItems
 
         // 通过了验证,打开弹窗
-        importRoundModalShow.value = !importRoundModalShow.value
+        importRoundModalShow.value = true
 
         // console.log(importObj.value.geticons())
       }
     }
     catch (error) {
-      if (error instanceof ConfigVersionLowError) {
-        ms.error(t('apps.exportImport.errorConfigFileLow'))
-        console.error('The configuration file version is too low to be compatible')
-      }
-      else if (error instanceof FormatError) {
-        ms.error(t('apps.exportImport.errorConfigFileFormat'))
-        console.error('The format is incorrect and cannot be imported')
-      }
+      if (error instanceof ConfigVersionLowError)
+        ioError.value = t('apps.exportImport.errorConfigFileLow')
+
+      else if (error instanceof FormatError)
+        ioError.value = t('apps.exportImport.errorConfigFileFormat')
+
+      else
+        ioError.value = t('apps.exportImport.errorConfigFileFormat')
     }
   }
   else {
-    ms.error(t('apps.exportImport.errorConfigFileFormat'))
+    ioError.value = t('apps.exportImport.errorConfigFileFormat')
   }
 }
 
 // 开始导出
 async function handleStartExport() {
+  if (loading.value)
+    return
   loading.value = true
-  // console.log('要导出的项目', checkedItems.value)
-  // 获取软件版本号
-  const exportResult = exportJson(version.value)
-  if (checkedItems.value.includes('icons')) {
-    console.log('export icons ...')
-    const iconGroups = await exportIcons()
-    exportResult.addIconsData(iconGroups)
-    console.log('export icons finish', iconGroups)
+  ioError.value = ''
+  try {
+    if (!version.value)
+      throw new Error(versionError.value || t('common.failed'))
+    const exportResult = exportJson(version.value)
+    if (checkedItems.value.includes('icons'))
+      exportResult.addIconsData(await exportIcons())
+    jsonData.value = exportResult.string()
+    exportResult.exportFile()
+    exportRoundModalShow.value = false
+    ms.success(t('common.success'))
   }
-
-  // console.log('导出结果')
-
-  jsonData.value = exportResult.string()
-  exportResult.exportFile()
-  loading.value = false
-  exportRoundModalShow.value = false
-  // ms.success(t('common.success'))
+  catch (error) {
+    ioError.value = error instanceof Error ? error.message : t('common.failed')
+  }
+  finally {
+    loading.value = false
+  }
 }
 
 // 开始导入
 async function handleStartImport() {
+  if (loading.value)
+    return
   loading.value = true
-  if (checkedItems.value.includes('icons')) {
-    console.log('export icons ...')
-    const errMsg = await importIcons()
-    if (errMsg !== null) {
-      loading.value = false
-      ms.error(`${t('common.failed')}: ${errMsg}`)
-      return
+  ioError.value = ''
+  try {
+    if (checkedItems.value.includes('icons')) {
+      const errMsg = await importIcons()
+      if (errMsg !== null) {
+        ioError.value = `${t('common.failed')}: ${errMsg}`
+        return
+      }
     }
+    importRoundModalShow.value = false
+    ms.success(`${t('common.success')}, ${t('common.refreshPage')}`)
   }
-
-  loading.value = false
-  importRoundModalShow.value = false
-  ms.success(`${t('common.success')}, ${t('common.refreshPage')}`)
+  catch (error) {
+    ioError.value = error instanceof Error ? error.message : t('common.failed')
+  }
+  finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -395,6 +432,9 @@ async function handleStartImport() {
           {{ $t('apps.exportImport.bookmarkChooseFile') }}
         </NButton>
       </NUpload>
+      <p v-if="bookmarkError" class="async-error" role="alert">
+        {{ bookmarkError }}
+      </p>
 
       <div v-if="bookmarkPreview.length" class="mt-4">
         <p class="mb-2">
@@ -433,6 +473,11 @@ async function handleStartImport() {
     <NAlert type="info" :bordered="false">
       <p>{{ $t('apps.exportImport.tip') }}</p>
     </NAlert>
+    <p v-if="versionError" class="async-error" role="alert">
+      {{ versionError }} <NButton size="small" :loading="versionLoading" @click="loadVersion">
+        {{ t('panelHome.retry') }}
+      </NButton>
+    </p>
     <div class="flex justify-center m-12">
       <div class="m-3">
         <NUpload
@@ -459,6 +504,9 @@ async function handleStartImport() {
         </NButton>
       </div>
     </div>
+    <p v-if="ioError && !importRoundModalShow && !exportRoundModalShow" class="async-error" role="alert">
+      {{ ioError }}
+    </p>
 
     <div class="flex justify-center">
       <a href="https://hslr-s.github.io/sun-panel-tool-page/#/" target="_blank">{{ $t('apps.exportImport.transmuteStandard') }}</a>
@@ -491,6 +539,9 @@ async function handleStartImport() {
     </div>
 
     <RoundCardModal v-model:show="importRoundModalShow" style="max-width: 400px;" :title=" $t('apps.exportImport.import')">
+      <p v-if="ioError" class="async-error" role="alert">
+        {{ ioError }}
+      </p>
       <div v-if="importWarning.length > 0">
         <NAlert :title="$t('common.warning')" type="warning">
           <div v-for="(text, index) in importWarning " :key="index">
@@ -518,6 +569,9 @@ async function handleStartImport() {
     </RoundCardModal>
 
     <RoundCardModal v-model:show="exportRoundModalShow" style="max-width: 400px;" :title=" $t('apps.exportImport.export')">
+      <p v-if="ioError" class="async-error" role="alert">
+        {{ ioError }}
+      </p>
       <NDivider title-placement="left">
         {{ $t('apps.exportImport.selectExportData') }}
       </NDivider>
@@ -538,3 +592,7 @@ async function handleStartImport() {
     </RoundCardModal>
   </div>
 </template>
+
+<style scoped>
+.async-error { margin-top: 12px; color: var(--x-red-fg); font-size: 13px; }
+</style>

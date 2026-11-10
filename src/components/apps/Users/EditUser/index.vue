@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineEmits, defineProps, ref, watch } from 'vue'
 import type { FormInst, FormRules } from 'naive-ui'
-import { NButton, NForm, NFormItem, NInput, NSelect, useMessage } from 'naive-ui'
+import { NButton, NForm, NFormItem, NInput, NSelect } from 'naive-ui'
 import { edit as userManageEdit } from '@/api/panel/users'
 import { RoundCardModal } from '@/components/common'
 import { t } from '@/locales'
@@ -14,7 +14,8 @@ interface Props {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emit>()
-const message = useMessage()
+const saving = ref(false)
+const saveError = ref('')
 
 interface Emit {
   (e: 'update:visible', visible: boolean): void
@@ -80,20 +81,33 @@ const show = computed({
 })
 
 watch(show, () => {
+  saveError.value = ''
   if (props.userInfo?.id)
-    model.value = props.userInfo || {}
+    model.value = { ...props.userInfo }
 
   else
-    model.value = formInitValue
+    model.value = { ...formInitValue }
 })
 
 const add = async () => {
-  const res = await userManageEdit<User.Info>(model.value)
-  if (res.code === 0)
+  if (saving.value)
+    return
+  saving.value = true
+  saveError.value = ''
+  try {
+    const res = await userManageEdit<User.Info>(model.value)
+    if (res.code !== 0) {
+      saveError.value = res.msg || t('common.saveFail')
+      return
+    }
     emit('done', res.data.id as number)
-
-  else if (res.code !== -1)
-    message.warning(t('common.failed'))
+  }
+  catch {
+    saveError.value = t('common.saveFail')
+  }
+  finally {
+    saving.value = false
+  }
 }
 
 const handleValidateButtonClick = (e: MouseEvent) => {
@@ -110,7 +124,7 @@ const handleValidateButtonClick = (e: MouseEvent) => {
 <template>
   <RoundCardModal v-model:show="show" size="small" preset="card" style="width: 400px" :title="`${userInfo?.id ? $t('common.edit') : $t('common.add')}`">
     <NForm ref="formRef" :model="model" :rules="rules">
-      <NFormItem path="username" :label="$t('common.username')">
+      <NFormItem path="username" :label="$t('common.username')" :feedback="saveError" :validation-status="saveError ? 'error' : undefined">
         <NInput v-model:value="model.username" type="text" :placeholder="$t('common.inputPlaceholder')" />
       </NFormItem>
 
@@ -132,7 +146,7 @@ const handleValidateButtonClick = (e: MouseEvent) => {
 
     <template #footer>
       <div class="float-right">
-        <NButton type="primary" size="small" @click="handleValidateButtonClick">
+        <NButton type="primary" size="small" :loading="saving" @click="handleValidateButtonClick">
           {{ $t('common.save') }}
         </NButton>
       </div>
