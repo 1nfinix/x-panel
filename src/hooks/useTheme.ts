@@ -8,6 +8,7 @@ import { useAppStore } from '@/store'
 export const themeColors = {
   light: {
     bg0: '#FFFFFF',
+    modal: '#FFFFFF',
     bg1: '#F6F8FA',
     bg2: '#FFFFFF',
     hover: '#EEF1F4',
@@ -29,6 +30,7 @@ export const themeColors = {
   },
   dark: {
     bg0: '#121214',
+    modal: '#1C1C1E', // dark overlays sit one step above the page
     bg1: '#1C1C1E',
     bg2: '#2C2C2E',
     hover: '#3A3A3C',
@@ -94,7 +96,7 @@ export function useTheme() {
         primaryColorSuppl: c.primaryHover,
         bodyColor: c.bg0,
         cardColor: c.bg1,
-        modalColor: c.bg0,
+        modalColor: c.modal,
         popoverColor: c.bg1,
         inputColor: c.bg1,
         textColorBase: c.text1,
@@ -157,8 +159,8 @@ export function useTheme() {
         },
       },
       Card: { borderRadius: '32px', borderColor: c.bg1, boxShadow: 'none', color: c.bg1 },
-      Modal: { color: c.bg0, boxShadow: 'none' },
-      Dialog: { borderRadius: '24px', border: 'none', color: c.bg0 },
+      Modal: { color: c.modal, boxShadow: 'none' },
+      Dialog: { borderRadius: '24px', border: 'none', color: c.modal },
       Popover: { borderRadius: '24px', color: c.bg1, boxShadow: 'none' },
       Dropdown: { borderRadius: '24px', color: c.bg1, optionColorHover: c.bg2, optionColorActive: c.blueTint, optionTextColorActive: c.blueFg },
       Tooltip: { borderRadius: '999px', color: c.inverseBg, textColor: c.inverseFg, boxShadow: 'none' },

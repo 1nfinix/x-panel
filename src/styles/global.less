@@ -104,3 +104,14 @@ html.dark, [data-theme="dark"] {
 .n-button--error-type { background: var(--x-red-tint) !important; color: var(--x-red-fg) !important; border: 0 !important; }
 .n-button--error-type:hover { background: var(--x-danger-hover) !important; }
 .n-button--error-type:active { background: var(--x-red-fg) !important; color: var(--x-bg0) !important; }
+
+/* Dark overlays are elevated one step, so every layer inside shifts up and stays distinct from its parent. */
+html.dark .n-modal, html.dark .n-dialog, html.dark .n-drawer {
+  --x-bg0: #1C1C1E;
+  --x-bg1: #2C2C2E;
+  --x-bg2: #3A3A3C;
+  --x-hover: #48484A;
+  --x-ph: #48484A;
+  --x-sep: #48484A;
+}
+html.dark .n-modal-mask { background-color: rgba(0, 0, 0, .6); }
