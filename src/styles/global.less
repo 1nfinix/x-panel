@@ -101,9 +101,10 @@ html.dark, [data-theme="dark"] {
 .app-starter-modal-content .n-input,
 .app-starter-modal-content .n-base-selection { min-height: var(--x-control); }
 .app-starter-modal-content .bg-bg1 .n-button:not(.n-button--primary-type):not(.n-button--error-type) { background: var(--x-bg2); }
-.n-button--error-type { background: var(--x-red-tint) !important; color: var(--x-red-fg) !important; border: 0 !important; }
-.n-button--error-type:hover { background: var(--x-danger-hover) !important; }
-.n-button--error-type:active { background: var(--x-red-fg) !important; color: var(--x-bg0) !important; }
+.n-button--error-type:not(.n-button--text-type) { background: var(--x-red-tint) !important; color: var(--x-red-fg) !important; border: 0 !important; }
+.n-button--error-type:not(.n-button--text-type):hover { background: var(--x-danger-hover) !important; }
+.n-button--error-type:not(.n-button--text-type):active { background: var(--x-red-fg) !important; color: var(--x-bg0) !important; }
+.n-button--error-type .n-button__border, .n-button--error-type .n-button__state-border { border: 0 !important; }
 
 /* Dark overlays are elevated one step, so every layer inside shifts up and stays distinct from its parent. */
 html.dark .n-modal, html.dark .n-dialog, html.dark .n-drawer {
@@ -115,3 +116,12 @@ html.dark .n-modal, html.dark .n-dialog, html.dark .n-drawer {
   --x-sep: #48484A;
 }
 html.dark .n-modal-mask { background-color: rgba(0, 0, 0, .6); }
+
+/* Naive inputs carry literal colors; inside dark overlays follow the shifted layer so a control on a card is one step lighter, never darker. */
+html.dark .n-modal .n-base-selection, html.dark .n-modal .n-input,
+html.dark .n-dialog .n-base-selection, html.dark .n-dialog .n-input,
+html.dark .n-drawer .n-base-selection, html.dark .n-drawer .n-input {
+  --n-color: var(--x-hover) !important;
+  --n-color-active: var(--x-hover) !important;
+  --n-color-focus: var(--x-hover) !important;
+}
