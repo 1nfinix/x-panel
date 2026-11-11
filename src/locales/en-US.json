@@ -46,7 +46,6 @@
     },
     "baseSettings": {
       "appName": "Style Settings",
-      "bottomMargin": "Bottom margin",
       "clock": "Clock component",
       "clockSecondShow": "Show seconds",
       "configFailed": "Configuration save failed, {message}",
@@ -68,7 +67,6 @@
       "smallIcon": "Small icon",
       "systemMonitorStatus": "System status component",
       "textContent": "Text content",
-      "topMargin": "Top margin",
       "uploadOrDragText": "Click to upload or drag and drop into the box to replace the image",
       "vague": "Blur",
       "wallpaper": "Wallpaper",

@@ -640,7 +640,7 @@ function handleAddItem(itemIconGroupId?: number) {
             </button>
           </div>
         </nav>
-        <main class="page-content" :style="{ maxWidth: (panelState.panelConfig.maxWidth ?? '1200') + panelState.panelConfig.maxWidthUnit, paddingTop: `calc(24px + ${panelState.panelConfig.marginTop}%)`, paddingBottom: `calc(40px + ${panelState.panelConfig.marginBottom}%)` }">
+        <main class="page-content" :style="{ maxWidth: (panelState.panelConfig.maxWidth ?? '1200') + panelState.panelConfig.maxWidthUnit }">
           <header class="navigation-shell" :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
             <div class="brand-block" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">
               <h1>{{ panelState.panelConfig.logoText }}</h1><p>{{ currentDate }} · {{ t('panelHome.groupCount', { count: items.length }) }} · {{ t('panelHome.bookmarkCount', { count: totalCount }) }}</p>
@@ -827,7 +827,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .rail-button:hover { background: var(--x-hover); color: var(--x-text1); }
 .rail-button.active { background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-blue-fg)); }
 .rail-button.is-all.active { background: var(--x-blue-tint); color: var(--x-blue-fg); }
-.page-content { flex: 1; min-width: 0; width: 100%; margin: 0 auto; padding-right: 56px; padding-left: 56px; }
+.page-content { flex: 1; min-width: 0; width: 100%; margin: 0 auto; padding: 24px 56px 40px; }
 .navigation-shell { display: flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 80px; }
 .brand-block h1 { margin: 0; font-size: 28px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; }
 .brand-block p { margin: 8px 0 0; color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }

@@ -46,7 +46,6 @@
     },
     "baseSettings": {
       "appName": "风格设置",
-      "bottomMargin": "下边距",
       "clock": "时钟组件",
       "clockSecondShow": "显示秒",
       "configFailed": "配置保存失败,{message}",
@@ -68,7 +67,6 @@
       "smallIcon": "小图标",
       "systemMonitorStatus": "系统状态组件",
       "textContent": "文本内容",
-      "topMargin": "上边距",
       "uploadOrDragText": "点击上传替换图片或拖拽到框内",
       "vague": "模糊",
       "wallpaper": "壁纸",

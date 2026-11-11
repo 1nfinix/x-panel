@@ -20,8 +20,6 @@ export function defaultStatePanelConfig(): Panel.panelConfig {
     logoImageSrc: '',
     clockShowSecond: false,
     clockShow: false,
-    marginBottom: 10,
-    marginTop: 0,
     maxWidth: 1200,
     maxWidthUnit: 'px',
     marginX: 5,
@@ -45,7 +43,16 @@ export function defaultState(): Panel.State {
 
 export function getLocalState(): Panel.State {
   const localState = ss.get(LOCAL_NAME)
-  return { ...defaultState(), ...localState }
+  const state = { ...defaultState(), ...localState }
+  state.panelConfig = withoutLegacyPageMargins(state.panelConfig)
+  return state
+}
+
+export function withoutLegacyPageMargins(config: Panel.panelConfig): Panel.panelConfig {
+  const current = { ...config } as Panel.panelConfig & { marginTop?: number; marginBottom?: number }
+  delete current.marginTop
+  delete current.marginBottom
+  return current
 }
 
 export function setLocalState(state: Panel.State) {
