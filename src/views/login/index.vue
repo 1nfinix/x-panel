@@ -84,7 +84,7 @@ const loginPost = async () => {
     if (res.code === 0) {
       authStore.setToken(res.data.token)
       authStore.setUserInfo(res.data)
-      ms.success(`Hi ${res.data.name},${t('login.welcomeMessage')}`)
+      ms.success(t('login.welcomeMessage', { name: res.data.name }))
       router.push({ path: '/' })
     }
     else {

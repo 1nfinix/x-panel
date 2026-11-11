@@ -273,7 +273,7 @@
     "loginButton": "Login",
     "passwordPlaceholder": "Password",
     "usernamePlaceholder": "Username",
-    "welcomeMessage": "Welcome back!",
+    "welcomeMessage": "Hi {name}, welcome back!",
     "captchaRequired": "Enter the image captcha",
     "captchaInvalid": "Captcha is wrong or expired. Refresh and try again.",
     "credentialsInvalid": "Incorrect username or password",
