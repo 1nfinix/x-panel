@@ -20,6 +20,7 @@ import { useWallpaper } from '@/hooks/useWallpaper'
 interface ItemGroup extends Panel.ItemIconGroup {
   hoverStatus: boolean
   items?: Panel.ItemInfo[]
+  loadFailed?: boolean
 }
 
 interface DragEndEvent {
@@ -65,6 +66,7 @@ const items = ref<ItemGroup[]>([])
 const groupsState = ref<'loading' | 'ready' | 'error'>('loading')
 const listFilter = ref('')
 const arrangeMode = ref(false)
+const authReady = ref(false)
 const arrangeAnnouncement = ref('')
 const listFilterRef = ref<HTMLInputElement | null>(null)
 const rovingItemId = ref<number | null>(null)
@@ -85,11 +87,12 @@ const visibleGroups = computed(() => {
   const groups = isGroupedView.value ? items.value : items.value.filter(group => group.id === selectedGroupId.value)
   if (!keyword)
     return groups
-  return groups.map(group => ({ ...group, items: group.items?.filter(item => `${item.title} ${item.url} ${item.lanUrl ?? ''}`.toLowerCase().includes(keyword)) })).filter(group => group.items?.length)
+  return groups.map(group => ({ ...group, items: group.items?.filter(item => `${item.title} ${item.url} ${item.lanUrl ?? ''}`.toLowerCase().includes(keyword)) })).filter(group => group.items?.length || group.loadFailed)
 })
 const totalCount = computed(() => items.value.reduce((total, group) => total + (group.items?.length ?? 0), 0))
 const visibleCount = computed(() => visibleGroups.value.reduce((total, group) => total + (group.items?.length ?? 0), 0))
 const firstVisibleItemId = computed(() => visibleGroups.value.find(group => group.items?.length)?.items?.[0]?.id ?? null)
+const firstVisibleItem = computed(() => visibleGroups.value.find(group => group.items?.length)?.items?.[0])
 const systemMonitorVisible = computed(() => panelState.panelConfig.systemMonitorShow
   && ((panelState.panelConfig.systemMonitorPublicVisitModeShow && authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC)
     || authStore.visitMode === VisitMode.VISIT_MODE_LOGIN))
@@ -254,7 +257,7 @@ function selectGroup(id: number | 'all') {
 async function moveRowFocus(event: KeyboardEvent, direction: number) {
   if (arrangeMode.value) {
     event.preventDefault()
-    const row = event.currentTarget as HTMLButtonElement
+    const row = event.currentTarget as HTMLAnchorElement
     const itemId = Number(row.dataset.itemId)
     const group = items.value.find(group => group.items?.some(item => item.id === itemId))
     if (!group?.items || !group.id || saveStatuses.value[group.id] === 'saving')
@@ -273,14 +276,14 @@ async function moveRowFocus(event: KeyboardEvent, direction: number) {
     if (!saved) {
       arrangeAnnouncement.value = t('panelHome.arrangeSaveFailed')
       await nextTick()
-      document.querySelector<HTMLButtonElement>(`.url-row[data-item-id="${itemId}"]`)?.focus()
+      document.querySelector<HTMLAnchorElement>(`.url-row[data-item-id="${itemId}"]`)?.focus()
     }
     return
   }
-  const rows = Array.from(document.querySelectorAll<HTMLButtonElement>('.url-row:not(.add-row)'))
+  const rows = Array.from(document.querySelectorAll<HTMLAnchorElement>('.url-row:not(.add-row)'))
   if (!rows.length)
     return
-  const current = rows.indexOf(document.activeElement as HTMLButtonElement)
+  const current = rows.indexOf(document.activeElement as HTMLAnchorElement)
   const next = current < 0 ? (direction > 0 ? 0 : rows.length - 1) : Math.max(0, Math.min(rows.length - 1, current + direction))
   event.preventDefault()
   rovingItemId.value = Number(rows[next].dataset.itemId)
@@ -294,6 +297,14 @@ function onFilterKeydown(event: KeyboardEvent) {
     return
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
     moveRowFocus(event, event.key === 'ArrowDown' ? 1 : -1)
+  }
+  else if (event.key === 'Enter' && listFilter.value.trim() && firstVisibleItem.value) {
+    event.preventDefault()
+    const item = firstVisibleItem.value
+    if (event.metaKey || event.ctrlKey)
+      window.open(itemUrl(item), '_blank', 'noopener,noreferrer')
+    else
+      openPage(item.openMethod, itemUrl(item), item.title)
   }
   else if (event.key === 'Escape') {
     listFilter.value = ''
@@ -340,7 +351,7 @@ function openPage(openMethod: number, url: string, title?: string) {
       window.location.href = url
       break
     case 2:
-      window.open(url)
+      window.open(url, '_blank', 'noopener,noreferrer')
       break
     case 3:
       windowShow.value = true
@@ -354,18 +365,34 @@ function openPage(openMethod: number, url: string, title?: string) {
   }
 }
 
-function handleItemClick(item: Panel.ItemInfo) {
-  if (arrangeMode.value)
+function itemUrl(item: Panel.ItemInfo) {
+  return (panelState.networkMode === PanelStateNetworkModeEnum.lan && item.lanUrl) ? item.lanUrl : item.url
+}
+
+function handleItemClick(event: MouseEvent, item: Panel.ItemInfo) {
+  if (arrangeMode.value) {
+    event.preventDefault()
     return
+  }
+  if (item.openMethod === 3 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0) {
+    event.preventDefault()
+    openPage(3, itemUrl(item), item.title)
+  }
+}
 
-  let jumpUrl = ''
-
-  if (item)
-    jumpUrl = (panelState.networkMode === PanelStateNetworkModeEnum.lan ? item.lanUrl : item.url) as string
-  if (item.lanUrl === '')
-    jumpUrl = item.url
-
-  openPage(item.openMethod, jumpUrl, item.title)
+function onRowKeydown(event: KeyboardEvent, item: Panel.ItemInfo) {
+  if (event.key === 'Escape' && listFilter.value.trim()) {
+    event.preventDefault()
+    listFilter.value = ''
+    nextTick(() => listFilterRef.value?.focus())
+  }
+  else if ((event.key === 'F10' && event.shiftKey) || event.key === 'ContextMenu') {
+    event.preventDefault()
+    if (arrangeMode.value)
+      return
+    const rect = (event.currentTarget as HTMLAnchorElement).getBoundingClientRect()
+    showContextMenu(item, rect.left, rect.bottom)
+  }
 }
 
 function handWindowIframeIdLoad(_payload: Event) {
@@ -382,9 +409,7 @@ async function getList() {
     failedIcons.value = new Set()
     if (selectedGroupId.value === null || (selectedGroupId.value !== 'all' && !items.value.some(group => group.id === selectedGroupId.value)))
       selectedGroupId.value = 'all'
-    const results = await Promise.all(data.list.map((element, index) => element.id ? updateItemIconGroupByNet(index, element.id) : Promise.resolve(true)))
-    if (results.some(result => !result))
-      throw new Error('item load failed')
+    await Promise.all(data.list.map((element, index) => element.id ? updateItemIconGroupByNet(index, element.id) : Promise.resolve(true)))
     groupsState.value = 'ready'
   }
   catch {
@@ -397,22 +422,37 @@ async function updateItemIconGroupByNet(itemIconGroupIndex: number, itemIconGrou
   try {
     const res = await getListByGroupId<Common.ListResponse<Panel.ItemInfo[]>>(itemIconGroupId)
     if (res.code !== 0)
-      return false
+      throw new Error('item load failed')
     items.value[itemIconGroupIndex].items = res.data.list
+    items.value[itemIconGroupIndex].loadFailed = false
     return true
   }
   catch {
+    items.value[itemIconGroupIndex].loadFailed = true
     return false
   }
 }
 
-function handleRightMenuSelect(key: string | number) {
+function retryGroup(group: ItemGroup) {
+  const index = items.value.findIndex(item => item.id === group.id)
+  if (index !== -1 && group.id)
+    updateItemIconGroupByNet(index, group.id)
+}
+
+async function handleRightMenuSelect(key: string | number) {
   dropdownShow.value = false
   // console.log(currentRightSelectItem, key)
-  let jumpUrl = panelState.networkMode === PanelStateNetworkModeEnum.lan ? currentRightSelectItem.value?.lanUrl : currentRightSelectItem.value?.url
-  if (currentRightSelectItem.value?.lanUrl === '')
-    jumpUrl = currentRightSelectItem.value.url
+  const jumpUrl = currentRightSelectItem.value ? itemUrl(currentRightSelectItem.value) : undefined
   switch (key) {
+    case 'copyLink':
+      if (jumpUrl) {
+        try {
+          await navigator.clipboard.writeText(jumpUrl)
+          ms.success(t('panelHome.copySuccess'))
+        }
+        catch { ms.error(t('panelHome.copyFailed')) }
+      }
+      break
     case 'newWindows':
       window.open(jumpUrl)
       break
@@ -468,18 +508,24 @@ function handleRightMenuSelect(key: string | number) {
 }
 
 function handleContextMenu(e: MouseEvent, item: Panel.ItemInfo) {
+  if (e.shiftKey)
+    return
   if (arrangeMode.value) {
     e.preventDefault()
     return
   }
 
   e.preventDefault()
+  showContextMenu(item, e.clientX, e.clientY)
+}
+
+function showContextMenu(item: Panel.ItemInfo, x: number, y: number) {
   currentRightSelectItem.value = item
   dropdownShow.value = false
   nextTick().then(() => {
     dropdownShow.value = true
-    dropdownMenuX.value = e.clientX
-    dropdownMenuY.value = e.clientY
+    dropdownMenuX.value = x
+    dropdownMenuY.value = y
   })
 }
 
@@ -551,6 +597,11 @@ async function handleEndDrag(event: DragEndEvent) {
 function getDropdownMenuOptions() {
   const dropdownMenuOptions: DropdownOption[] = [
     {
+      label: t('panelHome.copyLink'),
+      key: 'copyLink',
+      icon: () => h(SvgIcon, { icon: 'lucide-copy', class: 'context-menu-icon' }),
+    },
+    {
       label: t('iconItem.newWindowOpen'),
       key: 'newWindows',
       icon: () => h(SvgIcon, { icon: 'lucide-external-link', class: 'context-menu-icon' }),
@@ -595,8 +646,9 @@ function getDropdownMenuOptions() {
 onMounted(() => {
   clockTimer = setInterval(() => now.value = new Date(), 60000)
   window.addEventListener('keydown', onFilterShortcut)
+  window.addEventListener('scroll', onClickoutside, true)
   // 更新用户信息
-  updateLocalUserInfo()
+  updateLocalUserInfo().finally(() => authReady.value = true)
   getList()
 
   // 更新同步云端配置
@@ -614,6 +666,7 @@ onBeforeUnmount(() => {
   for (const timer of saveStatusTimers.values())
     clearTimeout(timer)
   window.removeEventListener('keydown', onFilterShortcut)
+  window.removeEventListener('scroll', onClickoutside, true)
 })
 
 function handleEditItem(item: Panel.ItemInfo) {
@@ -655,7 +708,11 @@ function handleAddItem(itemIconGroupId?: number) {
         <main class="page-content" :style="{ maxWidth: (panelState.panelConfig.maxWidth ?? '1200') + panelState.panelConfig.maxWidthUnit }">
           <header class="navigation-shell" :style="{ marginLeft: `${panelState.panelConfig.marginX}px`, marginRight: `${panelState.panelConfig.marginX}px` }">
             <div class="brand-block" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }">
-              <h1>{{ panelState.panelConfig.logoText }}</h1><p>{{ currentDate }} · {{ t('panelHome.groupCount', { count: items.length }) }} · {{ t('panelHome.bookmarkCount', { count: totalCount }) }}</p>
+              <h1>{{ panelState.panelConfig.logoText }}</h1><p>
+                {{ currentDate }}<template v-if="groupsState === 'ready'">
+                  · {{ t('panelHome.groupCount', { count: items.length }) }} · {{ t('panelHome.bookmarkCount', { count: totalCount }) }}
+                </template>
+              </p>
             </div>
             <div class="fixed-element">
               <div class="floating-actions">
@@ -669,12 +726,12 @@ function handleAddItem(itemIconGroupId?: number) {
                     <SvgIcon icon="lucide-globe-2" />
                   </template>
                 </NButton>
-                <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="floating-button" :aria-label="t('appLauncher.title')" @click="initialSettingsPanel = 'UserInfo'; settingHasOpened = true; settingModalShow = true">
+                <NButton v-if="authReady && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="floating-button" :aria-label="t('appLauncher.title')" @click="initialSettingsPanel = 'UserInfo'; settingHasOpened = true; settingModalShow = true">
                   <template #icon>
                     <SvgIcon icon="lucide-layout-grid" />
                   </template>
                 </NButton>
-                <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" class="floating-button" :aria-label="t('panelHome.goToLogin')" :title="t('panelHome.goToLogin')" @click="router.push('/login')">
+                <NButton v-if="authReady && authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC" class="floating-button" :aria-label="t('panelHome.goToLogin')" :title="t('panelHome.goToLogin')" @click="router.push('/login')">
                   <template #icon>
                     <SvgIcon icon="lucide-user-round" />
                   </template>
@@ -682,11 +739,11 @@ function handleAddItem(itemIconGroupId?: number) {
               </div>
             </div>
             <div class="header-actions">
-              <label class="list-filter"><SvgIcon icon="lucide-search" aria-hidden="true" /><input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')" @keydown="onFilterKeydown"><span v-if="listFilter.trim()" class="filter-count">{{ t('panelHome.resultsCount', { count: visibleCount }) }}</span><kbd v-else>/</kbd></label>
-              <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="quiet-button" :type="arrangeMode ? 'primary' : 'default'" @click="toggleArrangeMode">
+              <label class="list-filter"><SvgIcon icon="lucide-search" aria-hidden="true" /><input ref="listFilterRef" v-model="listFilter" type="search" :placeholder="t('panelHome.filterPlaceholder')" :aria-label="t('panelHome.filterPlaceholder')" @keydown="onFilterKeydown"><span v-if="listFilter.trim()" class="filter-count" aria-live="polite">{{ t('panelHome.globalResultsCount', { total: totalCount, count: visibleCount }) }}</span><kbd v-else>/</kbd></label>
+              <NButton v-if="authReady && groupsState !== 'error' && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="quiet-button" :type="arrangeMode ? 'primary' : 'default'" @click="toggleArrangeMode">
                 {{ arrangeMode ? t('panelHome.arrangeDone') : t('panelHome.arrange') }}
               </NButton>
-              <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="import-button" @click="openImportSettings">
+              <NButton v-if="authReady && groupsState !== 'error' && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="import-button" @click="openImportSettings">
                 {{ t('panelHome.importBookmarks') }}
               </NButton>
             </div>
@@ -698,12 +755,12 @@ function handleAddItem(itemIconGroupId?: number) {
                 <SystemMonitor :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
               </div>
             </section>
-            <div v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-bar" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" :style="selectedGroupColor">
+            <div v-if="selectedGroupId !== 'all' && selectedGroup && !listFilter.trim() && groupsState === 'ready'" class="selected-group-bar" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" :style="selectedGroupColor">
               <h2 class="selected-group-title">
                 <span class="title-glyph"><GroupGlyph :icon="selectedGroup.icon" :title="selectedGroup.title" :size="20" /></span>{{ selectedGroup.title }} <span class="title-count">{{ selectedGroup.items?.length ?? 0 }}</span>
               </h2>
               <span v-if="saveStatuses[selectedGroupId as number] && !isGroupedView" class="save-status" :class="saveStatuses[selectedGroupId as number]">{{ t(`panelHome.${saveStatuses[selectedGroupId as number]}`) }}</span>
-              <button v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN && !isGroupedView" class="group-add raised-button" type="button" :aria-label="t('common.add')" @click="handleAddItem(selectedGroupId as number)">
+              <button v-if="authReady && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN && !isGroupedView" class="group-add raised-button" type="button" :aria-label="t('common.add')" @click="handleAddItem(selectedGroupId as number)">
                 <SvgIcon icon="lucide-plus" />
               </button>
             </div>
@@ -711,28 +768,40 @@ function handleAddItem(itemIconGroupId?: number) {
               <NSkeleton v-for="index in 2" :key="index" height="220px" class="rounded-card" />
             </div>
             <div v-else-if="groupsState === 'error'" class="empty-list" role="alert">
-              {{ t('panelHome.loadFailed') }} <button class="raised-button" type="button" @click="getList">
+              <div>{{ t('panelHome.loadFailed') }}</div><p class="empty-hint">
+                {{ t('panelHome.loadFailedHint') }}
+              </p><button class="raised-button clear-filter" type="button" @click="getList">
                 {{ t('panelHome.retry') }}
               </button>
             </div>
-            <div v-else-if="visibleCount || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" class="content-groups" :class="{ 'group-fade': groupFade, 'first-load-motion': firstLoadMotion, 'single-group': !isGroupedView }">
+            <div v-else-if="!items.length && !listFilter.trim()" class="empty-list">
+              <div>{{ t('panelHome.noGroups') }}</div><NButton v-if="authReady && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" type="primary" class="empty-action" @click="openImportSettings">
+                {{ t('panelHome.importBookmarks') }}
+              </NButton>
+            </div>
+            <div v-else-if="visibleCount || visibleGroups.some(group => group.loadFailed) || (arrangeMode && visibleGroups.length) || (!isGroupedView && visibleGroups.length)" class="content-groups" :class="{ 'group-fade': groupFade, 'first-load-motion': firstLoadMotion, 'single-group': !isGroupedView }">
               <section v-for="group in visibleGroups" :key="group.id" class="group-section" :style="{ ...groupColorStyle(group), ...(firstLoadMotion ? { animationDelay: `${Math.min(9, visibleGroups.indexOf(group)) * 30}ms` } : {}) }">
                 <div v-if="isGroupedView" class="group-heading">
-                  <span class="heading-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="22" /></span><h2>{{ group.title }}</h2><span class="heading-count">{{ group.items?.length ?? 0 }}</span><span v-if="saveStatuses[group.id as number]" class="save-status" :class="saveStatuses[group.id as number]">{{ t(`panelHome.${saveStatuses[group.id as number]}`) }}</span><button v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="group-add raised-button" type="button" :aria-label="t('common.add')" @click="handleAddItem(group.id)">
+                  <span class="heading-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="22" /></span><h2>{{ group.title }}</h2><span class="heading-count">{{ group.items?.length ?? 0 }}</span><span v-if="saveStatuses[group.id as number]" class="save-status" :class="saveStatuses[group.id as number]">{{ t(`panelHome.${saveStatuses[group.id as number]}`) }}</span><button v-if="authReady && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="group-add raised-button" type="button" :aria-label="t('common.add')" @click="handleAddItem(group.id)">
                     <SvgIcon icon="lucide-plus" />
                   </button>
                 </div>
-                <VueDraggable v-if="group.items" v-model="group.items" item-key="id" :animation="150" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" :delay-on-touch-only="true" ghost-class="sortable-ghost" @end="handleEndDrag">
-                  <button v-for="item in displayedItems(group)" :key="item.id" class="url-row" :class="{ sorting: arrangeMode }" :data-item-id="item.id" :tabindex="arrangeMode || (rovingItemId ?? firstVisibleItemId) === item.id ? 0 : -1" type="button" :title="item.title" @focus="rovingItemId = item.id as number" @click="handleItemClick(item)" @keydown.down="moveRowFocus($event, 1)" @keydown.up="moveRowFocus($event, -1)" @keydown.left="moveRowHorizontally($event, -1)" @keydown.right="moveRowHorizontally($event, 1)" @contextmenu="(e) => handleContextMenu(e, item)">
+                <div v-if="group.loadFailed" class="group-empty" role="alert">
+                  {{ t('panelHome.groupLoadFailed') }} · <button type="button" @click="retryGroup(group)">
+                    {{ t('panelHome.retry') }}
+                  </button>
+                </div>
+                <VueDraggable v-else-if="group.items" v-model="group.items" item-key="id" :animation="150" class="url-list" :class="{ 'arrange-drop-zone': arrangeMode }" group="items" draggable=".url-row:not(.add-row)" :data-group-id="group.id" :disabled="!arrangeMode || !!listFilter.trim()" :delay="200" :delay-on-touch-only="true" ghost-class="sortable-ghost" @end="handleEndDrag">
+                  <a v-for="item in displayedItems(group)" :key="item.id" class="url-row" :class="{ 'sorting': arrangeMode, 'first-result': !!listFilter.trim() && firstVisibleItemId === item.id && (rovingItemId === null || rovingItemId === item.id) }" :data-item-id="item.id" :href="itemUrl(item)" :target="item.openMethod === 2 ? '_blank' : undefined" :rel="item.openMethod === 2 ? 'noopener noreferrer' : undefined" :tabindex="arrangeMode || (rovingItemId ?? firstVisibleItemId) === item.id ? 0 : -1" :title="item.title" @focus="rovingItemId = item.id as number" @click="handleItemClick($event, item)" @keydown="onRowKeydown($event, item)" @keydown.down="moveRowFocus($event, 1)" @keydown.up="moveRowFocus($event, -1)" @keydown.left="moveRowHorizontally($event, -1)" @keydown.right="moveRowHorizontally($event, 1)" @contextmenu="(e) => handleContextMenu(e, item)">
                     <img v-if="item.icon?.itemType === 2 && item.icon.src && !failedIcons.has(item.id as number)" class="row-icon" :style="{ backgroundColor: iconBackground(item) }" :src="item.icon.src" alt="" loading="lazy" @error="failedIcons.add(item.id as number)"><ItemIcon v-else-if="item.icon?.itemType === 3" class="row-icon" :item-icon="item.icon" :size="20" :force-background="iconBackground(item)" /><span v-else class="row-placeholder" aria-hidden="true">{{ item.title ? Array.from(item.title)[0].toLocaleUpperCase() : '?' }}</span>
                     <span class="row-copy"><span class="row-name">{{ item.title }}</span><span class="row-domain">{{ displayDomain(item.url) }}</span></span><SvgIcon v-if="arrangeMode" class="row-handle" icon="lucide-grip-vertical" aria-hidden="true" /><SvgIcon v-else class="row-arrow" icon="lucide-arrow-up-right" aria-hidden="true" />
-                  </button>
+                  </a>
                   <div v-if="arrangeMode && !group.items.length" class="drop-target">
                     {{ t('panelHome.dropHere') }}
                   </div>
                   <div v-else-if="!group.items.length && !listFilter.trim()" class="group-empty">
                     <span>{{ t('panelHome.noBookmarks') }}</span>
-                    <button v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" type="button" @click="handleAddItem(group.id)">
+                    <button v-if="authReady && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" type="button" @click="handleAddItem(group.id)">
                       {{ t('panelHome.addBookmark') }}
                     </button>
                   </div>
@@ -764,9 +833,9 @@ function handleAddItem(itemIconGroupId?: number) {
       </Transition>
     </Teleport>
     <div class="mobile-dock-band" /><nav class="mobile-dock" :aria-label="t('panelHome.groups')">
-      <button class="dock-button is-all" :class="{ active: selectedGroupId === 'all' }" type="button" :aria-label="t('panelHome.all')" @click="selectDockGroup('all')">
+      <button class="dock-button is-all" :class="{ active: selectedGroupId === 'all' }" type="button" :aria-label="t('panelHome.all')" :aria-current="selectedGroupId === 'all' ? 'true' : undefined" @click="selectDockGroup('all')">
         <GroupGlyph icon="lucide-layout-grid" :title="t('panelHome.all')" :size="22" /><span v-if="selectedGroupId === 'all'">{{ t('panelHome.all') }}</span>
-      </button><button v-for="group in dockGroups" :key="group.id" class="dock-button" :class="{ active: selectedGroupId === group.id }" :style="groupColorStyle(group)" type="button" :aria-label="group.title" @click="selectDockGroup(group.id as number)">
+      </button><button v-for="group in dockGroups" :key="group.id" class="dock-button" :class="{ active: selectedGroupId === group.id }" :style="groupColorStyle(group)" type="button" :aria-label="group.title" :aria-current="selectedGroupId === group.id ? 'true' : undefined" @click="selectDockGroup(group.id as number)">
         <GroupGlyph :icon="group.icon" :title="group.title" :size="22" /><span v-if="selectedGroupId === group.id">{{ group.title }}</span>
       </button><button class="dock-button more-button" type="button" :aria-label="t('panelHome.moreGroups')" @click="moreDrawerHasOpened = true; moreDrawerShow = true">
         <SvgIcon icon="lucide-ellipsis" />
@@ -816,7 +885,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 </style>
 
 <style scoped>
-.sun-main { position: relative; width: 100%; height: 100%; background: var(--x-bg0); color: var(--x-text1); font-family: var(--x-font); user-select: none; }
+.sun-main { position: relative; width: 100%; height: 100%; background: var(--x-bg0); color: var(--x-text1); font-family: var(--x-font); }
 .wallpaper, .wallpaper-mask { position: absolute; inset: 0; pointer-events: none; }
 .wallpaper { background-position: center; background-size: cover; }
 .main-scroll { position: relative; width: 100%; height: 100%; overflow: auto; }
@@ -843,7 +912,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .list-filter input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--x-text1); user-select: text; }
 .list-filter input::placeholder { color: var(--x-text2); }
 .list-filter kbd { padding: 2px 8px; border-radius: var(--x-r-glyph); background: var(--x-bg2); color: var(--x-text2); font-size: 13px; }
-.list-filter:focus-within { outline: 2px solid var(--x-primary); box-shadow: 0 0 0 5px var(--x-focus); }
+.list-filter:focus-within { outline: 2px solid var(--x-primary); box-shadow: 0 0 0 5px color-mix(in srgb, var(--x-focus) 35%, transparent); }
 .filter-count { color: var(--x-text2); font-size: 13px; white-space: nowrap; }
 .quiet-button, .import-button { height: 44px; white-space: nowrap; background: var(--x-bg1); color: var(--x-text1); }
 .quiet-button.n-button--primary-type { background: var(--x-primary); color: var(--x-on-primary); }
@@ -886,9 +955,10 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .group-add::before { position: absolute; inset: -6px; content: ""; }
 .group-add:hover { background: var(--x-hover); color: var(--x-text1); }
 .url-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 192px), 1fr)); gap: 2px 8px; min-height: 52px; }
-.url-row { display: flex; align-items: center; gap: 12px; min-width: 0; height: 52px; padding: 0 8px; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text1); text-align: left; cursor: pointer; transition: background-color 150ms; }
+.url-row { display: flex; align-items: center; gap: 12px; min-width: 0; height: 52px; padding: 0 8px; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text1); text-align: left; text-decoration: none; cursor: pointer; transition: background-color 150ms; }
 .url-row:hover, .url-row:focus-visible { background: var(--x-bg2); }
-.url-row.sorting { cursor: grab; }.url-row.sorting:active { cursor: grabbing; }.url-row.sortable-ghost { opacity: .5; }
+.url-row.first-result:not(:focus-visible) { box-shadow: inset 0 0 0 2px var(--x-focus); }
+.url-row.sorting { user-select: none; -webkit-user-select: none; cursor: grab; }.url-row.sorting:active { cursor: grabbing; }.url-row.sortable-ghost { opacity: .5; }
 .row-icon, .row-placeholder { flex: none; width: 28px; height: 28px; border-radius: var(--x-r-glyph); }
 .row-icon { object-fit: contain; padding: 3px; }
 .row-placeholder { display: grid; place-items: center; background: var(--x-ph); color: var(--x-ph-sub); font-size: 13px; font-weight: 600; }
@@ -904,6 +974,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .empty-list { margin-top: 40px; padding: 48px 24px; border-radius: var(--x-r-card); background: var(--x-bg1); color: var(--x-text2); text-align: center; }
 .empty-hint { margin-top: 8px; font-size: 13px; }
 .clear-filter { margin-top: 16px; background: var(--x-bg1); }
+.empty-action { margin-top: 16px; }
 .footer { margin: auto 0 0; padding-top: 40px; color: var(--x-text2); font-size: 13px; }.footer.on-wallpaper, .footer.on-wallpaper :deep(*) { color: #fff; }
 .fixed-element { position: fixed; z-index: 20; right: 16px; bottom: 72px; }.floating-actions { display: flex; flex-direction: column; gap: 8px; }.floating-button, .back-top-button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: var(--x-bg1); color: var(--x-text1); cursor: pointer; }
 .rail-back-top { border-radius: var(--x-r-icon); background: transparent; }.back-top-button { font-size: 22px; }
@@ -956,6 +1027,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
   .brand-block p { grid-column: 1 / -1; grid-row: 2; }
   .header-actions { grid-column: 1 / -1; grid-row: 3; width: 100%; flex-wrap: wrap; margin-top: 24px; }
   .list-filter { order: -1; width: 100%; }
+  .list-filter input { font-size: 16px; }
   .overview-band { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .overview-system { width: 100%; max-width: none; }
   .content-groups { grid-template-columns: 1fr; gap: 24px; margin-top: 40px; }
@@ -971,5 +1043,6 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
   .fixed-element { grid-column: 2; grid-row: 1; position: static; }
   .floating-actions { flex-direction: row; }
 }
+@media (hover: none) { .list-filter kbd { display: none; } }
 @media (prefers-reduced-motion: reduce) { .rail-brand, .rail-button, .url-row, .row-arrow { transition: none; }.first-load-motion .group-section, .group-fade { animation: none; }.url-row:hover .row-arrow { transform: none; } }
 </style>
