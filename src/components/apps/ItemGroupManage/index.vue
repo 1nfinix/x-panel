@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { h, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import type { FormInst, FormRules } from 'naive-ui'
 import { NButton, NCard, NForm, NFormItem, NInput, useDialog, useMessage } from 'naive-ui'
 import { VueDraggable } from 'vue-draggable-plus'
 import { deletes, edit, getList, saveSort } from '@/api/panel/itemIconGroup'
+import { getListByGroupId } from '@/api/panel/itemIcon'
 import { GroupGlyph, RoundCardModal, SvgIcon } from '@/components/common'
 import { groupIcons, isValidGroupIcon } from '@/components/common/GroupGlyph/icons'
 import { t } from '@/locales'
+import { confirmDelete } from '@/utils/confirmDelete'
 
 interface EditModalArg {
   show: boolean
@@ -95,37 +97,34 @@ async function handleSaveSort() {
   }
 }
 
-function handleDelete(groupInfo: Panel.ItemIconGroup) {
-  const deleteError = ref('')
-  const confirmDialog = dialog.warning({
-    title: t('common.warning'),
-    content: () => h('div', [h('p', t('apps.itemGroupManage.deleteWarnText', { name: groupInfo.title })), deleteError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, deleteError.value) : null]),
-    positiveText: t('common.confirm'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: async () => {
-      if (groupInfo.id) {
-        deletingId.value = groupInfo.id
-        confirmDialog.loading = true
-        deleteError.value = ''
-        try {
-          const { code, msg } = await deletes([groupInfo.id])
-          if (code !== 0) {
-            deleteError.value = msg || t('common.deleteFail')
-            return false
-          }
-          await refreshList()
-        }
-        catch {
-          deleteError.value = t('common.deleteFail')
-          return false
-        }
-        finally {
-          deletingId.value = null
-          confirmDialog.loading = false
-        }
+async function handleDelete(groupInfo: Panel.ItemIconGroup) {
+  let detail = t('common.groupDeleteDetailUnknown')
+  if (groupInfo.id) {
+    try {
+      const { code, data } = await getListByGroupId<Common.ListResponse<Panel.ItemInfo[]>>(groupInfo.id)
+      if (code === 0)
+        detail = t('common.groupDeleteDetail', { count: data.list.length })
+    }
+    catch {}
+  }
+  confirmDelete(dialog, {
+    object: t('common.groupObject'),
+    name: groupInfo.title || '',
+    detail,
+    onDelete: async () => {
+      if (!groupInfo.id)
+        return t('common.deleteFail')
+      deletingId.value = groupInfo.id
+      try {
+        const { code, msg } = await deletes([groupInfo.id])
+        if (code !== 0)
+          return msg || t('common.deleteFail')
+        await refreshList()
+      }
+      finally {
+        deletingId.value = null
       }
     },
-
   })
 }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
 import { NBackTop, NButton, NDrawer, NDrawerContent, NDropdown, NModal, NSkeleton, NSpin, useDialog, useMessage, useNotification } from 'naive-ui'
+import type { DropdownOption } from 'naive-ui'
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { AppStarter, EditItem } from './components'
 import { Clock, SystemMonitor } from '@/components/deskModule'
@@ -14,6 +15,7 @@ import { PanelStateNetworkModeEnum } from '@/enums'
 import { VisitMode } from '@/enums/auth'
 import { router } from '@/router'
 import { t } from '@/locales'
+import { confirmDelete } from '@/utils/confirmDelete'
 import { useWallpaper } from '@/hooks/useWallpaper'
 
 interface ItemGroup extends Panel.ItemIconGroup {
@@ -419,54 +421,33 @@ function handleRightMenuSelect(key: string | number) {
     case 'delete':
     {
       const deletedItem = { ...currentRightSelectItem.value } as Panel.ItemInfo
-      const deleteError = ref('')
-      const deleting = ref(false)
-      const confirmDialog = dialog.warning({
-        title: t('common.warning'),
-        content: () => h('div', [h('p', t('common.deleteConfirmByName', { name: deletedItem.title })), deleteError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, deleteError.value) : null]),
-        positiveText: t('common.confirm'),
-        negativeText: t('common.cancel'),
-        onPositiveClick: async () => {
-          if (deleting.value)
-            return false
-          deleting.value = true
-          confirmDialog.loading = true
-          try {
-            const { code, msg } = await deletes([deletedItem.id as number])
-            if (code === 0) {
-              getList()
-              const toast = notification.success({
-                title: t('common.deleteSuccess'),
-                duration: 5000,
-                action: () => h(NButton, {
-                  onClick: async () => {
-                    try {
-                      const { code } = await editItem({ ...deletedItem, id: undefined })
-                      if (code !== 0)
-                        throw new Error(t('common.saveFail'))
-                      toast.destroy()
-                      getList()
-                    }
-                    catch {
-                      ms.error(t('common.saveFail'))
-                    }
-                  },
-                }, () => t('panelHome.undo')),
-              })
-            }
-            else {
-              deleteError.value = `${t('common.deleteFail')}: ${msg}`
-              return false
-            }
+      confirmDelete(dialog, {
+        object: t('common.linkObject'),
+        name: deletedItem.title || '',
+        onDelete: async () => {
+          const { code, msg } = await deletes([deletedItem.id as number])
+          if (code === 0) {
+            getList()
+            const toast = notification.success({
+              title: t('common.deleteSuccess'),
+              duration: 5000,
+              action: () => h(NButton, {
+                onClick: async () => {
+                  try {
+                    const { code } = await editItem({ ...deletedItem, id: undefined })
+                    if (code !== 0)
+                      throw new Error(t('common.saveFail'))
+                    toast.destroy()
+                    getList()
+                  }
+                  catch {
+                    ms.error(t('common.saveFail'))
+                  }
+                },
+              }, () => t('panelHome.undo')),
+            })
           }
-          catch {
-            deleteError.value = t('common.deleteFail')
-            return false
-          }
-          finally {
-            deleting.value = false
-            confirmDialog.loading = false
-          }
+          else { return `${t('common.deleteFail')}: ${msg}` }
         },
       })
       break
@@ -558,10 +539,11 @@ async function handleEndDrag(event: DragEndEvent) {
 }
 
 function getDropdownMenuOptions() {
-  const dropdownMenuOptions = [
+  const dropdownMenuOptions: DropdownOption[] = [
     {
       label: t('iconItem.newWindowOpen'),
       key: 'newWindows',
+      icon: () => h(SvgIcon, { icon: 'lucide-external-link', class: 'context-menu-icon' }),
     },
 
   ]
@@ -570,6 +552,7 @@ function getDropdownMenuOptions() {
     dropdownMenuOptions.push({
       label: t('panelHome.openLanUrl'),
       key: 'openLanUrl',
+      icon: () => h(SvgIcon, { icon: 'lucide-external-link', class: 'context-menu-icon' }),
     })
   }
 
@@ -577,6 +560,7 @@ function getDropdownMenuOptions() {
     dropdownMenuOptions.push({
       label: t('panelHome.openWanUrl'),
       key: 'openWanUrl',
+      icon: () => h(SvgIcon, { icon: 'lucide-external-link', class: 'context-menu-icon' }),
     })
   }
 
@@ -584,9 +568,14 @@ function getDropdownMenuOptions() {
     dropdownMenuOptions.push({
       label: t('common.edit'),
       key: 'edit',
+      icon: () => h(SvgIcon, { icon: 'lucide-pencil', class: 'context-menu-icon' }),
+    }, {
+      type: 'divider',
     }, {
       label: t('common.delete'),
       key: 'delete',
+      icon: () => h(SvgIcon, { icon: 'lucide-trash-2', class: 'context-menu-icon' }),
+      props: { class: 'context-menu-delete' },
     })
   }
 
@@ -742,7 +731,13 @@ function handleAddItem(itemIconGroupId?: number) {
               </section>
             </div>
             <div v-else class="empty-list">
-              {{ t('panelHome.noMatches') }}
+              <div>{{ t('panelHome.noMatches') }}</div>
+              <p v-if="listFilter.trim()" class="empty-hint">
+                {{ t('panelHome.noMatchesHint') }}
+              </p>
+              <button v-if="listFilter.trim()" class="raised-button clear-filter" type="button" @click="listFilter = ''; nextTick(() => listFilterRef?.focus())">
+                {{ t('panelHome.clearFilter') }}
+              </button>
             </div>
           </div>
           <div class="footer" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" v-html="panelState.panelConfig.footerHtml" />
@@ -801,6 +796,9 @@ function handleAddItem(itemIconGroupId?: number) {
 body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); }
 ::selection { background: var(--x-primary); color: var(--x-on-primary); }
 .rail-tooltip { position: fixed; z-index: 3000; transform: translateY(-50%); padding: 8px 14px; border-radius: var(--x-r-pill); background: var(--x-inverse-bg); color: var(--x-inverse-fg); font: 13px/1.4 var(--x-font); white-space: nowrap; pointer-events: none; }
+.context-menu-icon { width: 18px !important; height: 18px !important; }
+.context-menu-delete, .context-menu-delete .n-dropdown-option-body__label, .context-menu-delete .n-dropdown-option-body__prefix { color: var(--x-red-fg) !important; }
+.context-menu-delete:hover, .context-menu-delete.n-dropdown-option-body--pending { background: var(--x-red-tint) !important; }
 .rail-tooltip-dot { display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; vertical-align: 2px; }
 .rail-tooltip-count { opacity: .65; font-variant-numeric: tabular-nums; }
 .rail-tooltip-enter-active, .rail-tooltip-leave-active { transition: opacity 120ms ease, translate 120ms ease; }
@@ -895,6 +893,8 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .view-all { display: flex; align-items: center; min-height: 44px; margin: 4px 0 0 8px; padding: 0; background: transparent; color: var(--x-link); font-size: 13px; }
 .view-all:hover { background: transparent; text-decoration: underline; }
 .empty-list { padding: 48px; color: var(--x-text2); text-align: center; }
+.empty-hint { margin-top: 8px; font-size: 13px; }
+.clear-filter { margin-top: 16px; background: var(--x-bg1); }
 .footer { margin: 40px 0 0; color: var(--x-text2); font-size: 13px; }.footer.on-wallpaper, .footer.on-wallpaper :deep(*) { color: #fff; }
 .fixed-element { position: fixed; z-index: 20; right: 16px; bottom: 72px; }.floating-actions { display: flex; flex-direction: column; gap: 8px; }.floating-button, .back-top-button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: var(--x-bg1); color: var(--x-text1); cursor: pointer; }
 .rail-back-top { border-radius: var(--x-r-icon); background: transparent; }.back-top-button { font-size: 22px; }

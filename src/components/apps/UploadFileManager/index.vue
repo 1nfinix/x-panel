@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { NAlert, NButton, NCard, NGrid, NGridItem, NImage, NImageGroup, NSpin, useDialog, useMessage } from 'naive-ui'
-import { h, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { deletes, getList } from '@/api/system/file'
 import { set as savePanelConfig } from '@/api/panel/userConfig'
 import { RoundCardModal, SvgIcon } from '@/components/common'
 import { copyToClipboard, timeFormat } from '@/utils/cmn'
 import { t } from '@/locales'
+import { confirmDelete } from '@/utils/confirmDelete'
 import { usePanelState } from '@/store'
 
 interface InfoModalState {
@@ -55,31 +56,20 @@ async function copyImageUrl(text: string) {
 }
 
 function handleDelete(id: number) {
-  const deleteError = ref('')
-  const confirmDialog = dialog.warning({
-    title: t('common.warning'),
-    content: () => h('div', [h('p', t('apps.uploadsFileManager.deleteWarningText')), deleteError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, deleteError.value) : null]),
-    positiveText: t('common.confirm'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: async () => {
+  confirmDelete(dialog, {
+    object: t('common.fileObject'),
+    name: imageList.value.find(item => item.id === id)?.fileName || '',
+    onDelete: async () => {
       deleteLoadingId.value = id
-      confirmDialog.loading = true
       try {
         const { code, msg } = await deletes([id])
-        if (code !== 0) {
-          deleteError.value = `${t('common.failed')}: ${msg}`
-          return false
-        }
+        if (code !== 0)
+          return `${t('common.deleteFail')}: ${msg}`
         await getFileList()
         ms.success(t('common.success'))
       }
-      catch {
-        deleteError.value = t('common.failed')
-        return false
-      }
       finally {
         deleteLoadingId.value = null
-        confirmDialog.loading = false
       }
     },
   })
