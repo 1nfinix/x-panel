@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { NDropdown, useDialog, useMessage } from 'naive-ui'
 import { type MonitorData, MonitorType } from './typings'
-import Edit from './Edit/index.vue'
 import { deleteByIndex, getAll, saveAll } from './common'
 import { getCpuState, getDiskStateByPath, getMemonyState } from '@/api/system/systemMonitor'
 import { SvgIcon } from '@/components/common'
@@ -20,6 +19,10 @@ const props = defineProps<{
   allowEdit?: boolean
   showTitle?: boolean
 }>()
+
+// Editor (tabs, color picker, form) loads only when first opened, off the home critical path.
+const Edit = defineAsyncComponent(() => import('./Edit/index.vue'))
+
 const { colors } = useThemeColors()
 
 const dialog = useDialog()
@@ -39,11 +42,13 @@ const monitorGroup = ref<MonitorGroup>({
 })
 
 const editShowStatus = ref<boolean>(false)
+const editMounted = ref(false)
 const editData = ref<MonitorData | null>(null)
 const editIndex = ref<number | null>(null)
 
 function handleAddItem() {
   editShowStatus.value = true
+  editMounted.value = true
   editData.value = null
   editIndex.value = null
 }
@@ -131,6 +136,7 @@ function handleClick(index: number, item: MonitorData) {
   if (!props.allowEdit)
     return
   editShowStatus.value = true
+  editMounted.value = true
   editData.value = item
   editIndex.value = index
 }
@@ -301,7 +307,7 @@ function handleRightMenuSelect(key: string | number) {
     </button>
     <span v-if="dataLoading" class="sr-only" aria-live="polite">{{ t('panelHome.loading') }}</span>
     <span v-if="sortError" class="sr-only" role="alert">{{ sortError }}</span>
-    <Edit v-model:visible="editShowStatus" :monitor-data="editData" :index="editIndex" @done="handleSaveDone" />
+    <Edit v-if="editMounted" v-model:visible="editShowStatus" :monitor-data="editData" :index="editIndex" @done="handleSaveDone" />
     <NDropdown placement="bottom-start" trigger="manual" :x="dropdownMenuX" :y="dropdownMenuY" :options="getDropdownMenuOptions()" :show="dropdownShow" :on-clickoutside="onClickoutside" @select="handleRightMenuSelect" />
   </div>
 </template>
