@@ -72,6 +72,8 @@
       "wallpaper": "壁纸",
       "showWallpaper": "显示壁纸",
       "autoWallpaper": "自动壁纸",
+      "surfaceTransparency": "卡片透明度",
+      "surfaceTransparencyHint": "作用于侧栏、分组卡片和网址卡片，仅在显示壁纸时生效",
       "fillFavicons": "一键补齐图标",
       "findCandidates": "查找待补图标",
       "fillConfirm": "确认补齐所选网址的图标？",

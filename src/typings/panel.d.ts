@@ -42,6 +42,7 @@ declare namespace Panel {
         backgroundMaskNumber?:number
         autoWallpaper?:boolean
         showWallpaper?:boolean
+        surfaceTransparency?:number
         iconStyle?:PanelPanelConfigStyleEnum
         iconTextColor?:string
         iconTextInfoHideDescription?:boolean
