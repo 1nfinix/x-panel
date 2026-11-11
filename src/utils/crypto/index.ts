@@ -1,15 +1,17 @@
-import CryptoJS from 'crypto-js'
+// Import only the AES + UTF-8 modules; the full crypto-js bundle is ~58 KB in the entry chunk.
+import AES from 'crypto-js/aes'
+import Utf8 from 'crypto-js/enc-utf8'
 
 const CryptoSecret = '__CRYPTO_SECRET__'
 
 export function enCrypto(data: any) {
   const str = JSON.stringify(data)
-  return CryptoJS.AES.encrypt(str, CryptoSecret).toString()
+  return AES.encrypt(str, CryptoSecret).toString()
 }
 
 export function deCrypto(data: string) {
-  const bytes = CryptoJS.AES.decrypt(data, CryptoSecret)
-  const str = bytes.toString(CryptoJS.enc.Utf8)
+  const bytes = AES.decrypt(data, CryptoSecret)
+  const str = bytes.toString(Utf8)
 
   if (str)
     return JSON.parse(str)

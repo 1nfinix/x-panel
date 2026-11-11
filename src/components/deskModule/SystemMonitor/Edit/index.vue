@@ -81,7 +81,7 @@ watch(() => props.visible, (value) => {
   else {
     handleResetExtendParam()
   }
-})
+}, { immediate: true })
 
 function handleResetExtendParam() {
   currentGenericProgressStyleExtendParam.value = defaultGenericProgressStyleExtendParam()
