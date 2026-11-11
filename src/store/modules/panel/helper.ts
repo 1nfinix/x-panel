@@ -3,7 +3,7 @@ import { PanelPanelConfigStyleEnum, PanelStateNetworkModeEnum } from '@/enums'
 import defaultBackground from '@/assets/defaultBackground.webp'
 const LOCAL_NAME = 'panelStorage'
 
-const defaultFooterHtml = '<div class="flex justify-center text-muted-soft" style="margin-top:24px">Powered By <a href="https://github.com/1nfinix/x-panel" target="_blank" class="ml-1">X-Panel</a></div>'
+const defaultFooterHtml = '<div class="flex justify-center text-muted-soft" style="margin-top:24px">Powered By&nbsp;<a href="https://github.com/1nfinix/x-panel" target="_blank">X-Panel</a></div>'
 
 export function defaultStatePanelConfig(): Panel.panelConfig {
   return {

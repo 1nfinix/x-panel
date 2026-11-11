@@ -695,7 +695,7 @@ function handleAddItem(itemIconGroupId?: number) {
                 <SystemMonitor :allow-edit="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" :show-title="panelState.panelConfig.systemMonitorShowTitle" />
               </div>
             </section>
-            <div v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-bar" :style="selectedGroupColor">
+            <div v-if="selectedGroupId !== 'all' && selectedGroup" class="selected-group-bar" :class="{ 'on-wallpaper': panelState.panelConfig.showWallpaper }" :style="selectedGroupColor">
               <h2 class="selected-group-title">
                 <span class="title-glyph"><GroupGlyph :icon="selectedGroup.icon" :title="selectedGroup.title" :size="20" /></span>{{ selectedGroup.title }} <span class="title-count">{{ selectedGroup.items?.length ?? 0 }}</span>
               </h2>
@@ -830,7 +830,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .rail-button:hover { background: var(--x-hover); color: var(--x-text1); }
 .rail-button.active { background: var(--group-tint, var(--x-blue-tint)); color: var(--group-fg, var(--x-blue-fg)); }
 .rail-button.is-all.active { background: var(--x-blue-tint); color: var(--x-blue-fg); }
-.page-content { flex: 1; min-width: 0; width: 100%; margin: 0 auto; padding: 24px 56px 40px; }
+.page-content { display: flex; flex: 1; flex-direction: column; min-width: 0; width: 100%; min-height: calc(100vh - 32px); margin: 0 auto; padding: 24px 56px 40px; }
 .navigation-shell { display: flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 80px; }
 .brand-block h1 { margin: 0; font-size: 28px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; }
 .brand-block p { margin: 8px 0 0; color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -856,6 +856,9 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .title-glyph, .heading-glyph { display: grid; flex: none; place-items: center; background: var(--group-tint); color: var(--group-fg); }
 .title-glyph { width: 32px; height: 32px; border-radius: var(--x-r-glyph); }
 .title-count { color: var(--x-text2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.selected-group-bar.on-wallpaper .selected-group-title { color: #fff; }
+.selected-group-bar.on-wallpaper .title-count { color: rgba(255, 255, 255, .78); }
+.selected-group-bar.on-wallpaper .group-add { color: #fff; }
 .content-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); align-items: start; gap: 24px; margin-top: 40px; }
 .selected-group-bar + .content-groups { margin-top: 24px; }
 .group-empty { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px; color: var(--x-text2); font-size: 13px; }
@@ -898,7 +901,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .empty-list { margin-top: 40px; padding: 48px 24px; border-radius: var(--x-r-card); background: var(--x-bg1); color: var(--x-text2); text-align: center; }
 .empty-hint { margin-top: 8px; font-size: 13px; }
 .clear-filter { margin-top: 16px; background: var(--x-bg1); }
-.footer { margin: 40px 0 0; color: var(--x-text2); font-size: 13px; }.footer.on-wallpaper, .footer.on-wallpaper :deep(*) { color: #fff; }
+.footer { margin: auto 0 0; padding-top: 40px; color: var(--x-text2); font-size: 13px; }.footer.on-wallpaper, .footer.on-wallpaper :deep(*) { color: #fff; }
 .fixed-element { position: fixed; z-index: 20; right: 16px; bottom: 72px; }.floating-actions { display: flex; flex-direction: column; gap: 8px; }.floating-button, .back-top-button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: var(--x-bg1); color: var(--x-text1); cursor: pointer; }
 .rail-back-top { border-radius: var(--x-r-icon); background: transparent; }.back-top-button { font-size: 22px; }
 .mobile-dock-band, .mobile-dock { display: none; }
@@ -906,7 +909,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 @keyframes first-card { from { opacity: .2; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .first-load-motion .group-section { animation: first-card 150ms ease-out both; }.group-fade { animation: first-card 150ms ease-out; }
 @media (max-width: 767px) {
-  .page-content { padding-right: 0; padding-left: 0; }
+  .page-content { min-height: calc(100vh - 152px - env(safe-area-inset-bottom)); padding-right: 0; padding-left: 0; }
   .page-layout { padding: 16px 16px calc(136px + env(safe-area-inset-bottom)); }
   .group-rail { display: none; }
   .navigation-shell { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 0; }
