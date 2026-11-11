@@ -21,6 +21,7 @@ const loading = ref(false)
 const fieldError = ref<{ username?: string; password?: string; vcode?: string }>({})
 const usernameInput = ref<InputInst | null>(null)
 const passwordInput = ref<InputInst | null>(null)
+const passwordToggle = ref<HTMLButtonElement | null>(null)
 const captchaInput = ref<InputInst | null>(null)
 const languageValue = ref<Language>(appStore.language)
 
@@ -44,6 +45,10 @@ async function focusFirstError() {
     passwordInput.value?.focus()
   else if (fieldError.value.vcode)
     captchaInput.value?.focus()
+}
+
+function focusPasswordToggle() {
+  nextTick(() => passwordToggle.value?.focus())
 }
 
 onMounted(async () => {
@@ -79,12 +84,8 @@ const loginPost = async () => {
     if (res.code === 0) {
       authStore.setToken(res.data.token)
       authStore.setUserInfo(res.data)
-
-      setTimeout(() => {
-        ms.success(`Hi ${res.data.name},${t('login.welcomeMessage')}`)
-        loading.value = false
-        router.push({ path: '/' })
-      }, 500)
+      ms.success(`Hi ${res.data.name},${t('login.welcomeMessage')}`)
+      router.push({ path: '/' })
     }
     else {
       loading.value = false
@@ -123,11 +124,11 @@ function handleChangeLanuage(value: Language) {
     <div v-if="panelState.panelConfig.showWallpaper" class="login-wallpaper" :class="{ loaded: wallpaperLoaded }" :style="{ backgroundImage: wallpaperLoaded ? `url(${wallpaperSource})` : 'none' }" /><div v-if="panelState.panelConfig.showWallpaper" class="wallpaper-mask" />
     <NCard class="login-card">
       <div class="mb-5 flex items-center justify-end">
-        <div class="mr-2">
+        <div class="mr-2" aria-hidden="true">
           <SvgIcon icon="ion-language" style="width: 20px;height: 20px;" />
         </div>
         <div class="min-w-[100px]">
-          <NSelect v-model:value="languageValue" size="small" :options="languageOptions" :aria-label="t('common.language')" @update-value="handleChangeLanuage" />
+          <NSelect v-model:value="languageValue" class="login-language" size="medium" :options="languageOptions" :aria-label="t('common.language')" @update-value="handleChangeLanuage" />
         </div>
       </div>
 
@@ -156,9 +157,19 @@ function handleChangeLanuage(value: Language) {
           <div class="login-field">
             <label class="login-label" for="login-password">{{ $t('login.passwordPlaceholder') }}</label>
             <NFormItem :show-feedback="!!fieldError.password" :validation-status="fieldError.password ? 'error' : undefined">
-              <NInput ref="passwordInput" v-model:value="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')" :input-props="{ 'id': 'login-password', 'name': 'password', 'autocomplete': 'current-password', 'aria-invalid': fieldError.password ? 'true' : undefined, 'aria-describedby': fieldError.password ? 'login-password-error' : undefined }">
+              <NInput ref="passwordInput" v-model:value="form.password" type="password" show-password-on="click" :placeholder="$t('login.passwordPlaceholder')" :input-props="{ 'id': 'login-password', 'name': 'password', 'autocomplete': 'current-password', 'aria-invalid': fieldError.password ? 'true' : undefined, 'aria-describedby': fieldError.password ? 'login-password-error' : undefined }">
                 <template #prefix>
                   <SvgIcon icon="mdi:password-outline" />
+                </template>
+                <template #password-invisible-icon>
+                  <button ref="passwordToggle" class="password-toggle" type="button" :aria-label="t('login.showPassword')" @click="focusPasswordToggle" @keydown.enter.stop @keydown.space.stop>
+                    <SvgIcon icon="lucide-eye" />
+                  </button>
+                </template>
+                <template #password-visible-icon>
+                  <button ref="passwordToggle" class="password-toggle" type="button" :aria-label="t('login.hidePassword')" @click="focusPasswordToggle" @keydown.enter.stop @keydown.space.stop>
+                    <SvgIcon icon="lucide-eye-off" />
+                  </button>
                 </template>
               </NInput>
               <template #feedback>
@@ -213,6 +224,10 @@ function handleChangeLanuage(value: Language) {
 .login-card { position: relative; width: min(100%, 430px); border: 0; border-radius: var(--x-r-card); background: var(--x-bg1); color: var(--x-text1); box-shadow: none; }
 .login-card :deep(.n-card__content) { padding: 40px; }
 .login-card :deep(.n-input) { min-height: 44px; border-radius: var(--x-r-small); background: var(--x-bg2); }
+.login-language :deep(.n-base-selection) { min-height: 44px; border-radius: var(--x-r-pill); }
+.password-toggle { display: grid; place-items: center; width: 36px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--x-icon3); cursor: pointer; }
+.password-toggle svg { width: 18px; height: 18px; }
+.password-toggle:focus-visible { outline: 3px solid var(--x-focus); outline-offset: -3px; border-radius: var(--x-r-small); }
 .login-card :deep(.n-button--primary-type) { height: 44px; border-radius: var(--x-r-pill); }
 .login-title { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 32px; }
 .login-brand { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--x-r-icon); background: var(--x-bg2); }.login-brand :deep(svg) { width: 28px; height: 28px; }

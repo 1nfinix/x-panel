@@ -279,7 +279,9 @@
     "refreshCaptcha": "点击刷新验证码",
     "captchaPlaceholder": "输入图中四位字符",
     "captchaLabel": "验证码",
-    "captchaShortPlaceholder": "验证码"
+    "captchaShortPlaceholder": "验证码",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码"
   },
   "panelHome": {
     "changeToLanModel": "切换为内网模式",

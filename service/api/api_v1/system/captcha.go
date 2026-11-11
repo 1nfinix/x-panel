@@ -12,7 +12,7 @@ import (
 
 func (l LoginApi) CaptchaImage(c *gin.Context) {
 	id := uuid.NewString()
-	encoded, err := captcha.GenerateCaptchaHandler(id, 160, 48)
+	encoded, err := captcha.GenerateCaptchaHandler(id, 160, 44, captcha.PaletteForTheme(c.Query("theme")))
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		return
