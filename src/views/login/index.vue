@@ -174,7 +174,7 @@ function handleChangeLanuage(value: Language) {
                 <div class="captcha-image" :title="t('login.refreshCaptcha')">
                   <Captcha ref="captchaRef" src="/api/captcha/getImage" />
                 </div>
-                <NInput ref="captchaInput" v-model:value="form.vcode" type="text" maxlength="4" :placeholder="t('login.captchaShortPlaceholder')" :input-props="{ 'id': 'login-captcha', 'name': 'captcha', 'autocomplete': 'off', 'spellcheck': false, 'autocapitalize': 'off', 'autocorrect': 'off', 'aria-label': t('login.captchaPlaceholder'), 'aria-invalid': fieldError.vcode ? 'true' : undefined, 'aria-describedby': fieldError.vcode ? 'login-captcha-error' : undefined }" />
+                <NInput ref="captchaInput" v-model:value="form.vcode" type="text" maxlength="4" :placeholder="t('login.captchaShortPlaceholder')" :input-props="{ 'id': 'login-captcha', 'name': 'captcha', 'autocomplete': 'off', 'spellcheck': false, 'autocapitalize': 'off', 'autocorrect': 'off', 'aria-invalid': fieldError.vcode ? 'true' : undefined, 'aria-describedby': fieldError.vcode ? 'login-captcha-error' : undefined }" />
               </div>
               <template #feedback>
                 <span v-if="fieldError.vcode" id="login-captcha-error" role="alert">{{ fieldError.vcode }}</span>
@@ -228,7 +228,7 @@ function handleChangeLanuage(value: Language) {
 .captcha-row { display: flex; width: 100%; gap: 12px; min-width: 0; }
 .captcha-row :deep(.n-input) { flex: 1; min-width: 0; }
 .captcha-image { flex: none; width: 160px; height: 44px; cursor: pointer; border-radius: var(--x-r-icon); overflow: hidden; }
-.captcha-image :deep(img) { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.captcha-image :deep(img) { display: block; width: 100%; height: 100%; object-fit: fill; }
 @media (max-width: 480px) {
   .login-card :deep(.n-card__content) { padding: 24px; }
   .captcha-image { width: clamp(100px, 34vw, 138px); }
