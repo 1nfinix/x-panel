@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { NButton, NCard, NForm, NFormItem, NInput, NSelect, useMessage } from 'naive-ui'
-import { onMounted, ref } from 'vue'
+import type { InputInst } from 'naive-ui'
+import { nextTick, onMounted, ref } from 'vue'
 import { login } from '@/api'
 import { useAppStore, useAuthStore, usePanelState } from '@/store'
 import { SvgIcon, XBrand } from '@/components/common'
@@ -18,6 +19,9 @@ const appStore = useAppStore()
 const ms = useMessage()
 const loading = ref(false)
 const fieldError = ref<{ username?: string; password?: string; vcode?: string }>({})
+const usernameInput = ref<InputInst | null>(null)
+const passwordInput = ref<InputInst | null>(null)
+const captchaInput = ref<InputInst | null>(null)
 const languageValue = ref<Language>(appStore.language)
 
 const isShowCaptcha = ref(true)
@@ -31,6 +35,16 @@ const form = ref<Login.LoginReqest>({
   password: '',
   vcode: '',
 })
+
+async function focusFirstError() {
+  await nextTick()
+  if (fieldError.value.username)
+    usernameInput.value?.focus()
+  else if (fieldError.value.password)
+    passwordInput.value?.focus()
+  else if (fieldError.value.vcode)
+    captchaInput.value?.focus()
+}
 
 onMounted(async () => {
   if (panelState.panelConfig.showWallpaper)
@@ -51,10 +65,12 @@ const loginPost = async () => {
   fieldError.value = {}
   if (!form.value.username) {
     fieldError.value.username = t('form.required')
+    await focusFirstError()
     return
   }
   if (!form.value.password) {
     fieldError.value.password = t('form.required')
+    await focusFirstError()
     return
   }
   loading.value = true
@@ -79,6 +95,7 @@ const loginPost = async () => {
         fieldError.value.password = message
       form.value.vcode = ''
       captchaRef.value?.refresh()
+      await focusFirstError()
     }
   }
   catch (error) {
@@ -86,6 +103,7 @@ const loginPost = async () => {
     fieldError.value.password = t('login.networkError')
     form.value.vcode = ''
     captchaRef.value?.refresh()
+    await focusFirstError()
   }
 }
 
@@ -101,7 +119,7 @@ function handleChangeLanuage(value: Language) {
 </script>
 
 <template>
-  <div class="login-container">
+  <main class="login-container">
     <div v-if="panelState.panelConfig.showWallpaper" class="login-wallpaper" :class="{ loaded: wallpaperLoaded }" :style="{ backgroundImage: wallpaperLoaded ? `url(${wallpaperSource})` : 'none' }" /><div v-if="panelState.panelConfig.showWallpaper" class="wallpaper-mask" />
     <NCard class="login-card">
       <div class="mb-5 flex items-center justify-end">
@@ -115,34 +133,54 @@ function handleChangeLanuage(value: Language) {
 
       <div class="login-title">
         <span class="login-brand"><XBrand /></span>
-        <strong class="login-heading">
+        <h1 class="login-heading">
           {{ panelState.panelConfig.logoText || $t('common.appName') }}
-        </strong>
+        </h1>
       </div>
       <NForm class="login-form" :model="form" :show-label="false" @keydown.enter="handleSubmit">
         <div class="login-fields">
-          <NFormItem :show-feedback="!!fieldError.username" :feedback="fieldError.username" :validation-status="fieldError.username ? 'error' : undefined">
-            <NInput v-model:value="form.username" :placeholder="$t('login.usernamePlaceholder')" :input-props="{ 'aria-label': $t('login.usernamePlaceholder') }">
-              <template #prefix>
-                <SvgIcon icon="ph:user-bold" />
+          <div class="login-field">
+            <label class="login-label" for="login-username">{{ $t('login.usernamePlaceholder') }}</label>
+            <NFormItem :show-feedback="!!fieldError.username" :validation-status="fieldError.username ? 'error' : undefined">
+              <NInput ref="usernameInput" v-model:value="form.username" :placeholder="$t('login.usernamePlaceholder')" :input-props="{ 'id': 'login-username', 'name': 'username', 'autocomplete': 'username', 'aria-invalid': fieldError.username ? 'true' : undefined, 'aria-describedby': fieldError.username ? 'login-username-error' : undefined }">
+                <template #prefix>
+                  <SvgIcon icon="ph:user-bold" />
+                </template>
+              </NInput>
+              <template #feedback>
+                <span v-if="fieldError.username" id="login-username-error" role="alert">{{ fieldError.username }}</span>
               </template>
-            </NInput>
-          </NFormItem>
+            </NFormItem>
+          </div>
 
-          <NFormItem :show-feedback="!!fieldError.password" :feedback="fieldError.password" :validation-status="fieldError.password ? 'error' : undefined">
-            <NInput v-model:value="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')" :input-props="{ 'aria-label': $t('login.passwordPlaceholder') }">
-              <template #prefix>
-                <SvgIcon icon="mdi:password-outline" />
+          <div class="login-field">
+            <label class="login-label" for="login-password">{{ $t('login.passwordPlaceholder') }}</label>
+            <NFormItem :show-feedback="!!fieldError.password" :validation-status="fieldError.password ? 'error' : undefined">
+              <NInput ref="passwordInput" v-model:value="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')" :input-props="{ 'id': 'login-password', 'name': 'password', 'autocomplete': 'current-password', 'aria-invalid': fieldError.password ? 'true' : undefined, 'aria-describedby': fieldError.password ? 'login-password-error' : undefined }">
+                <template #prefix>
+                  <SvgIcon icon="mdi:password-outline" />
+                </template>
+              </NInput>
+              <template #feedback>
+                <span v-if="fieldError.password" id="login-password-error" role="alert">{{ fieldError.password }}</span>
               </template>
-            </NInput>
-          </NFormItem>
+            </NFormItem>
+          </div>
 
-          <NFormItem v-if="isShowCaptcha" :show-feedback="!!fieldError.vcode" :feedback="fieldError.vcode" :validation-status="fieldError.vcode ? 'error' : undefined">
-            <div class="captcha-image" :title="t('login.refreshCaptcha')">
-              <Captcha ref="captchaRef" src="/api/captcha/getImage" />
-            </div>
-            <NInput v-model:value="form.vcode" type="text" maxlength="4" :placeholder="t('login.captchaPlaceholder')" :input-props="{ 'aria-label': t('login.captchaPlaceholder') }" />
-          </NFormItem>
+          <div v-if="isShowCaptcha" class="login-field">
+            <label class="login-label" for="login-captcha">{{ $t('login.captchaLabel') }}</label>
+            <NFormItem :show-feedback="!!fieldError.vcode" :validation-status="fieldError.vcode ? 'error' : undefined">
+              <div class="captcha-row">
+                <div class="captcha-image" :title="t('login.refreshCaptcha')">
+                  <Captcha ref="captchaRef" src="/api/captcha/getImage" />
+                </div>
+                <NInput ref="captchaInput" v-model:value="form.vcode" type="text" maxlength="4" :placeholder="t('login.captchaShortPlaceholder')" :input-props="{ 'id': 'login-captcha', 'name': 'captcha', 'autocomplete': 'off', 'spellcheck': false, 'autocapitalize': 'off', 'autocorrect': 'off', 'aria-label': t('login.captchaPlaceholder'), 'aria-invalid': fieldError.vcode ? 'true' : undefined, 'aria-describedby': fieldError.vcode ? 'login-captcha-error' : undefined }" />
+              </div>
+              <template #feedback>
+                <span v-if="fieldError.vcode" id="login-captcha-error" role="alert">{{ fieldError.vcode }}</span>
+              </template>
+            </NFormItem>
+          </div>
         </div>
         <div class="login-submit">
           <NButton type="primary" block :loading="loading" @click="handleSubmit">
@@ -164,7 +202,7 @@ function handleChangeLanuage(value: Language) {
         </div>
       </NForm>
     </NCard>
-  </div>
+  </main>
 </template>
 
 <style scoped>
@@ -179,13 +217,21 @@ function handleChangeLanuage(value: Language) {
 .login-title { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 32px; }
 .login-brand { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--x-r-icon); background: var(--x-bg2); }.login-brand :deep(svg) { width: 28px; height: 28px; }
 .login-fields { display: grid; gap: 16px; }
+.login-field { display: grid; gap: 8px; min-width: 0; }
+.login-label { color: var(--x-text1); font-size: 13px; font-weight: 600; }
 .login-fields :deep(.n-form-item) { margin: 0; }
+.login-fields :deep(.n-form-item-blank) { min-width: 0; }
 .login-submit { margin-top: 24px; }
 .login-submit .n-button { width: 100%; }
 .login-footer { margin-top: 16px; }
-.login-heading { font-family: var(--x-font); font-size: 22px; color: var(--x-text1); font-weight: 600; letter-spacing: -.02em; }
-.captcha-image { flex: none; width: 160px; height: 48px; margin-right: 12px; cursor: pointer; border-radius: var(--x-r-icon); overflow: hidden; }
-.captcha-image :deep(img) { width: 160px; height: 48px; }
-@media (max-width: 390px) { .captcha-image { width: 138px; } .captcha-image :deep(img) { width: 138px; } }
+.login-heading { margin: 0; font-family: var(--x-font); font-size: 22px; color: var(--x-text1); font-weight: 600; letter-spacing: -.02em; }
+.captcha-row { display: flex; width: 100%; gap: 12px; min-width: 0; }
+.captcha-row :deep(.n-input) { flex: 1; min-width: 0; }
+.captcha-image { flex: none; width: 160px; height: 44px; cursor: pointer; border-radius: var(--x-r-icon); overflow: hidden; }
+.captcha-image :deep(img) { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+@media (max-width: 480px) {
+  .login-card :deep(.n-card__content) { padding: 24px; }
+  .captcha-image { width: clamp(100px, 34vw, 138px); }
+}
 @media (prefers-reduced-motion: reduce) { .login-wallpaper { transition: none; } }
 </style>

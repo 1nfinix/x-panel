@@ -6,9 +6,10 @@ import { post } from '@/utils/request'
 //   })
 // }
 
-export function getAuthInfo<T>() {
+export function getAuthInfo<T>(skipAuthRedirect = false) {
   return post<T>({
     url: '/user/getAuthInfo',
+    skipAuthRedirect,
   })
 }
 

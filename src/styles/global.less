@@ -160,6 +160,18 @@ html.dark .n-modal .n-base-selection, html.dark .n-dialog .n-base-selection, htm
 
 .n-input, .n-base-selection { border-radius: var(--x-r-small) !important; }
 
+.n-input input:-webkit-autofill,
+.n-input input:-webkit-autofill:hover,
+.n-input input:-webkit-autofill:focus,
+.n-input input:-webkit-autofill:active,
+.n-input input:autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--x-bg2) inset;
+  box-shadow: 0 0 0 1000px var(--x-bg2) inset;
+  -webkit-text-fill-color: var(--x-text1);
+  caret-color: var(--x-text1);
+  transition: background-color 9999s;
+}
+
 /* Secondary buttons in overlays sit on the modal base or a white card: use the hover tone so the capsule stays visible on either. */
 .n-modal .n-button--secondary, .n-dialog .n-button--secondary, .n-drawer .n-button--secondary {
   --n-color: var(--x-hover) !important;

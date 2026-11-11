@@ -15,6 +15,7 @@ export interface HttpOption {
   signal?: GenericAbortSignal
   beforeRequest?: () => void
   afterRequest?: () => void
+  skipAuthRedirect?: boolean
 }
 
 export interface Response<T = any> {
@@ -26,7 +27,7 @@ export interface Response<T = any> {
 }
 
 function http<T = any>(
-  { url, data, method, headers, onDownloadProgress, signal, beforeRequest, afterRequest }: HttpOption,
+  { url, data, method, headers, onDownloadProgress, signal, beforeRequest, afterRequest, skipAuthRedirect }: HttpOption,
 ) {
   const authStore = useAuthStore()
   const appStore = useAppStore()
@@ -35,6 +36,8 @@ function http<T = any>(
       return res.data
 
     if (res.data.code === 1001) {
+      if (skipAuthRedirect)
+        return res.data
       // 避免重复弹窗
       if (loginMessageShow === false) {
         loginMessageShow = true
@@ -52,6 +55,8 @@ function http<T = any>(
     }
 
     if (res.data.code === 1000) {
+      if (skipAuthRedirect)
+        return res.data
       router.push({ path: '/login' })
       authStore.removeToken()
       return res.data
@@ -114,7 +119,7 @@ export function get<T = any>(
 }
 
 export function post<T = any>(
-  { url, data, method = 'POST', headers, onDownloadProgress, signal, beforeRequest, afterRequest }: HttpOption,
+  { url, data, method = 'POST', headers, onDownloadProgress, signal, beforeRequest, afterRequest, skipAuthRedirect }: HttpOption,
 ): Promise<Response<T>> {
   return http<T>({
     url,
@@ -125,6 +130,7 @@ export function post<T = any>(
     signal,
     beforeRequest,
     afterRequest,
+    skipAuthRedirect,
   })
 }
 
