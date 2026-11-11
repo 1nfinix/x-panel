@@ -775,7 +775,7 @@ function handleAddItem(itemIconGroupId?: number) {
               </button>
             </div>
             <div v-else-if="!items.length && !listFilter.trim()" class="empty-list">
-              <div>{{ t('panelHome.noGroups') }}</div><NButton v-if="authReady && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" type="primary" class="clear-filter" @click="openImportSettings">
+              <div>{{ t('panelHome.noGroups') }}</div><NButton v-if="authReady && authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" type="primary" class="empty-action" @click="openImportSettings">
                 {{ t('panelHome.importBookmarks') }}
               </NButton>
             </div>
@@ -957,7 +957,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .url-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 192px), 1fr)); gap: 2px 8px; min-height: 52px; }
 .url-row { display: flex; align-items: center; gap: 12px; min-width: 0; height: 52px; padding: 0 8px; border: 0; border-radius: var(--x-r-glyph); background: transparent; color: var(--x-text1); text-align: left; text-decoration: none; cursor: pointer; transition: background-color 150ms; }
 .url-row:hover, .url-row:focus-visible { background: var(--x-bg2); }
-.url-row.first-result { box-shadow: inset 0 0 0 2px var(--x-focus); }
+.url-row.first-result:not(:focus-visible) { box-shadow: inset 0 0 0 2px var(--x-focus); }
 .url-row.sorting { user-select: none; -webkit-user-select: none; cursor: grab; }.url-row.sorting:active { cursor: grabbing; }.url-row.sortable-ghost { opacity: .5; }
 .row-icon, .row-placeholder { flex: none; width: 28px; height: 28px; border-radius: var(--x-r-glyph); }
 .row-icon { object-fit: contain; padding: 3px; }
@@ -974,6 +974,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .empty-list { margin-top: 40px; padding: 48px 24px; border-radius: var(--x-r-card); background: var(--x-bg1); color: var(--x-text2); text-align: center; }
 .empty-hint { margin-top: 8px; font-size: 13px; }
 .clear-filter { margin-top: 16px; background: var(--x-bg1); }
+.empty-action { margin-top: 16px; }
 .footer { margin: auto 0 0; padding-top: 40px; color: var(--x-text2); font-size: 13px; }.footer.on-wallpaper, .footer.on-wallpaper :deep(*) { color: #fff; }
 .fixed-element { position: fixed; z-index: 20; right: 16px; bottom: 72px; }.floating-actions { display: flex; flex-direction: column; gap: 8px; }.floating-button, .back-top-button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: var(--x-bg1); color: var(--x-text1); cursor: pointer; }
 .rail-back-top { border-radius: var(--x-r-icon); background: transparent; }.back-top-button { font-size: 22px; }
