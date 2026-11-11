@@ -20,7 +20,7 @@ export const themeColors = {
     primaryHover: '#0062C4',
     primaryActive: '#00539F',
     onPrimary: '#FFFFFF',
-    focus: 'rgba(0, 113, 227, .35)',
+    focus: '#0062C4',
     inverseBg: '#1D1D1F',
     inverseFg: '#FFFFFF',
     blueTint: '#E6F1FC',
@@ -42,7 +42,7 @@ export const themeColors = {
     primaryHover: '#0062C4',
     primaryActive: '#00539F',
     onPrimary: '#FFFFFF',
-    focus: 'rgba(10, 132, 255, .55)',
+    focus: '#0A84FF',
     inverseBg: '#F5F5F7',
     inverseFg: '#1D1D1F',
     blueTint: '#18314B',
@@ -89,7 +89,7 @@ export function useTheme() {
     const c = colors.value
     const overlayShadow = isDark.value ? '0 24px 60px -12px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.4)' : '0 24px 60px -12px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.06)'
     const closeTheme = { closeSize: '44px', closeIconSize: '18px', closeBorderRadius: '14px', closeColorHover: c.hover }
-    const focusShadow = `0 0 0 2px ${c.primary}, 0 0 0 5px ${c.focus}`
+    const focusShadow = `0 0 0 2px ${c.primary}, 0 0 0 5px color-mix(in srgb, ${c.focus} 35%, transparent)`
     return {
       common: {
         primaryColor: c.primary,
