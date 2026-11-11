@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
-import { NBackTop, NButton, NDrawer, NDrawerContent, NDropdown, NModal, NSkeleton, NSpin, useDialog, useMessage, useNotification } from 'naive-ui'
+import { NBackTop, NButton, NDropdown, NModal, NSkeleton, NSpin, useDialog, useMessage, useNotification } from 'naive-ui'
 import type { DropdownOption } from 'naive-ui'
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { AppStarter, EditItem } from './components'
+import { computed, defineAsyncComponent, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Clock, SystemMonitor } from '@/components/deskModule'
 import { GroupGlyph, ItemIcon, SvgIcon, XBrand } from '@/components/common'
 import { deletes, edit as editItem, getListByGroupId, saveSort } from '@/api/panel/itemIcon'
@@ -30,6 +29,10 @@ interface DragEndEvent {
   newDraggableIndex?: number
 }
 
+const EditItem = defineAsyncComponent(() => import('./components/EditItem/index.vue'))
+const AppStarter = defineAsyncComponent(() => import('./components/AppStarter/index.vue'))
+const MoreGroupsDrawer = defineAsyncComponent(() => import('./components/MoreGroupsDrawer.vue'))
+
 const ms = useMessage()
 const dialog = useDialog()
 const notification = useNotification()
@@ -40,6 +43,7 @@ const authStore = useAuthStore()
 const scrollContainerRef = ref<HTMLElement | undefined>(undefined)
 
 const editItemInfoShow = ref<boolean>(false)
+const editItemHasOpened = ref(false)
 const editItemInfoData = ref<Panel.ItemInfo | null>(null)
 const windowShow = ref<boolean>(false)
 const windowSrc = ref<string>('')
@@ -55,6 +59,7 @@ const currentRightSelectItem = ref<Panel.ItemInfo | null>(null)
 const currentAddItenIconGroupId = ref<number | undefined>()
 
 const settingModalShow = ref(false)
+const settingHasOpened = ref(false)
 
 const items = ref<ItemGroup[]>([])
 const groupsState = ref<'loading' | 'ready' | 'error'>('loading')
@@ -92,6 +97,7 @@ const overviewVisible = computed(() => panelState.panelConfig.clockShow || syste
 const railRef = ref<HTMLElement | null>(null)
 const railFocusKey = ref<string>('all')
 const moreDrawerShow = ref(false)
+const moreDrawerHasOpened = ref(false)
 const initialSettingsPanel = ref('UserInfo')
 const now = ref(new Date())
 const saveStatuses = ref<Record<number, 'saving' | 'saved' | 'error'>>({})
@@ -148,6 +154,7 @@ function moveRowHorizontally(event: KeyboardEvent, direction: number) {
 }
 function openImportSettings() {
   initialSettingsPanel.value = 'ImportExport'
+  settingHasOpened.value = true
   settingModalShow.value = true
 }
 function selectDockGroup(id: number | 'all') {
@@ -608,12 +615,14 @@ onBeforeUnmount(() => {
 
 function handleEditItem(item: Panel.ItemInfo) {
   editItemInfoData.value = item
+  editItemHasOpened.value = true
   editItemInfoShow.value = true
   currentAddItenIconGroupId.value = undefined
 }
 
 function handleAddItem(itemIconGroupId?: number) {
   editItemInfoData.value = null
+  editItemHasOpened.value = true
   editItemInfoShow.value = true
   if (itemIconGroupId)
     currentAddItenIconGroupId.value = itemIconGroupId
@@ -657,7 +666,7 @@ function handleAddItem(itemIconGroupId?: number) {
                     <SvgIcon icon="lucide-globe-2" />
                   </template>
                 </NButton>
-                <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="floating-button" :aria-label="t('appLauncher.title')" @click="initialSettingsPanel = 'UserInfo'; settingModalShow = true">
+                <NButton v-if="authStore.visitMode === VisitMode.VISIT_MODE_LOGIN" class="floating-button" :aria-label="t('appLauncher.title')" @click="initialSettingsPanel = 'UserInfo'; settingHasOpened = true; settingModalShow = true">
                   <template #icon>
                     <SvgIcon icon="lucide-layout-grid" />
                   </template>
@@ -756,28 +765,22 @@ function handleAddItem(itemIconGroupId?: number) {
         <GroupGlyph icon="lucide-layout-grid" :title="t('panelHome.all')" :size="22" /><span v-if="selectedGroupId === 'all'">{{ t('panelHome.all') }}</span>
       </button><button v-for="group in dockGroups" :key="group.id" class="dock-button" :class="{ active: selectedGroupId === group.id }" :style="groupColorStyle(group)" type="button" :aria-label="group.title" @click="selectDockGroup(group.id as number)">
         <GroupGlyph :icon="group.icon" :title="group.title" :size="22" /><span v-if="selectedGroupId === group.id">{{ group.title }}</span>
-      </button><button class="dock-button more-button" type="button" :aria-label="t('panelHome.moreGroups')" @click="moreDrawerShow = true">
+      </button><button class="dock-button more-button" type="button" :aria-label="t('panelHome.moreGroups')" @click="moreDrawerHasOpened = true; moreDrawerShow = true">
         <SvgIcon icon="lucide-ellipsis" />
       </button>
     </nav>
-    <NDrawer v-model:show="moreDrawerShow" placement="bottom" height="min(70vh, 620px)" class="groups-drawer">
-      <NDrawerContent :title="t('panelHome.groups')" closable>
-        <button v-for="group in items" :key="group.id" class="drawer-group" :class="{ active: selectedGroupId === group.id }" :style="groupColorStyle(group)" :aria-current="selectedGroupId === group.id ? 'page' : undefined" type="button" @click="selectDockGroup(group.id as number)">
-          <span class="heading-glyph"><GroupGlyph :icon="group.icon" :title="group.title" :size="22" /></span><span>{{ group.title }}</span><span class="drawer-count">{{ group.items?.length ?? 0 }}</span>
-        </button>
-      </NDrawerContent>
-    </NDrawer>
+    <MoreGroupsDrawer v-if="moreDrawerHasOpened" v-model:show="moreDrawerShow" :groups="items" :selected-group-id="selectedGroupId" :group-color-style="groupColorStyle" @select="selectDockGroup" />
     <NDropdown placement="bottom-start" trigger="manual" :x="dropdownMenuX" :y="dropdownMenuY" :options="getDropdownMenuOptions()" :show="dropdownShow" :on-clickoutside="onClickoutside" @select="handleRightMenuSelect" />
     <div class="sr-only" aria-live="polite">
       {{ arrangeAnnouncement }}
     </div>
-    <AppStarter v-model:visible="settingModalShow" :initial-panel="initialSettingsPanel" />
+    <AppStarter v-if="settingHasOpened" v-model:visible="settingModalShow" :initial-panel="initialSettingsPanel" />
     <NBackTop class="rail-back-top" :listen-to="() => scrollContainerRef" :right="16" :bottom="16">
       <div class="back-top-button">
         <SvgIcon icon="lucide-chevron-up" />
       </div>
     </NBackTop>
-    <EditItem v-model:visible="editItemInfoShow" :item-info="editItemInfoData" :item-group-id="currentAddItenIconGroupId" @done="handleEditSuccess" />
+    <EditItem v-if="editItemHasOpened" v-model:visible="editItemInfoShow" :item-info="editItemInfoData" :item-group-id="currentAddItenIconGroupId" @done="handleEditSuccess" />
     <NModal v-model:show="windowShow" :mask-closable="false" preset="card" style="max-width: 1000px;height: 600px" :bordered="false" size="small" role="dialog" aria-modal="true">
       <template #header>
         <div class="flex items-center">
@@ -899,11 +902,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .fixed-element { position: fixed; z-index: 20; right: 16px; bottom: 72px; }.floating-actions { display: flex; flex-direction: column; gap: 8px; }.floating-button, .back-top-button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: var(--x-bg1); color: var(--x-text1); cursor: pointer; }
 .rail-back-top { border-radius: var(--x-r-icon); background: transparent; }.back-top-button { font-size: 22px; }
 .mobile-dock-band, .mobile-dock { display: none; }
-.drawer-group { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 8px 16px; border: 0; border-radius: var(--x-r-small); background: transparent; color: var(--x-text1); text-align: left; }
-.drawer-group.active { background: var(--group-tint); color: var(--group-fg); }
-.drawer-group + .drawer-group { margin-top: 8px; }
-.drawer-count { margin-left: auto; color: var(--x-text2); }
-.rail-brand:focus-visible, .rail-button:focus-visible, .dock-button:focus-visible, .drawer-group:focus-visible, .url-row:focus-visible, .raised-button:focus-visible, .floating-button:focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
+.rail-brand:focus-visible, .rail-button:focus-visible, .dock-button:focus-visible, .url-row:focus-visible, .raised-button:focus-visible, .floating-button:focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
 @keyframes first-card { from { opacity: .2; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .first-load-motion .group-section { animation: first-card 150ms ease-out both; }.group-fade { animation: first-card 150ms ease-out; }
 @media (max-width: 767px) {

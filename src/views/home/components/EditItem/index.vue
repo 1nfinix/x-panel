@@ -170,7 +170,7 @@ watch(() => props.visible, (newValue) => {
   }
 
   getGroupListOptions()
-})
+}, { immediate: true })
 
 function getGroupListOptions() {
   getGroupList<Common.ListResponse<Panel.ItemIconGroup[]>>().then(({ data, code, msg }) => {
