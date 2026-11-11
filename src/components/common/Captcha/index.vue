@@ -1,7 +1,9 @@
-<script setup lang='ts'>
-import { ref } from 'vue'
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import { t } from '@/locales'
-defineProps<{
+import { useThemeColors } from '@/hooks/useTheme'
+
+const props = defineProps<{
   src: string
 }>()
 
@@ -10,16 +12,16 @@ const emit = defineEmits<{
   (event: 'refresh'): void
 }>()
 
-const randCode = ref<string>('0')
+const { isDark } = useThemeColors()
+const refreshCount = ref(0)
+const imageSrc = computed(() => `${props.src}${props.src.includes('?') ? '&' : '?'}theme=${isDark.value ? 'dark' : 'light'}&r=${refreshCount.value}`)
 
 function handleClick() {
-  randCode.value = String(rand(100, 99999))
+  refreshCount.value++
   emit('click')
 }
 
-function rand(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min)) + min
-}
+watch(isDark, handleClick)
 
 defineExpose({
   // 刷新验证码
@@ -30,11 +32,9 @@ defineExpose({
 </script>
 
 <template>
-  <!-- <div> -->
   <button type="button" :aria-label="t('login.refreshCaptcha')" @keydown.enter.stop @click="handleClick">
-    <img :src="`${src}?${randCode}`" :alt="t('login.captchaPlaceholder')">
+    <img :src="imageSrc" :alt="t('login.captchaLabel')">
   </button>
-  <!-- </div> -->
 </template>
 
 <style scoped>

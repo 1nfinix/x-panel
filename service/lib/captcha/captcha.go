@@ -67,13 +67,44 @@ func (s *ExpiringStore) Verify(id, answer string, clear bool) bool {
 
 var Store base64Captcha.Store = NewExpiringStore()
 
+type Palette struct {
+	background color.RGBA
+	line       color.NRGBA
+	glyphs     [4]color.RGBA
+}
+
+func PaletteForTheme(theme string) Palette {
+	if theme == "light" {
+		return Palette{
+			background: color.RGBA{R: 235, G: 238, B: 242, A: 255}, // --x-hover
+			line:       color.NRGBA{R: 110, G: 115, B: 125, A: 42},
+			glyphs: [4]color.RGBA{
+				{R: 0, G: 98, B: 196, A: 255},  // --x-blue-fg
+				{R: 54, G: 52, B: 163, A: 255}, // --x-indigo-fg
+				{R: 27, G: 115, B: 48, A: 255}, // --x-green-fg
+				{R: 184, G: 48, B: 0, A: 255},  // --x-orange-fg
+			},
+		}
+	}
+	return Palette{
+		background: color.RGBA{R: 17, G: 24, B: 39, A: 255},
+		line:       color.NRGBA{R: 150, G: 190, B: 170, A: 42},
+		glyphs: [4]color.RGBA{
+			{R: 248, G: 250, B: 252, A: 255},
+			{R: 209, G: 250, B: 229, A: 255},
+			{R: 207, G: 250, B: 254, A: 255},
+			{R: 254, G: 243, B: 199, A: 255},
+		},
+	}
+}
+
 // 生成图形验证码
-func GenerateCaptchaHandler(id string, width, height int) (string, error) {
+func GenerateCaptchaHandler(id string, width, height int, palette Palette) (string, error) {
 	answer, err := mixedAnswer()
 	if err != nil {
 		return "", err
 	}
-	data, err := renderCaptchaPNG(answer, width, height)
+	data, err := renderCaptchaPNG(answer, width, height, palette)
 	if err != nil {
 		return "", err
 	}
@@ -83,26 +114,19 @@ func GenerateCaptchaHandler(id string, width, height int) (string, error) {
 	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(data), nil
 }
 
-func renderCaptchaPNG(answer string, width, height int) ([]byte, error) {
+func renderCaptchaPNG(answer string, width, height int, palette Palette) ([]byte, error) {
 	if len(answer) != 4 || width < 120 || height < 40 {
 		return nil, errors.New("invalid captcha dimensions or answer")
 	}
 	canvas := image.NewRGBA(image.Rect(0, 0, width, height))
-	draw.Draw(canvas, canvas.Bounds(), image.NewUniform(color.RGBA{R: 17, G: 24, B: 39, A: 255}), image.Point{}, draw.Src)
-	lineColor := color.NRGBA{R: 150, G: 190, B: 170, A: 42}
-	drawFaintLine(canvas, 10, height/5, width-11, height/5+2, lineColor)
-	drawFaintLine(canvas, 13, height*4/5, width-14, height*4/5-2, lineColor)
+	draw.Draw(canvas, canvas.Bounds(), image.NewUniform(palette.background), image.Point{}, draw.Src)
+	drawFaintLine(canvas, 10, height/5, width-11, height/5+2, palette.line)
+	drawFaintLine(canvas, 13, height*4/5, width-14, height*4/5-2, palette.line)
 
 	face := truetype.NewFace(base64Captcha.DefaultEmbeddedFonts.LoadFontByName("fonts/wqy-microhei.ttc"), &truetype.Options{
 		Size: 28, DPI: 72, Hinting: font.HintingFull,
 	})
 	defer face.Close()
-	colors := []color.RGBA{
-		{R: 248, G: 250, B: 252, A: 255},
-		{R: 209, G: 250, B: 229, A: 255},
-		{R: 207, G: 250, B: 254, A: 255},
-		{R: 254, G: 243, B: 199, A: 255},
-	}
 	const margin = 12
 	slotWidth := (width - 2*margin) / 4
 	for i, ch := range answer {
@@ -110,13 +134,13 @@ func renderCaptchaPNG(answer string, width, height int) ([]byte, error) {
 		bounds, _ := font.BoundString(face, glyph)
 		centerX := margin + i*slotWidth + slotWidth/2
 		centerY := height / 2
-		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(colors))))
+		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(palette.glyphs))))
 		if err != nil {
 			return nil, err
 		}
 		drawer := font.Drawer{
 			Dst:  canvas,
-			Src:  image.NewUniform(colors[index.Int64()]),
+			Src:  image.NewUniform(palette.glyphs[index.Int64()]),
 			Face: face,
 			Dot: fixed.Point26_6{
 				X: fixed.I(centerX) - (bounds.Min.X+bounds.Max.X)/2,

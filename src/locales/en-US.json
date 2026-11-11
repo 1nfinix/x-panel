@@ -277,7 +277,11 @@
     "credentialsInvalid": "Incorrect username or password",
     "networkError": "Connection failed. Try again.",
     "refreshCaptcha": "Click to refresh captcha",
-    "captchaPlaceholder": "Enter the four characters"
+    "captchaPlaceholder": "Enter the four characters",
+    "captchaLabel": "Captcha",
+    "captchaShortPlaceholder": "Code",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "panelHome": {
     "changeToLanModel": "Switch to LAN mode",

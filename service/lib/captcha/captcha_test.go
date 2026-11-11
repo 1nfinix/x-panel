@@ -30,7 +30,7 @@ func TestExpiringStore(t *testing.T) {
 func TestGeneratedAnswerHasLettersAndDigits(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		id := string(rune('a' + i))
-		if _, err := GenerateCaptchaHandler(id, 160, 48); err != nil {
+		if _, err := GenerateCaptchaHandler(id, 160, 44, PaletteForTheme("dark")); err != nil {
 			t.Fatal(err)
 		}
 		answer := Store.Get(id, true)
