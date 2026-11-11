@@ -94,6 +94,9 @@ const systemMonitorVisible = computed(() => panelState.panelConfig.systemMonitor
   && ((panelState.panelConfig.systemMonitorPublicVisitModeShow && authStore.visitMode === VisitMode.VISIT_MODE_PUBLIC)
     || authStore.visitMode === VisitMode.VISIT_MODE_LOGIN))
 const overviewVisible = computed(() => panelState.panelConfig.clockShow || systemMonitorVisible.value)
+const surfaceTransparency = computed(() => Math.min(60, Math.max(0, panelState.panelConfig.surfaceTransparency ?? 0)))
+const glassEnabled = computed(() => !!panelState.panelConfig.showWallpaper && surfaceTransparency.value > 0)
+const surfaceAlpha = computed(() => (100 - surfaceTransparency.value) / 100)
 const railRef = ref<HTMLElement | null>(null)
 const railFocusKey = ref<string>('all')
 const moreDrawerShow = ref(false)
@@ -630,7 +633,7 @@ function handleAddItem(itemIconGroupId?: number) {
 </script>
 
 <template>
-  <div class="sun-main">
+  <div class="sun-main" :class="{ 'glass-on': glassEnabled }" :style="glassEnabled ? { '--x-surface-alpha': surfaceAlpha, '--x-surface-hover-alpha': Math.min(1, surfaceAlpha + 0.15) } : undefined">
     <div v-if="panelState.panelConfig.showWallpaper" class="wallpaper" :style="{ filter: `blur(${panelState.panelConfig.backgroundBlur}px)`, backgroundImage: wallpaperLoaded ? `url(${wallpaperSource})` : 'none' }" />
     <div v-if="panelState.panelConfig.showWallpaper" class="wallpaper-mask" :style="{ backgroundColor: `rgba(18,18,20,${Math.max(0.35, panelState.panelConfig.backgroundMaskNumber ?? 0.35)})` }" />
     <div ref="scrollContainerRef" class="main-scroll">
@@ -905,6 +908,41 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .fixed-element { position: fixed; z-index: 20; right: 16px; bottom: 72px; }.floating-actions { display: flex; flex-direction: column; gap: 8px; }.floating-button, .back-top-button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--x-r-icon); background: var(--x-bg1); color: var(--x-text1); cursor: pointer; }
 .rail-back-top { border-radius: var(--x-r-icon); background: transparent; }.back-top-button { font-size: 22px; }
 .mobile-dock-band, .mobile-dock { display: none; }
+.glass-on .group-rail, .glass-on .mobile-dock, .glass-on .content-groups:not(.single-group) .group-section, .glass-on .single-group .url-row, .glass-on .overview-system, .glass-on .empty-list, .glass-on .floating-button, .glass-on .back-top-button, .glass-on .list-filter, .glass-on .quiet-button:not(.n-button--primary-type), .glass-on .import-button {
+  background: color-mix(in srgb, var(--x-bg1) calc(var(--x-surface-alpha) * 100%), transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+.glass-on .mobile-dock-band { background: transparent; }
+.glass-on .rail-brand { background: color-mix(in srgb, var(--x-bg2) calc(var(--x-surface-alpha) * 100%), transparent); }
+.glass-on .rail-button:hover, .glass-on .group-add:hover { background: color-mix(in srgb, var(--x-hover) calc(var(--x-surface-hover-alpha) * 100%), transparent); }
+.glass-on .content-groups:not(.single-group) .url-row:hover, .glass-on .content-groups:not(.single-group) .url-row:focus-visible {
+  background: color-mix(in srgb, var(--x-bg2) calc(var(--x-surface-hover-alpha) * 100%), transparent);
+}
+.glass-on .single-group .url-row:hover, .glass-on .single-group .url-row:focus-visible, .glass-on .quiet-button:not(.n-button--primary-type):hover, .glass-on .import-button:hover, .glass-on .floating-button:hover, .glass-on .back-top-button:hover {
+  background: color-mix(in srgb, var(--x-hover) calc(var(--x-surface-hover-alpha) * 100%), transparent);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-on .group-rail, .glass-on .mobile-dock, .glass-on .content-groups:not(.single-group) .group-section, .glass-on .single-group .url-row, .glass-on .overview-system, .glass-on .empty-list, .glass-on .floating-button, .glass-on .back-top-button, .glass-on .list-filter, .glass-on .quiet-button:not(.n-button--primary-type), .glass-on .import-button {
+    background: color-mix(in srgb, var(--x-bg1) calc(max(0.8, var(--x-surface-alpha)) * 100%), transparent);
+  }
+  .glass-on .rail-brand { background: color-mix(in srgb, var(--x-bg2) calc(max(0.8, var(--x-surface-alpha)) * 100%), transparent); }
+  .glass-on .rail-button:hover, .glass-on .group-add:hover, .glass-on .content-groups:not(.single-group) .url-row:hover, .glass-on .content-groups:not(.single-group) .url-row:focus-visible, .glass-on .single-group .url-row:hover, .glass-on .single-group .url-row:focus-visible, .glass-on .quiet-button:not(.n-button--primary-type):hover, .glass-on .import-button:hover, .glass-on .floating-button:hover, .glass-on .back-top-button:hover {
+    background: color-mix(in srgb, var(--x-hover) calc(max(0.8, var(--x-surface-hover-alpha)) * 100%), transparent);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-on .group-rail, .glass-on .mobile-dock, .glass-on .content-groups:not(.single-group) .group-section, .glass-on .single-group .url-row, .glass-on .overview-system, .glass-on .empty-list, .glass-on .floating-button, .glass-on .back-top-button, .glass-on .list-filter, .glass-on .quiet-button:not(.n-button--primary-type), .glass-on .import-button {
+    background: var(--x-bg1);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .glass-on .content-groups:not(.single-group) .url-row:hover, .glass-on .content-groups:not(.single-group) .url-row:focus-visible { background: var(--x-bg2); }
+  .glass-on .rail-brand { background: var(--x-bg2); }
+  .glass-on .rail-button:hover, .glass-on .group-add:hover { background: var(--x-hover); }
+  .glass-on .single-group .url-row:hover, .glass-on .single-group .url-row:focus-visible, .glass-on .quiet-button:not(.n-button--primary-type):hover, .glass-on .import-button:hover, .glass-on .floating-button:hover, .glass-on .back-top-button:hover { background: var(--x-hover); }
+  .glass-on .mobile-dock-band { background: var(--x-bg0); }
+}
 .rail-brand:focus-visible, .rail-button:focus-visible, .dock-button:focus-visible, .url-row:focus-visible, .raised-button:focus-visible, .floating-button:focus-visible { outline: 3px solid var(--x-focus); outline-offset: 2px; }
 @keyframes first-card { from { opacity: .2; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .first-load-motion .group-section { animation: first-card 150ms ease-out both; }.group-fade { animation: first-card 150ms ease-out; }

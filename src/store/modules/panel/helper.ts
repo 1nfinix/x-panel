@@ -12,6 +12,7 @@ export function defaultStatePanelConfig(): Panel.panelConfig {
     backgroundMaskNumber: 0.55,
     autoWallpaper: true,
     showWallpaper: false,
+    surfaceTransparency: 0,
     iconStyle: PanelPanelConfigStyleEnum.icon,
     iconTextColor: '#ffffff',
     iconTextInfoHideDescription: false,
@@ -44,7 +45,7 @@ export function defaultState(): Panel.State {
 export function getLocalState(): Panel.State {
   const localState = ss.get(LOCAL_NAME)
   const state = { ...defaultState(), ...localState }
-  state.panelConfig = withoutLegacyPageMargins(state.panelConfig)
+  state.panelConfig = withoutLegacyPageMargins({ ...defaultStatePanelConfig(), ...state.panelConfig })
   return state
 }
 

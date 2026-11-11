@@ -235,6 +235,16 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
             <NSlider v-model:value="panelState.panelConfig.backgroundMaskNumber" :step="0.1" :max="1" />
           </div>
         </div>
+        <div class="flex items-center mt-3">
+          <span id="style-surface-transparency-label" class="mr-3">{{ $t('apps.baseSettings.surfaceTransparency') }}</span>
+          <div role="group" aria-labelledby="style-surface-transparency-label" class="w-full max-w-[200px]">
+            <NSlider v-model:value="panelState.panelConfig.surfaceTransparency" :min="0" :max="60" :step="5" />
+          </div>
+          <span class="ml-3 tabular-nums">{{ panelState.panelConfig.surfaceTransparency ?? 0 }}%</span>
+        </div>
+        <p class="mt-1 text-[12px] text-text2">
+          {{ $t('apps.baseSettings.surfaceTransparencyHint') }}
+        </p>
       </div>
     </NCard>
 

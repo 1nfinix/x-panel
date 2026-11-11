@@ -72,6 +72,8 @@
       "wallpaper": "Wallpaper",
       "showWallpaper": "Show wallpaper",
       "autoWallpaper": "Automatic wallpaper",
+      "surfaceTransparency": "Card transparency",
+      "surfaceTransparencyHint": "Applies to the rail, group cards and site cards only when wallpaper is shown",
       "fillFavicons": "Fill missing icons",
       "findCandidates": "Find missing icons",
       "fillConfirm": "Fill icons for the selected sites?",
