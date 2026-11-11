@@ -892,7 +892,7 @@ body, html { overflow: hidden; background: var(--x-bg0); color: var(--x-text1); 
 .drop-target { display: grid; place-items: center; height: 52px; border-radius: var(--x-r-glyph); background: var(--x-bg2); color: var(--x-text2); }
 .view-all { display: flex; align-items: center; min-height: 44px; margin: 4px 0 0 8px; padding: 0; background: transparent; color: var(--x-link); font-size: 13px; }
 .view-all:hover { background: transparent; text-decoration: underline; }
-.empty-list { padding: 48px; color: var(--x-text2); text-align: center; }
+.empty-list { margin-top: 40px; padding: 48px 24px; border-radius: var(--x-r-card); background: var(--x-bg1); color: var(--x-text2); text-align: center; }
 .empty-hint { margin-top: 8px; font-size: 13px; }
 .clear-filter { margin-top: 16px; background: var(--x-bg1); }
 .footer { margin: 40px 0 0; color: var(--x-text2); font-size: 13px; }.footer.on-wallpaper, .footer.on-wallpaper :deep(*) { color: #fff; }

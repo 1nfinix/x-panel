@@ -202,9 +202,6 @@ function getGroupListOptions() {
     <div class="edit-link-body">
       <NForm ref="formRef" :model="model" :rules="rules" class="edit-link-form">
         <div class="edit-link-section">
-          <h3 class="edit-link-section-title">
-            {{ $t('iconItem.basicInfo') }}
-          </h3>
           <NGrid cols="2" :x-gap="16" :y-gap="16" item-responsive>
             <NGridItem span="2 500:1">
               <NFormItem path="itemIconGroupId" :label="t('iconItem.iconGroup')">
@@ -220,17 +217,11 @@ function getGroupListOptions() {
         </div>
 
         <div class="edit-link-section">
-          <h3 class="edit-link-section-title">
-            {{ $t('common.icon') }}
-          </h3>
-          <NFormItem path="icon">
+          <NFormItem path="icon" :label="$t('common.icon')">
             <IconEditor v-model:item-icon="model.icon" :default-background="defaultIconBackground" />
           </NFormItem>
         </div>
         <div class="edit-link-section">
-          <h3 class="edit-link-section-title">
-            {{ $t('iconItem.addresses') }}
-          </h3>
           <NFormItem path="url" :label="$t('iconItem.url')" :feedback="saveError" :validation-status="saveError ? 'error' : undefined">
             <div class="address-row">
               <NInput v-model:value="model.url" type="text" :maxlength="1000" placeholder="http(s)://" :input-props="{ 'aria-label': $t('iconItem.url') }" @blur="autoFetchIcon" />
@@ -255,9 +246,6 @@ function getGroupListOptions() {
           </NFormItem>
         </div>
         <div class="edit-link-section">
-          <h3 class="edit-link-section-title">
-            {{ $t('iconItem.otherInfo') }}
-          </h3>
           <NFormItem path="description" :label="$t('common.description')">
             <NInput v-model:value="model.description" type="text" show-count :maxlength="100" :input-props="{ 'aria-label': $t('common.description') }" />
           </NFormItem>
@@ -283,7 +271,6 @@ function getGroupListOptions() {
 <style>
 .edit-link-body { max-height: min(600px, 65vh); overflow: auto; padding: 4px; }
 .edit-link-section + .edit-link-section { margin-top: 24px; }
-.edit-link-section-title { margin-bottom: 16px; color: var(--x-text1); font-size: 13px; font-weight: 600; }
 .edit-link-section .n-form-item + .n-form-item { margin-top: 16px; }
 .edit-link-form .n-form-item-label { color: var(--x-text1); font-size: 13px; font-weight: 600; }
 .edit-link-form .n-form-item-label__asterisk { color: var(--x-red-fg) !important; }
