@@ -75,7 +75,7 @@ const handleUploadFinish = ({
 </script>
 
 <template>
-  <div>
+  <div class="icon-editor">
     <div class="mb-3">
       <NRadio
         :checked="itemIconInfo.itemType === 1 "
@@ -105,23 +105,21 @@ const handleUploadFinish = ({
       </NRadio>
     </div>
 
-    <div class=" h-[100px]">
-      <div class="flex">
-        <div>
-          <div class="bg-bg1 overflow-hidden rounded-small transparent-grid">
-            <ItemIcon :item-icon="itemIconInfo" />
-          </div>
+    <div>
+      <div class="icon-editor-row">
+        <div class="icon-preview">
+          <ItemIcon :item-icon="itemIconInfo" :size="64" />
         </div>
         <!-- 文字 -->
-        <div class="ml-5">
+        <div class="icon-editor-fields">
           <!-- <NImage :src="model.icon" preview-disabled /> -->
           <div v-if="itemIconInfo.itemType === 1">
-            <NInput v-model:value="itemIconInfo.text" class="mb-1" size="small" type="text" :input-props="{ 'aria-label': $t('common.icon') }" @input="handleChange" />
+            <NInput v-model:value="itemIconInfo.text" class="mb-1" type="text" :input-props="{ 'aria-label': $t('common.icon') }" @input="handleChange" />
           </div>
 
           <div v-if="itemIconInfo.itemType === 3">
             <div>
-              <NInput v-model:value="itemIconInfo.text" class="mb-1" size="small" type="text" :placeholder="$t('iconItem.inputIconName')" @input="handleChange" />
+              <NInput v-model:value="itemIconInfo.text" class="mb-1" type="text" :placeholder="$t('iconItem.inputIconName')" @input="handleChange" />
 
               <NButton text type="primary">
                 <a target="_blank" href="https://icon-sets.iconify.design/">{{ $t('iconItem.onlineIconLibrary') }}</a>
@@ -131,7 +129,7 @@ const handleUploadFinish = ({
 
           <!-- 图片 -->
           <div v-if="itemIconInfo.itemType === 2">
-            <NInput v-model:value="itemIconInfo.src" class="mb-1 w-full" size="small" type="text" :placeholder="$t('iconItem.inputIconUrlOrUpload')" :input-props="{ 'aria-label': $t('iconItem.inputIconUrlOrUpload') }" @input="handleChange" />
+            <NInput v-model:value="itemIconInfo.src" class="mb-1 w-full" type="text" :placeholder="$t('iconItem.inputIconUrlOrUpload')" :input-props="{ 'aria-label': $t('iconItem.inputIconUrlOrUpload') }" @input="handleChange" />
             <NUpload
               action="/api/file/uploadImg"
               :show-file-list="false"
@@ -149,7 +147,7 @@ const handleUploadFinish = ({
         </div>
       </div>
 
-      <div class="flex items-center mt-3">
+      <div class="flex items-center mt-4">
         <div class="w-auto text-text2 mr-3">
           {{ $t('common.backgroundColor') }}
         </div>
@@ -175,5 +173,9 @@ const handleUploadFinish = ({
 </template>
 
 <style scoped>
-.transparent-grid { background: var(--x-ph); }
+.icon-editor { width: 100%; }
+.icon-editor-row { display: flex; align-items: flex-start; gap: 16px; width: 100%; }
+.icon-preview { flex: none; width: 64px; height: 64px; overflow: hidden; border-radius: var(--x-r-small); background: var(--x-hover); }
+.icon-editor-fields { flex: 1; min-width: 0; }
+.icon-editor-fields :deep(.n-input) { width: 100%; }
 </style>

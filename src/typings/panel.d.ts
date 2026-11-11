@@ -51,8 +51,6 @@ declare namespace Panel {
         clockShowSecond?:boolean
         clockShow?:boolean
         clockColor?:string
-        marginTop?:number
-        marginBottom?:number
         maxWidth?:number
         maxWidthUnit:string
         marginX?:number

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { NDropdown, useDialog, useMessage } from 'naive-ui'
 import { type MonitorData, MonitorType } from './typings'
@@ -8,6 +8,7 @@ import { deleteByIndex, getAll, saveAll } from './common'
 import { getCpuState, getDiskStateByPath, getMemonyState } from '@/api/system/systemMonitor'
 import { SvgIcon } from '@/components/common'
 import { t } from '@/locales'
+import { confirmDelete } from '@/utils/confirmDelete'
 import { useThemeColors } from '@/hooks/useTheme'
 
 interface MonitorGroup extends Panel.ItemIconGroup {
@@ -239,37 +240,22 @@ function handleRightMenuSelect(key: string | number) {
   switch (key) {
     case 'delete':
     {
-      const deleteError = ref('')
-      const confirmDialog = dialog.warning({
-        title: t('common.warning'),
-        content: () => h('div', [h('p', t('common.deleteConfirm')), deleteError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, deleteError.value) : null]),
-        positiveText: t('common.confirm'),
-        negativeText: t('common.cancel'),
-        onPositiveClick: async () => {
-          if (monitorDatas.value.length <= 1) {
-            deleteError.value = t('common.leastOne')
-            return false
-          }
+      confirmDelete(dialog, {
+        object: t('common.metricObject'),
+        name: currentRightSelectIndex.value === null ? '' : metricLabel(monitorDatas.value[currentRightSelectIndex.value]),
+        onDelete: async () => {
+          if (monitorDatas.value.length <= 1)
+            return t('common.leastOne')
           if (currentRightSelectIndex.value === null)
-            return false
-          confirmDialog.loading = true
-          deleteError.value = ''
+            return t('common.deleteFail')
           try {
             const deleted = await deleteByIndex(currentRightSelectIndex.value)
-            if (!deleted) {
-              deleteError.value = t('common.deleteFail')
-              return false
-            }
+            if (!deleted)
+              return t('common.deleteFail')
             await getData()
             ms.success(t('common.deleteSuccess'))
           }
-          catch {
-            deleteError.value = t('common.deleteFail')
-            return false
-          }
-          finally {
-            confirmDialog.loading = false
-          }
+          catch { return t('common.deleteFail') }
         },
       })
 
@@ -306,7 +292,7 @@ function handleRightMenuSelect(key: string | number) {
       </div>
     </VueDraggable>
     <NDropdown v-if="allowEdit" trigger="click" placement="bottom-end" :options="actionOptions" @select="handleAction">
-      <button class="monitor-more" type="button" :aria-label="t('deskModule.systemMonitor.systemState')" :disabled="sortSaving" :title="sortError || dataError || t('deskModule.systemMonitor.systemState')">
+      <button class="monitor-more" type="button" :aria-label="t('deskModule.systemMonitor.systemStateActions')" :disabled="sortSaving" :title="sortError || dataError || t('deskModule.systemMonitor.systemStateActions')">
         <SvgIcon icon="lucide-ellipsis" />
       </button>
     </NDropdown>

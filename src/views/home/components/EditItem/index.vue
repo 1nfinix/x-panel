@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, defineEmits, defineProps, ref, watch } from 'vue'
 import type { FormInst, FormRules } from 'naive-ui'
-import { NButton, NForm, NFormItem, NGrid, NGridItem, NInput, NInputGroup, NModal, NSelect, useMessage } from 'naive-ui'
+import { NButton, NForm, NFormItem, NGrid, NGridItem, NInput, NModal, NSelect, useMessage } from 'naive-ui'
 import IconEditor from './IconEditor.vue'
 import { edit, getSiteFavicon } from '@/api/panel/itemIcon'
 import { getList as getGroupList } from '@/api/panel/itemIconGroup'
 import { t } from '@/locales'
 import { groupTints } from '@/utils/groupColors'
+import { SvgIcon } from '@/components/common'
 
 interface Props {
   visible: boolean
@@ -169,7 +170,7 @@ watch(() => props.visible, (newValue) => {
   }
 
   getGroupListOptions()
-})
+}, { immediate: true })
 
 function getGroupListOptions() {
   getGroupList<Common.ListResponse<Panel.ItemIconGroup[]>>().then(({ data, code, msg }) => {
@@ -197,55 +198,88 @@ function getGroupListOptions() {
 </script>
 
 <template>
-  <NModal v-model:show="show" preset="card" size="small" style="width: 600px;border-radius: var(--x-r-card);" :title="itemInfo ? t('iconItem.edit') : t('iconItem.add')">
-    <div class="h-[600px] overflow-auto p-1">
-      <NForm ref="formRef" :model="model" :rules="rules">
-        <NGrid cols="2" :x-gap="10" item-responsive>
-          <NGridItem span="2 500:1">
-            <NFormItem path="itemIconGroupId" :label="t('iconItem.iconGroup')">
-              <NSelect v-model:value="model.itemIconGroupId" :options="itemIconGroupOptions" :aria-label="t('iconItem.iconGroup')" />
-            </NFormItem>
-          </NGridItem>
-          <NGridItem span="2 500:1">
-            <NFormItem path="title" :label="$t('common.title')">
-              <NInput v-model:value="model.title" type="text" show-count :maxlength="20" :input-props="{ 'aria-label': $t('common.title') }" />
-            </NFormItem>
-          </NGridItem>
-        </NGrid>
+  <NModal v-model:show="show" class="edit-link-modal" preset="card" size="small" style="width: min(600px, calc(100vw - 32px));border-radius: var(--x-r-card);" :title="itemInfo ? t('iconItem.edit') : t('iconItem.add')">
+    <div class="edit-link-body">
+      <NForm ref="formRef" :model="model" :rules="rules" class="edit-link-form">
+        <div class="edit-link-section">
+          <NGrid cols="2" :x-gap="16" :y-gap="16" item-responsive>
+            <NGridItem span="2 500:1">
+              <NFormItem path="itemIconGroupId" :label="t('iconItem.iconGroup')">
+                <NSelect v-model:value="model.itemIconGroupId" :options="itemIconGroupOptions" :aria-label="t('iconItem.iconGroup')" />
+              </NFormItem>
+            </NGridItem>
+            <NGridItem span="2 500:1">
+              <NFormItem path="title" :label="$t('common.title')">
+                <NInput v-model:value="model.title" type="text" show-count :maxlength="20" :input-props="{ 'aria-label': $t('common.title') }" />
+              </NFormItem>
+            </NGridItem>
+          </NGrid>
+        </div>
 
-        <NFormItem path="icon" :label="$t('common.icon')">
-          <IconEditor v-model:item-icon="model.icon" :default-background="defaultIconBackground" />
-        </NFormItem>
-        <NFormItem path="url" :label="$t('iconItem.url')" :feedback="saveError" :validation-status="saveError ? 'error' : undefined">
-          <!-- <NSelect :style="{ width: '100px' }" :options="urlProtocolOptions" /> -->
-          <NInputGroup>
-            <NInput v-model:value="model.url" type="text" :maxlength="1000" placeholder="http(s)://" :input-props="{ 'aria-label': $t('iconItem.url') }" @blur="autoFetchIcon" />
-            <NButton :disabled="!model.url" :loading="getIconLoading[0]" @click="getIconByUrl(model.url, 0)">
-              {{ $t('iconItem.getIcon') }}
-            </NButton>
-          </NInputGroup>
-        </NFormItem>
-        <NFormItem path="lanUrl" :label="$t('iconItem.lanUrl')">
-          <NInputGroup>
-            <NInput v-model:value="model.lanUrl" type="text" :maxlength="1000" :placeholder="$t('iconItem.lanUrlInputPlaceholder')" :input-props="{ 'aria-label': $t('iconItem.lanUrl') }" />
-            <NButton :disabled="!model.lanUrl" :loading="getIconLoading[1]" @click="getIconByUrl(model.lanUrl || '', 1)">
-              {{ $t('iconItem.getIcon') }}
-            </NButton>
-          </NInputGroup>
-        </NFormItem>
-        <NFormItem path="description" :label="$t('common.description')">
-          <NInput v-model:value="model.description" type="text" show-count :maxlength="100" :input-props="{ 'aria-label': $t('common.description') }" />
-        </NFormItem>
-        <NFormItem path="openMethod" :label="$t('iconItem.openMethod')">
-          <NSelect v-model:value="model.openMethod" :options="options" :aria-label="$t('iconItem.openMethod')" />
-        </NFormItem>
+        <div class="edit-link-section">
+          <NFormItem path="icon" :label="$t('common.icon')">
+            <IconEditor v-model:item-icon="model.icon" :default-background="defaultIconBackground" />
+          </NFormItem>
+        </div>
+        <div class="edit-link-section">
+          <NFormItem path="url" :label="$t('iconItem.url')" :feedback="saveError" :validation-status="saveError ? 'error' : undefined">
+            <div class="address-row">
+              <NInput v-model:value="model.url" type="text" :maxlength="1000" placeholder="http(s)://" :input-props="{ 'aria-label': $t('iconItem.url') }" @blur="autoFetchIcon" />
+              <NButton class="fetch-icon-button" secondary :disabled="!model.url" :loading="getIconLoading[0]" @click="getIconByUrl(model.url, 0)">
+                <template #icon>
+                  <SvgIcon icon="lucide-image" />
+                </template>
+                {{ $t('iconItem.getIcon') }}
+              </NButton>
+            </div>
+          </NFormItem>
+          <NFormItem path="lanUrl" :label="$t('iconItem.lanUrl')">
+            <div class="address-row">
+              <NInput v-model:value="model.lanUrl" type="text" :maxlength="1000" :placeholder="$t('iconItem.lanUrlInputPlaceholder')" :input-props="{ 'aria-label': $t('iconItem.lanUrl') }" />
+              <NButton class="fetch-icon-button" secondary :disabled="!model.lanUrl" :loading="getIconLoading[1]" @click="getIconByUrl(model.lanUrl || '', 1)">
+                <template #icon>
+                  <SvgIcon icon="lucide-image" />
+                </template>
+                {{ $t('iconItem.getIcon') }}
+              </NButton>
+            </div>
+          </NFormItem>
+        </div>
+        <div class="edit-link-section">
+          <NFormItem path="description" :label="$t('common.description')">
+            <NInput v-model:value="model.description" type="text" show-count :maxlength="100" :input-props="{ 'aria-label': $t('common.description') }" />
+          </NFormItem>
+          <NFormItem path="openMethod" :label="$t('iconItem.openMethod')">
+            <NSelect v-model:value="model.openMethod" :options="options" :aria-label="$t('iconItem.openMethod')" />
+          </NFormItem>
+        </div>
       </NForm>
     </div>
 
     <template #footer>
-      <NButton type="primary" :loading="submitLoading" style="float: right;" @click="handleValidateButtonClick">
-        {{ $t('common.save') }}
-      </NButton>
+      <div class="edit-link-actions">
+        <NButton secondary :disabled="submitLoading" @click="show = false">
+          {{ $t('common.cancel') }}
+        </NButton><NButton type="primary" :loading="submitLoading" @click="handleValidateButtonClick">
+          {{ $t('common.save') }}
+        </NButton>
+      </div>
     </template>
   </NModal>
 </template>
+
+<style>
+.edit-link-body { max-height: min(600px, 65vh); overflow: auto; padding: 4px; }
+.edit-link-section + .edit-link-section { margin-top: 24px; }
+.edit-link-section .n-form-item + .n-form-item { margin-top: 16px; }
+.edit-link-form .n-form-item-label { color: var(--x-text1); font-size: 13px; font-weight: 600; }
+.edit-link-form .n-form-item-label__asterisk { color: var(--x-red-fg) !important; }
+.edit-link-form .n-form-item-feedback-wrapper, .edit-link-form .n-input__count { color: var(--x-text2); font-size: 12px; }
+.address-row { display: flex; align-items: flex-start; gap: 8px; width: 100%; }
+.address-row .n-input { flex: 1; min-width: 0; }
+.fetch-icon-button.n-button, .edit-link-actions .n-button { height: 44px; border-radius: var(--x-r-pill); }
+.fetch-icon-button.n-button { flex: none; }
+.fetch-icon-button .svg-icon { width: 18px; height: 18px; }
+.edit-link-actions { display: flex; justify-content: flex-end; gap: 8px; }
+@media (max-width: 480px) { .address-row { flex-wrap: wrap; }.address-row .n-input { flex-basis: 100%; } }
+</style>

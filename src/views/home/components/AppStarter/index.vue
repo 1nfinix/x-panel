@@ -20,7 +20,7 @@ const emit = defineEmits<{
   (e: 'update:visible', visible: boolean): void
 }>()
 
-const componentName = ref('UserInfo')
+const componentName = ref(props.visible ? props.initialPanel ?? 'UserInfo' : 'UserInfo')
 watch(() => props.visible, (visible) => {
   if (visible)
     componentName.value = props.initialPanel ?? 'UserInfo'

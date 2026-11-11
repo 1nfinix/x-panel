@@ -7,6 +7,7 @@ import { getPublicVisitUser, setPublicVisitUser, deletes as usersDeletes, getLis
 import { SvgIcon } from '@/components/common'
 import { useAuthStore } from '@/store'
 import { t } from '@/locales'
+import { confirmDelete } from '@/utils/confirmDelete'
 import { AdminAuthRole } from '@/enums/admin'
 
 const message = useMessage()
@@ -113,31 +114,15 @@ const createColumns = ({
                 break
               case 'delete':
               {
-                const deleteError = ref('')
-                const confirmDialog = dialog.warning({
-                  title: t('common.warning'),
-                  content: () => h('div', [h('p', t('adminSettingUsers.deletePromptContent', { name: row.name, username: row.username })), deleteError.value ? h('p', { style: 'color:var(--x-red-fg);margin-top:12px' }, deleteError.value) : null]),
-                  positiveText: t('common.confirm'),
-                  negativeText: t('common.cancel'),
-                  onPositiveClick: async () => {
-                    confirmDialog.loading = true
-                    deleteError.value = ''
-                    try {
-                      const { code, msg } = await usersDeletes([row.id as number])
-                      if (code !== 0) {
-                        deleteError.value = msg || t('common.deleteFail')
-                        return false
-                      }
-                      message.success(t('common.deleteSuccess'))
-                      await getList(null)
-                    }
-                    catch {
-                      deleteError.value = t('common.deleteFail')
-                      return false
-                    }
-                    finally {
-                      confirmDialog.loading = false
-                    }
+                confirmDelete(dialog, {
+                  object: t('common.accountObject'),
+                  name: row.name || row.username || '',
+                  onDelete: async () => {
+                    const { code, msg } = await usersDeletes([row.id as number])
+                    if (code !== 0)
+                      return msg || t('common.deleteFail')
+                    message.success(t('common.deleteSuccess'))
+                    await getList(null)
                   },
                 })
                 break

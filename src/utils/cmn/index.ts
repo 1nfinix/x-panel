@@ -1,4 +1,3 @@
-import moment from 'moment'
 import { h } from 'vue'
 import type { NotificationReactive } from 'naive-ui'
 import { NButton, createDiscreteApi } from 'naive-ui'
@@ -6,6 +5,7 @@ import { useAuthStore, useNoticeStore, useUserStore } from '@/store'
 import { getAuthInfo } from '@/api/system/user'
 import type { VisitMode } from '@/enums/auth'
 import { getListByDisplayType as getListByDisplayTypeApi } from '@/api/notice'
+import { formatDate } from '@/utils/formatDate'
 
 const noticeStore = useNoticeStore()
 const userStore = useUserStore()
@@ -21,11 +21,11 @@ export function buildTimeString(format?: string): string {
   if (!format)
     format = 'YYYY-MM-DD HH:mm:ss'
 
-  return moment().format(format)
+  return formatDate(new Date(), format)
 }
 
 export function timeFormat(timeString?: string) {
-  return moment(timeString).format('YYYY-MM-DD HH:mm:ss')
+  return formatDate(timeString === undefined ? new Date() : new Date(timeString))
 }
 
 /**

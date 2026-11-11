@@ -304,22 +304,6 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
             </div>
           </div>
         </NGridItem>
-        <NGridItem span="12 400:12">
-          <div class="flex items-center mt-3">
-            <span id="style-top-margin-label" class="mr-3">{{ $t('apps.baseSettings.topMargin') }} (%)</span>
-            <div role="group" aria-labelledby="style-top-margin-label" class="w-full max-w-[200px]">
-              <NSlider v-model:value="panelState.panelConfig.marginTop" :step="1" :max="50" />
-            </div>
-          </div>
-        </NGridItem>
-        <NGridItem span="12 400:6">
-          <div class="flex items-center mt-3">
-            <span id="style-bottom-margin-label" class="mr-3">{{ $t('apps.baseSettings.bottomMargin') }} (%)</span>
-            <div role="group" aria-labelledby="style-bottom-margin-label" class="w-full max-w-[200px]">
-              <NSlider v-model:value="panelState.panelConfig.marginBottom" :step="1" :max="50" />
-            </div>
-          </div>
-        </NGridItem>
       </NGrid>
     </NCard>
 

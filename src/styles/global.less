@@ -95,6 +95,13 @@ html { caret-color: var(--x-primary); accent-color: var(--x-primary); font-varia
 .n-card { border: 0 !important; box-shadow: none !important; }
 .n-modal { border: 0 !important; box-shadow: var(--x-shadow-overlay) !important; }
 .n-dialog, .n-drawer { box-shadow: var(--x-shadow-overlay) !important; border-radius: var(--x-r-card) !important; }
+.delete-confirm .n-dialog__icon { color: var(--x-red-fg) !important; }
+.delete-confirm .n-dialog__action { display: flex; justify-content: flex-end; gap: 8px; }
+.delete-confirm .n-dialog__action .n-button { height: var(--x-control); min-width: 88px; border-radius: var(--x-r-pill); }
+.delete-confirm .n-dialog__action .n-button--error-type { background: var(--x-red-fg) !important; color: var(--x-inverse-fg) !important; }
+.delete-confirm .n-dialog__action .n-button--error-type:hover { background: var(--x-danger-hover) !important; color: var(--x-red-fg) !important; }
+.delete-confirm-detail { margin-top: 8px; color: var(--x-text2); font-size: 13px; }
+.delete-confirm-error { margin-top: 12px; color: var(--x-red-fg); font-size: 13px; }
 .n-drawer-content { border-radius: var(--x-r-card) !important; }
 .n-modal.n-card { background: var(--x-bg0) !important; border-radius: var(--x-r-card) !important; }
 .n-popover, .n-dropdown-menu { border: 0 !important; box-shadow: var(--x-shadow-overlay) !important; }
