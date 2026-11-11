@@ -51,8 +51,6 @@ declare namespace Panel {
         clockShowSecond?:boolean
         clockShow?:boolean
         clockColor?:string
-        searchBoxShow?:boolean
-        searchBoxSearchIcon?:boolean
         marginTop?:number
         marginBottom?:number
         maxWidth?:number
@@ -67,7 +65,6 @@ declare namespace Panel {
 
     interface userConfig{
         panel:panelConfig
-        searchEngine?:any
     }
 
     interface ItemIconSortRequest{

@@ -162,20 +162,6 @@ onBeforeUnmount(() => clearTimeout(savedTimer))
 
     <NCard class="mt-3" size="small">
       <div class="text-text1 text-[17px] font-medium mb-2">
-        {{ $t('apps.baseSettings.searchBar') }}
-      </div>
-      <div class="flex items-center mt-1">
-        <span class="mr-3">{{ $t('common.show') }}</span>
-        <NSwitch v-model:value="panelState.panelConfig.searchBoxShow" :aria-label="$t('apps.baseSettings.searchBar')" />
-      </div>
-      <div v-if="panelState.panelConfig.searchBoxShow" class="flex items-center mt-1">
-        <span class="mr-3">{{ $t('apps.baseSettings.searchBarSearchItem') }}</span>
-        <NSwitch v-model:value="panelState.panelConfig.searchBoxSearchIcon" :aria-label="$t('apps.baseSettings.searchBarSearchItem')" />
-      </div>
-    </NCard>
-
-    <NCard class="mt-3" size="small">
-      <div class="text-text1 text-[17px] font-medium mb-2">
         {{ $t('apps.baseSettings.systemMonitorStatus') }}
       </div>
       <div class="flex items-center mt-1">

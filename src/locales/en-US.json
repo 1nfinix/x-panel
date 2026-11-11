@@ -63,9 +63,6 @@
       "netModeChangeButtonShow": "Show network mode switch button",
       "publicVisitModeShow": "Allow public mode display",
       "resetWarnText": "Are you sure you want to reset these styles?",
-      "searchBar": "Search bar component",
-      "searchBarSearchItem": "Allow search bar to search items",
-      "searchBarShow": "Configuration saved",
       "show": "Show",
       "showTitle": "Show title",
       "smallIcon": "Small icon",
@@ -226,10 +223,6 @@
       "tue": "Tuesday",
       "wed": "Wednesday"
     },
-    "searchBox": {
-      "inputPlaceholder": "Enter search content",
-      "openWithNewOpen": "Open in new window"
-    },
     "systemMonitor": {
       "cpuState": "CPU status",
       "diskMountPoint": "Mount point",
@@ -297,7 +290,6 @@
     "arrangeSaveFailed": "Failed to save order",
     "noMatches": "No matching sites",
     "importBookmarks": "Import bookmarks",
-    "todayWallpaper": "Today’s wallpaper",
     "moreGroups": "More groups",
     "viewAll": "View all {count}",
     "noBookmarks": "No bookmarks yet",
