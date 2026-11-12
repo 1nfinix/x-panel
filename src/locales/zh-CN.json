@@ -273,7 +273,7 @@
     "loginButton": "登录",
     "passwordPlaceholder": "密码",
     "usernamePlaceholder": "账号",
-    "welcomeMessage": "欢迎回来！",
+    "welcomeMessage": "Hi {name}，欢迎回来！",
     "captchaRequired": "请输入图形验证码",
     "captchaInvalid": "验证码错误或已过期，请刷新重试",
     "credentialsInvalid": "账号或密码错误",
